@@ -1,0 +1,13 @@
+services:
+  fitlog:
+    build: .
+    user: "${FITLOG_UID:-1000}:${FITLOG_GID:-1000}"
+    ports:
+      - "8080:8080"
+    environment:
+      FITLOG_DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
