@@ -1,0 +1,2 @@
+﻿external_id,sleep_start,sleep_end,duration_minutes,sleep_type,memo,updated_at
+example_sleep_01,2026-09-13T23:00:00+09:00,2026-09-14T06:00:00+09:00,420,main,,2026-09-14T21:10:00+09:00

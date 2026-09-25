@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183f35"><title>FitLog · 생활 기록</title>
+<link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/workouts.css"><link rel="stylesheet" href="/static/css/records.css">
+<script src="/static/js/app.js" defer></script><script src="/static/js/records.js" defer></script>
+</head><body>
+<a class="skip" href="#main">본문으로 이동</a>
+<aside class="sidebar"><a class="brand" href="/"><span class="brand-mark">F<span>·</span></span> FitLog</a>
+<p class="brand-caption">나를 알아가는 작은 기록</p>
+<nav class="navigation" aria-label="주 메뉴">
+<a href="/"><span aria-hidden="true">⌂</span>홈</a><a href="/workouts"><span aria-hidden="true">↗</span>운동</a>
+<a id="meal-nav" href="/meals"><span aria-hidden="true">◒</span>식단</a>
+<a href="/statistics"><span aria-hidden="true">▥</span>통계</a>
+<a href="/settings"><span aria-hidden="true">⚙</span>설정</a></nav>
+<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p></aside>
+<main id="main">
+<header class="topbar"><span class="eyebrow">MY DAILY RECORDS</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
+<section class="page-heading"><div><p id="today" class="date"></p><h1 id="page-title">생활 기록</h1><p id="page-description" class="muted"></p></div></section>
+<nav class="record-tabs" aria-label="생활 기록 종류"><a href="/meals">식단</a><a href="/body-metrics">체중·신체</a><a href="/sleep">수면</a></nav>
+<div class="toolbar"><button id="new-record" class="primary">+ 기록 추가</button><button id="refresh">새로고침</button></div>
+<p id="notice" role="status" aria-live="polite"></p>
+<form id="filter-form" class="filters"><label>시작 날짜<input name="date_from" type="date"></label><label>종료 날짜<input name="date_to" type="date"></label><button type="submit">조회</button><button type="button" id="clear-filter">초기화</button></form>
+<p id="filter-hint" class="hint"></p>
+<div id="record-list" class="workout-list" aria-live="polite"></div><button id="load-more" hidden>더 보기</button>
+<p id="pwa-note" class="muted pwa-note" role="status"></p>
+<noscript>생활 기록에는 JavaScript와 서버 연결이 필요합니다.</noscript>
+</main>
+<dialog id="record-dialog" aria-labelledby="form-title">
+<form id="record-form"><h2 id="form-title">기록 추가</h2><p id="form-hint" class="hint"></p>
+<div id="form-fields"></div>
+<p id="sleep-duration" class="duration-preview" role="status"></p>
+<label>메모<textarea name="memo" maxlength="5000" rows="3"></textarea></label>
+<p class="form-error" role="alert"></p>
+<div class="dialog-actions"><button type="button" id="cancel-record">취소</button><button type="submit" class="primary">저장</button></div>
+</form></dialog>
+</body></html>

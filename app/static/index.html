@@ -9,7 +9,9 @@
   <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/records.css">
   <script src="/static/js/app.js" defer></script>
+  <script src="/static/js/home.js" defer></script>
   <title>FitLog · 오늘의 기록</title>
 </head>
 <body>
@@ -19,30 +21,31 @@
     <p class="brand-caption">나를 알아가는 작은 기록</p>
     <nav class="navigation" aria-label="주 메뉴">
       <a href="/" class="active" aria-current="page"><span aria-hidden="true">⌂</span>홈</a>
-      <button disabled><span aria-hidden="true">↗</span>운동<small>준비 중</small></button>
-      <button disabled><span aria-hidden="true">◒</span>식단<small>준비 중</small></button>
-      <button disabled><span aria-hidden="true">▥</span>통계<small>준비 중</small></button>
-      <button disabled><span aria-hidden="true">⚙</span>설정<small>준비 중</small></button>
+      <a href="/workouts"><span aria-hidden="true">↗</span>운동</a>
+      <a href="/meals"><span aria-hidden="true">◒</span>식단</a>
+      <a href="/statistics"><span aria-hidden="true">▥</span>통계</a>
+      <a href="/settings"><span aria-hidden="true">⚙</span>설정</a>
     </nav>
     <p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
   </aside>
   <main id="main">
     <header class="topbar"><span class="eyebrow">MY DAILY LOG</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
-    <section class="page-heading"><div><p id="today" class="date">오늘의 기록</p><h1>오늘, 나의 컨디션</h1><p class="muted">작은 기록이 모여 나의 변화를 만듭니다.</p></div><span class="phase-tag">PHASE 01</span></section>
+    <section class="page-heading"><div><p id="today" class="date">오늘의 기록</p><h1>오늘, 나의 컨디션</h1><p class="muted">작은 기록이 모여 나의 변화를 만듭니다.</p></div><span class="phase-tag">PHASE 05</span></section>
+    <nav class="quick-records" aria-label="빠른 기록"><a href="/workouts">운동 기록</a><a href="/meals">식단 기록</a><a href="/body-metrics">체중·신체 기록</a><a href="/sleep">수면 기록</a></nav>
     <section class="welcome" aria-labelledby="welcome-title">
-      <div><span class="eyebrow">YOUR OWN PACE</span><h2 id="welcome-title">건강한 일상,<br>기록에서 시작해요.</h2><p>운동, 식단, 체중 그리고 수면.<br>FitLog에 나만의 건강 기록을 차곡차곡 쌓아보세요.</p><span class="welcome-note">기록 기능은 다음 업데이트에서 만나요</span></div>
+      <div><span class="eyebrow">YOUR OWN PACE</span><h2 id="welcome-title">건강한 일상,<br>기록에서 시작해요.</h2><p>운동, 식단, 체중 그리고 수면.<br>FitLog에 나만의 건강 기록을 차곡차곡 쌓아보세요.</p><a class="welcome-note" href="/workouts">오늘의 운동 기록하기 →</a></div>
       <div class="welcome-art" aria-hidden="true"><div class="orbit"><span>day by day</span><strong>F<span>·</span></strong><span>나를 위한 시간</span></div></div>
     </section>
-    <section aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">오늘의 요약</h2><span>아직 기록이 없어요</span></div>
+    <section aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">오늘의 요약</h2><span>기기 시간대 기준 · 체중은 최근 측정값</span></div>
       <div class="metrics">
-        <article class="card"><div class="card-heading"><h3>운동</h3><span class="metric-icon" aria-hidden="true">↗</span></div><p class="value">— <span>세트</span></p><p class="muted">오늘의 움직임을 기다려요</p><div class="card-foot">운동 기록 · Phase 2 예정</div></article>
-        <article class="card"><div class="card-heading"><h3>체중</h3><span class="metric-icon" aria-hidden="true">↔</span></div><p class="value">— <span>kg</span></p><p class="muted">숫자로 살펴보는 작은 변화</p><div class="card-foot">신체 기록 · Phase 3 예정</div></article>
-        <article class="card"><div class="card-heading"><h3>단백질</h3><span class="metric-icon" aria-hidden="true">◒</span></div><p class="value">— <span>g</span></p><p class="muted">나를 채우는 하루의 영양</p><div class="card-foot">식단 기록 · Phase 3 예정</div></article>
-        <article class="card"><div class="card-heading"><h3>수면</h3><span class="metric-icon" aria-hidden="true">☾</span></div><p class="value">— <span>시간</span></p><p class="muted">충분한 휴식도 건강한 습관</p><div class="card-foot">수면 기록 · Phase 3 예정</div></article>
+        <article class="card"><div class="card-heading"><h3>운동</h3><span class="metric-icon" aria-hidden="true">↗</span></div><p class="value"><span id="today-sets" style="font-size:inherit;color:inherit;font-weight:inherit">—</span> <span>세트</span></p><p class="muted" id="today-workouts">운동 기록을 불러오는 중</p><div class="card-foot"><a href="/workouts">운동 기록 보기 →</a></div></article>
+        <article class="card"><div class="card-heading"><h3>체중</h3><span class="metric-icon" aria-hidden="true">↔</span></div><p class="value"><span class="metric-value" id="latest-weight">—</span> <span>kg</span></p><p class="muted" id="weight-note">기록을 불러오는 중</p><div class="card-foot"><a href="/body-metrics">체중·신체 기록 →</a></div></article>
+        <article class="card"><div class="card-heading"><h3>단백질</h3><span class="metric-icon" aria-hidden="true">◒</span></div><p class="value"><span class="metric-value" id="today-protein">—</span> <span>g</span></p><p id="protein-goal"></p><p class="muted" id="protein-note">기록을 불러오는 중</p><div class="card-foot"><a href="/meals">식단 기록 →</a></div></article>
+        <article class="card"><div class="card-heading"><h3>수면</h3><span class="metric-icon" aria-hidden="true">☾</span></div><p class="value compact"><span class="metric-value" id="today-sleep">—</span></p><p class="muted" id="sleep-note">기록을 불러오는 중</p><div class="card-foot"><a href="/sleep">수면 기록 →</a></div></article>
       </div>
     </section>
-    <section class="recent card" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">최근 기록</h2><span>나의 건강 타임라인</span></div><div class="empty"><span class="empty-icon" aria-hidden="true">≡</span><h3>첫 기록을 위한 공간이에요</h3><p>기록 기능이 추가되면 최근 활동을 이곳에서 확인할 수 있어요.</p></div></section>
-    <footer class="main-footer"><span>FitLog <span class="muted">/ 나의 하루를 쌓는 곳</span></span><span>v0.1.0</span></footer>
+<section class="recent card" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">최근 운동</h2><a href="/workouts">전체 보기 →</a></div><div id="recent-workouts" aria-live="polite">기록을 불러오는 중…</div></section>
+    <footer class="main-footer"><span>FitLog <span class="muted">/ 나의 하루를 쌓는 곳</span></span><span>v0.5.0</span></footer>
     <p id="pwa-note" class="muted pwa-note" role="status"></p>
     <noscript><p>서버 상태 확인과 PWA 등록에는 JavaScript가 필요합니다.</p></noscript>
   </main>

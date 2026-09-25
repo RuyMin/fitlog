@@ -1,0 +1,29 @@
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit}
+main button,dialog button{min-height:44px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:9px 15px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--surface);border-color:var(--accent);font-weight:650}
+button.danger{color:#b44436}button:disabled{opacity:.5;cursor:wait}
+.toolbar,.dialog-actions,.row-actions{display:flex;flex-wrap:wrap;gap:8px}
+.toolbar{margin-bottom:20px}.filters{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:20px 0}.filters label{flex:1;min-width:130px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0}
+input,select,textarea{display:block;width:100%;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:10px;margin-top:5px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.workout-list{display:grid;gap:12px}.workout-link{display:block;transition:none}.workout-link:hover{border-color:var(--accent)}
+.workout-meta{color:var(--muted);font-size:13px;margin-top:8px}.workout-title{font-size:20px;overflow-wrap:anywhere}
+#notice{min-height:24px;font-size:14px;color:var(--accent)}#notice.error,.form-error{color:#c1523e}.form-error{font-size:14px;white-space:pre-wrap}
+#load-more{margin-top:20px;width:100%}.back-link{display:inline-block;padding:12px 0;color:var(--accent)}
+.detail-header{margin:10px 0 22px}.detail-header .row-actions{margin-top:16px}
+.memo{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px;font-size:14px}.exercise-group{margin:14px 0}
+.exercise-group h3{font-size:18px;overflow-wrap:anywhere}.set-row{padding:14px 0;border-top:1px solid var(--line);margin-top:12px}
+.set-heading{display:flex;align-items:center;gap:12px;justify-content:space-between}.set-heading strong{font-size:18px}
+.set-number{color:var(--muted);font-size:12px}.set-row .row-actions{margin-top:8px}
+.set-row.done .set-number{color:var(--accent)}.empty-state{padding:32px 20px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}
+dialog{width:min(540px,calc(100% - 24px));max-height:85dvh;overflow-y:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:24px}
+dialog::backdrop{background:#07180fb3}dialog h2{font-size:22px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}.hint{font-size:12px;color:var(--muted);margin:8px 0 16px}
+.checkbox{display:flex;align-items:center;gap:10px;color:var(--ink)}.checkbox input{width:22px;min-height:22px;margin:0;accent-color:var(--accent)}
+.dialog-actions{justify-content:flex-end;margin-top:20px}
+.exercise-item{padding:16px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.exercise-item .row-actions{margin-top:8px}
+#exercise-form{border-bottom:1px solid var(--line);padding-bottom:20px}
+@media(max-width:380px){.form-grid{grid-template-columns:1fr}dialog{padding:18px}.toolbar button{flex:1}}
+@media(prefers-color-scheme:dark){button.danger,.form-error,#notice.error{color:#ffab96}}

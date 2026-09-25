@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183f35"><title>FitLog · 운동 기록</title>
+<link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
+<link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/workouts.css">
+<script src="/static/js/app.js" defer></script><script src="/static/js/workouts.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 이동</a>
+<aside class="sidebar">
+<a class="brand" href="/"><span class="brand-mark">F<span>·</span></span> FitLog</a>
+<p class="brand-caption">나를 알아가는 작은 기록</p>
+<nav class="navigation" aria-label="주 메뉴">
+<a href="/"><span aria-hidden="true">⌂</span>홈</a>
+<a href="/workouts" class="active" aria-current="page"><span aria-hidden="true">↗</span>운동</a>
+<a href="/meals"><span aria-hidden="true">◒</span>식단</a>
+<a href="/statistics"><span aria-hidden="true">▥</span>통계</a>
+<a href="/settings"><span aria-hidden="true">⚙</span>설정</a>
+</nav><p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+</aside>
+<main id="main">
+<header class="topbar"><span class="eyebrow">MY WORKOUT LOG</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
+<section class="page-heading"><div><p id="today" class="date"></p><h1>운동 기록</h1><p class="muted">오늘의 한 세트가 내일의 변화를 만듭니다.</p></div></section>
+<div class="toolbar"><button id="new-workout" class="primary">+ 운동 기록</button><button id="manage-exercises">종목 관리</button><button id="refresh">새로고침</button></div>
+<p id="notice" role="status" aria-live="polite"></p>
+<section id="list-view">
+<form id="filter-form" class="filters"><label>시작 날짜<input type="date" name="date_from"></label><label>종료 날짜<input type="date" name="date_to"></label><button type="submit">조회</button><button type="button" id="clear-filter">초기화</button></form>
+<div id="workout-list" class="workout-list" aria-live="polite"></div><button id="load-more" hidden>더 보기</button>
+</section>
+<section id="detail-view" hidden><a href="/workouts" class="back-link">← 운동 목록</a><div id="workout-detail"></div></section>
+<p id="pwa-note" class="muted pwa-note" role="status"></p>
+<noscript>운동 기록에는 JavaScript와 서버 연결이 필요합니다.</noscript>
+</main>
+
+<dialog id="workout-dialog" aria-labelledby="workout-form-title">
+<form id="workout-form"><h2 id="workout-form-title">운동 기록</h2>
+<label>운동 날짜 *<input name="workout_date" type="date" required></label>
+<label>제목 *<input name="title" maxlength="200" placeholder="예: 하체 운동" required></label>
+<label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 하체"></label>
+<div class="form-grid"><label>시작 시각<input name="started_at" type="datetime-local"></label><label>종료 시각<input name="ended_at" type="datetime-local"></label></div>
+<p class="hint">시각은 현재 기기의 시간대를 기준으로 입력합니다.</p>
+<label>메모<textarea name="memo" maxlength="5000" rows="3"></textarea></label>
+<p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" data-close>취소</button><button type="submit" class="primary">저장</button></div>
+</form></dialog>
+
+<dialog id="set-dialog" aria-labelledby="set-form-title">
+<form id="set-form"><h2 id="set-form-title">세트 추가</h2>
+<label>운동 종목 *<select name="exercise_id" required></select></label>
+<p class="hint">새 종목은 ‘종목 관리’에서 먼저 등록하세요.</p>
+<div class="form-grid"><label>세트 번호 *<input name="set_number" type="number" min="1" max="10000" step="1" required></label><label>중량 (kg)<input name="weight" type="number" min="0" max="10000" step="any" inputmode="decimal"></label><label>횟수<input name="reps" type="number" min="0" max="100000" step="1" inputmode="numeric"></label></div>
+<p class="hint">중량·횟수는 모르면 비워두세요. 맨몸 운동은 중량 0으로 기록할 수 있어요.</p>
+<label class="checkbox"><input name="completed" type="checkbox">세트 완료</label>
+<label>메모<textarea name="memo" maxlength="5000" rows="3"></textarea></label>
+<p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" data-close>취소</button><button type="submit" class="primary">저장</button></div>
+</form></dialog>
+
+<dialog id="exercise-dialog" aria-labelledby="exercise-heading">
+<div class="section-heading"><h2 id="exercise-heading">종목 관리</h2><button type="button" data-close>닫기</button></div>
+<form id="exercise-form"><h3 id="exercise-form-title">새 종목</h3>
+<label>종목명 *<input name="name" maxlength="200" placeholder="예: Squat" required></label>
+<div class="form-grid"><label>분류<input name="category" maxlength="100" placeholder="예: 근력"></label><label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 하체"></label></div>
+<p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="reset-exercise">새 종목으로 전환</button><button type="submit" class="primary">저장</button></div>
+</form><p class="hint">기록된 세트에서 사용하는 종목은 삭제할 수 없습니다.</p>
+<div id="exercise-list"></div>
+</dialog>
+</body></html>

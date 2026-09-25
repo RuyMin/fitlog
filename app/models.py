@@ -1,7 +1,7 @@
 """Initial schema; all timestamp values follow the UTC-naive storage convention."""
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import LargeBinary, Boolean, CheckConstraint, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -11,7 +11,13 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-class Workout(Base):
+class SyncFields:
+    external_id: Mapped[str | None] = mapped_column(String(200))
+    source: Mapped[str] = mapped_column(String(30), default="local", server_default="local")
+    source_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Workout(SyncFields, Base):
     __tablename__ = "workouts"
     __table_args__ = (
         CheckConstraint("length(trim(title)) > 0", name="ck_workout_title"),
@@ -28,7 +34,8 @@ class Workout(Base):
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
     sets: Mapped[list["WorkoutSet"]] = relationship(
-        back_populates="workout", cascade="all, delete-orphan", passive_deletes=True
+        back_populates="workout", cascade="all, delete-orphan", passive_deletes=True,
+        order_by="WorkoutSet.exercise_id, WorkoutSet.set_number, WorkoutSet.id"
     )
 
 
@@ -43,7 +50,7 @@ class Exercise(Base):
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
 
-class WorkoutSet(Base):
+class WorkoutSet(SyncFields, Base):
     __tablename__ = "workout_sets"
     __table_args__ = (
         UniqueConstraint("workout_id", "exercise_id", "set_number", name="uq_set_number"),
@@ -61,10 +68,12 @@ class WorkoutSet(Base):
     completed: Mapped[bool] = mapped_column(Boolean(create_constraint=True), default=False)
     memo: Mapped[str | None] = mapped_column(Text)
     workout: Mapped[Workout] = relationship(back_populates="sets")
-    # RPE, RIR, duration and distance will be added via a schema migration.
+    exercise: Mapped[Exercise] = relationship()
+    rpe: Mapped[float | None] = mapped_column(Float)
+    rir: Mapped[float | None] = mapped_column(Float)
 
 
-class Meal(Base):
+class Meal(SyncFields, Base):
     __tablename__ = "meals"
     __table_args__ = tuple(
         CheckConstraint(f"{field} IS NULL OR {field} >= 0", name=f"ck_meal_{field}")
@@ -81,10 +90,11 @@ class Meal(Base):
     fat: Mapped[float | None] = mapped_column(Float)
     memo: Mapped[str | None] = mapped_column(Text)
     image_path: Mapped[str | None] = mapped_column(String(500))
+    image_url: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
 
-class BodyMetric(Base):
+class BodyMetric(SyncFields, Base):
     __tablename__ = "body_metrics"
     __table_args__ = (
         CheckConstraint("weight IS NULL OR weight > 0", name="ck_body_weight"),
@@ -101,7 +111,7 @@ class BodyMetric(Base):
     memo: Mapped[str | None] = mapped_column(Text)
 
 
-class SleepRecord(Base):
+class SleepRecord(SyncFields, Base):
     __tablename__ = "sleep_records"
     __table_args__ = (
         CheckConstraint("sleep_end > sleep_start", name="ck_sleep_time"),
@@ -115,3 +125,26 @@ class SleepRecord(Base):
     duration_minutes: Mapped[int] = mapped_column(Integer)
     sleep_type: Mapped[str] = mapped_column(String(20), default="main")
     memo: Mapped[str | None] = mapped_column(Text)
+
+
+class SyncState(Base):
+    __tablename__ = "sync_state"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    spreadsheet_id: Mapped[str | None] = mapped_column(String(200))
+    spreadsheet_title: Mapped[str | None] = mapped_column(String(300))
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime)
+    last_sync_status: Mapped[str | None] = mapped_column(String(30))
+    last_sync_error: Mapped[str | None] = mapped_column(Text)
+    last_result: Mapped[str | None] = mapped_column(Text)
+
+
+class ImportArchive(Base):
+    """Immutable source workbook plus all cell values; never served as static files."""
+    __tablename__ = "import_archives"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    original: Mapped[bytes] = mapped_column(LargeBinary)
+    payload: Mapped[str] = mapped_column(Text)
+    report: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)

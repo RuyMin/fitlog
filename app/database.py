@@ -40,8 +40,10 @@ def initialize_database() -> None:
     (DATA_DIR / "uploads").mkdir(exist_ok=True)
     with engine.connect() as connection:
         connection.exec_driver_sql("PRAGMA journal_mode=WAL")
-    # Initial schema only. Future changes must use explicit migrations.
+    from app.migrations import migrate, finish_migration
+    migrate(engine, DATABASE_PATH)
     Base.metadata.create_all(bind=engine)
+    finish_migration(engine)
 
 
 def get_session() -> Iterator[Session]:

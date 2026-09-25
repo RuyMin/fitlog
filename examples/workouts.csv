@@ -1,0 +1,2 @@
+﻿external_id,workout_date,title,body_part,started_at,ended_at,memo,updated_at
+example_workout_01,2026-09-14,Lower Body,legs,2026-09-14T20:00:00+09:00,2026-09-14T21:10:00+09:00,샘플: 실제 기록과 혼합하지 마세요,2026-09-14T21:10:00+09:00

@@ -1,0 +1,2 @@
+﻿external_id,eaten_at,meal_type,name,calories,protein,carbohydrates,fat,memo,image_url,updated_at
+example_meal_01,2026-09-14T12:00:00+09:00,lunch,샘플 점심,,30,,,,,2026-09-14T21:10:00+09:00

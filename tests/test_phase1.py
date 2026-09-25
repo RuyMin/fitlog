@@ -1,13 +1,10 @@
 """Integration tests using a disposable local database."""
-import os
-import tempfile
 import unittest
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-_TEMP = tempfile.TemporaryDirectory(prefix="fitlog-test-")
-os.environ["FITLOG_DATA_DIR"] = _TEMP.name
+from support import TEMP as _TEMP
 
 from fastapi.testclient import TestClient
 from sqlalchemy import inspect, select, text
@@ -27,7 +24,6 @@ class PhaseOneTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls.client.__exit__(None, None, None)
         engine.dispose()
-        _TEMP.cleanup()
 
     def test_health_and_database_configuration(self) -> None:
         result = self.client.get("/api/health")
@@ -36,7 +32,7 @@ class PhaseOneTests(unittest.TestCase):
         self.assertTrue(DATABASE_PATH.is_file())
         self.assertTrue((Path(_TEMP.name) / "uploads").is_dir())
         self.assertEqual(set(inspect(engine).get_table_names()), {
-            "workouts", "exercises", "workout_sets", "meals", "body_metrics", "sleep_records"
+            "workouts", "exercises", "workout_sets", "meals", "body_metrics", "sleep_records", "sync_state", "import_archives"
         })
         with engine.connect() as connection:
             self.assertEqual(connection.scalar(text("PRAGMA foreign_keys")), 1)
@@ -56,7 +52,7 @@ class PhaseOneTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.content[:8], b"\x89PNG\r\n\x1a\n")
         self.assertEqual(self.client.get("/service-worker.js").headers["cache-control"], "no-cache")
-        for path in ["/data/fitlog.db", "/uploads/example.jpg", "/api/workouts", "/api/unknown"]:
+        for path in ["/data/fitlog.db", "/uploads/example.jpg", "/api/unknown"]:
             self.assertEqual(self.client.get(path).status_code, 404)
         self.assertEqual(self.client.get("/api/unknown").json(), {"detail": "Not Found"})
 

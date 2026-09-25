@@ -1,0 +1,2 @@
+﻿external_id,workout_external_id,exercise,set_number,weight,reps,completed,rpe,rir,memo,updated_at
+example_set_01,example_workout_01,Squat,1,30,10,true,,,warmup,2026-09-14T21:10:00+09:00

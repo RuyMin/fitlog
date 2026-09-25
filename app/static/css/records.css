@@ -1,0 +1,18 @@
+.record-tabs{display:flex;gap:6px;background:var(--soft);border-radius:12px;padding:5px;margin-bottom:24px}
+.record-tabs a{flex:1;text-align:center;padding:10px 6px;border-radius:8px;font-size:14px;min-height:44px}
+.record-tabs a[aria-current=page]{background:var(--surface);color:var(--accent);font-weight:700}
+.record-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.record-heading h2{font-size:19px;overflow-wrap:anywhere}.record-kind{font-size:12px;white-space:nowrap;color:var(--accent);background:var(--soft);border-radius:6px;padding:4px 8px}
+.record-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.record-values p{font-size:13px;color:var(--muted)}.record-values strong{display:block;color:var(--ink);font-size:20px;font-weight:650}
+.record-card .row-actions{margin-top:16px}.record-card{overflow-wrap:anywhere}
+.duration-preview{font-weight:650;color:var(--accent);margin-top:10px}
+.quick-records{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
+.quick-records a{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 14px;min-height:44px;font-size:13px}
+.value .metric-value{font-size:inherit;color:inherit;font-weight:inherit}
+.value.compact{font-size:28px}
+#protein-goal{font-size:12px;color:var(--muted)}
+@media(min-width:1000px){#record-list{grid-template-columns:repeat(2,minmax(0,1fr))}.record-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+#today-sleep{word-break:keep-all;font-size:clamp(20px,5.6vw,28px)}
+@media(max-width:599px){.filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.filters label{min-width:0;margin:0}.filters button{width:100%}}

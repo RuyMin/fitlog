@@ -8,3 +8,10 @@ data/*
 !data/uploads/
 data/uploads/*
 !data/uploads/.gitkeep
+
+config/*
+!config/.gitkeep
+*.key.json
+*service-account*.json
+.env.*
+!.env.example
