@@ -1,0 +1,23 @@
+services:
+  fitlog:
+    image: ghcr.io/ruymin/fitlog:${FITLOG_IMAGE_TAG:-latest}
+    platform: linux/amd64
+    user: "${FITLOG_UID:-10001}:${FITLOG_GID:-10001}"
+    ports:
+      - "${FITLOG_PORT:-51881}:8080"
+    environment:
+      GOOGLE_SERVICE_ACCOUNT_FILE: ${GOOGLE_SERVICE_ACCOUNT_FILE:-/app/config/google-service-account.json}
+      GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID:-}
+      GOOGLE_WORKSHEET_WORKOUTS: ${GOOGLE_WORKSHEET_WORKOUTS:-workouts}
+      GOOGLE_WORKSHEET_WORKOUT_SETS: ${GOOGLE_WORKSHEET_WORKOUT_SETS:-workout_sets}
+      GOOGLE_WORKSHEET_MEALS: ${GOOGLE_WORKSHEET_MEALS:-meals}
+      GOOGLE_WORKSHEET_BODY_METRICS: ${GOOGLE_WORKSHEET_BODY_METRICS:-body_metrics}
+      GOOGLE_WORKSHEET_SLEEP: ${GOOGLE_WORKSHEET_SLEEP:-sleep}
+      FITLOG_DATA_DIR: /app/data
+      FITLOG_PROTEIN_GOAL_G: "${FITLOG_PROTEIN_GOAL_G:-150}"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true

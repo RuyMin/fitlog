@@ -595,3 +595,54 @@ Phase 1–5 기본 구현 완료. 이번 범위에는 Google export, 자동 주�
 ChatGPT에 기록을 요청할 때 다음 지침을 함께 전달하면 됩니다.
 
 > 기존 한글 탭 이름과 헤더 위치·컬럼 순서를 유지해 주세요. 기록은 한 행씩 추가하고, 웨이트는 입력 예시 위에 작성해 주세요. 날짜는 YYYY-MM-DD, 식사 일시는 YYYY-MM-DD HH:mm으로 기록해 주세요. 이미 기록한 날짜·운동 제목·종목·식사 일시·음식명은 식별값이므로 유지하고, 정정 설명은 메모에 남겨 주세요. 영양 정보를 모르면 빈칸으로 남기고 추정치는 메모에 추정임을 표시해 주세요.
+
+## GitHub Actions와 NAS 이미지 배포
+
+`.github/workflows/ci.yml`이 PR과 main push의 Python 테스트를 실행합니다. main에서 테스트가 통과하면 Linux amd64 이미지를 만들고, 인증 정보와 기존 DB가 없는 임시 컨테이너로 health/sync 상태를 확인한 뒤 GHCR에 게시합니다. UGREEN DXP4800 Plus는 이 amd64 이미지를 사용합니다.
+
+- 이미지: `ghcr.io/ruymin/fitlog:latest`
+- 고정 버전: `ghcr.io/ruymin/fitlog:sha-<전체 40자리 커밋 SHA>`
+- Actions 화면: https://github.com/RuyMin/fitlog/actions
+- 개인 Google 인증 키, .env, SQLite, 업로드 파일은 빌드 이미지에 포함하지 않습니다.
+- GitHub가 제공하는 `GITHUB_TOKEN`의 `packages: write` 권한으로 게시합니다. 별도 Docker Hub 계정이나 NAS 접속용 secret은 필요 없습니다.
+- Actions는 NAS를 재시작하지 않습니다. NAS 업데이트는 아래 명령으로 직접 실행합니다.
+
+### 최초 1회 GHCR 공개 설정
+
+첫 이미지 게시 후 GitHub의 사용자 프로필 → Packages → fitlog → Package settings → Change visibility에서 **Public**으로 변경합니다. 저장소가 공개여도 새 패키지는 기본적으로 비공개일 수 있습니다. 공개 전환 후 NAS에서는 GitHub 토큰 없이 pull할 수 있습니다.
+
+### NAS 최초 설치 (빈 DB)
+
+NAS Docker 앱을 설치하고 NAS의 **로컬 디스크**에 배포 폴더를 만드세요. SMB/NFS 경로를 SQLite 저장 위치로 사용하지 마세요. 배포 폴더에는 저장소의 `compose.nas.yml`, `.env.example`만 받아도 됩니다. 기존 PC의 `data/` 또는 백업 DB를 복사하지 마세요.
+
+```bash
+mkdir -p data/uploads config
+cp .env.example .env
+id -u
+id -g
+```
+
+출력된 NAS 사용자 UID/GID를 `.env`의 `FITLOG_UID`, `FITLOG_GID`에 입력하세요. `data/`는 해당 사용자가 쓰기 가능하고 `config/`의 키는 읽기 가능해야 합니다. NAS의 파일 권한 관리 또는 해당 사용자로 폴더 생성하여 맞추세요. `FITLOG_PORT` 기본값은 51881입니다.
+
+서비스 계정 JSON은 별도로 `config/google-service-account.json`에 저장하고 `.env`에 `GOOGLE_SPREADSHEET_ID`를 입력하세요. 키 파일은 해당 사용자만 읽을 수 있도록 관리하세요. 비워 두어도 앱은 실행되며 Google 동기화만 미설정 상태가 됩니다.
+
+```bash
+docker compose -f compose.nas.yml pull
+docker compose -f compose.nas.yml up -d
+docker compose -f compose.nas.yml ps
+curl -f http://localhost:51881/api/health
+```
+
+`http://NAS_IP:51881`로 접속한 뒤 설정 → 지금 동기화를 실행합니다. 최초 DB는 `/app/data/fitlog.db`에 자동 생성되며 실제 저장 위치는 NAS 배포 폴더의 `data/fitlog.db`입니다. 앱 업데이트와 무관하게 같은 data/config mount를 유지하세요. PWA 사용은 HTTPS reverse proxy 주소를 사용하세요.
+
+### 업데이트와 이전 이미지 선택
+
+업데이트 전 SQLite 백업을 권장합니다. 실행 중인 `.db` 파일만 복사하면 WAL 변경분이 빠질 수 있으므로 SQLite backup 기능을 사용하세요.
+
+```bash
+docker compose -f compose.nas.yml exec -T fitlog python -c "import sqlite3; from datetime import datetime; p='/app/data/backup-'+datetime.now().strftime('%Y%m%dT%H%M%S')+'.db'; s=sqlite3.connect('/app/data/fitlog.db'); d=sqlite3.connect(p); s.backup(d); d.close(); s.close(); print(p)"
+docker compose -f compose.nas.yml pull
+docker compose -f compose.nas.yml up -d
+```
+
+버전을 고정하거나 이전 이미지를 선택하려면 `.env`의 `FITLOG_IMAGE_TAG`를 `sha-<전체 커밋 SHA>`로 바꾸고 동일한 pull/up 명령을 실행하세요. DB 스키마가 변경된 버전에서 되돌릴 때는 이전 이미지와 DB의 호환성을 먼저 확인하고 필요하면 백업 복원 절차를 사용해야 합니다. 이미지 변경만으로 DB 마이그레이션이 되돌아가지는 않습니다.
