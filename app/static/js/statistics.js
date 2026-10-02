@@ -38,8 +38,8 @@ function renderVolume() {
   });
   const total=exercise?.sets_count ?? current.summary.sets_count;
   const known=exercise?.known_volume_sets ?? current.summary.known_volume_sets;
-  $("#exercise-volume-note").textContent="일별 중량 × 횟수 합계 · 계산 가능 "+known+"/"+total+"세트 · 기록 없는 날은 비워둡니다.";
-  volumeCleanup=renderChart($("#volume-chart"),{title:(exercise?.name || "전체 종목")+" 볼륨",points,unit:"kg·회",format:number});
+  $("#exercise-volume-note").textContent="일별 중량 × 횟수 합계 · 계산 가능 "+known+"/"+total+"세트 · 점은 실제 기록 · 선은 기록 간 변화이며 미기록 날짜의 값을 뜻하지 않습니다.";
+  volumeCleanup=renderChart($("#volume-chart"),{title:(exercise?.name || "전체 종목")+" 볼륨",points,unit:"kg·회",format:number,connectGaps:true});
 }
 function render(data) {
   cleanups.forEach((cleanup)=>cleanup());cleanups=[];
@@ -56,7 +56,7 @@ function render(data) {
   $("#sleep-average-note").textContent="수면 기록이 있는 "+summary.sleep_days+"일 평균";
   $("#weight-change").textContent=summary.weight_change_kg == null ? "변화를 비교하려면 서로 다른 날짜의 체중이 2개 이상 필요합니다." : "기간 첫 기록 대비 "+(summary.weight_change_kg>0?"+":"")+number(summary.weight_change_kg)+" kg · 측정 "+summary.weight_days+"일";
   cleanups.push(renderChart($("#weekly-chart"),{title:"주간 세트 수",points:data.weekly.map((week)=>({date:week.week_start,label:week.period_start+" ~ "+week.period_end,value:week.sets_count})),kind:"bar",unit:"세트",format:number,integer:true}));
-  cleanups.push(renderChart($("#weight-chart"),{title:"체중 변화",points:data.daily.map((point)=>({date:point.date,value:point.weight})),unit:"kg",format:number,zeroBaseline:false}));
+  cleanups.push(renderChart($("#weight-chart"),{title:"체중 변화",points:data.daily.map((point)=>({date:point.date,value:point.weight})),unit:"kg",format:number,zeroBaseline:false,connectGaps:true}));
   cleanups.push(renderChart($("#sleep-chart"),{title:"수면 시간 변화",points:data.daily.map((point)=>({date:point.date,value:point.sleep_minutes == null ? null : point.sleep_minutes/60})),kind:"bar",unit:"시간",format:(hours)=>number(hours)}));
   const selected=$("#exercise-select").value;
   const all=node("option","전체 종목");all.value="all";

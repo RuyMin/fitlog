@@ -13,3 +13,5 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;b
 @media(prefers-color-scheme:dark){#statistics-status.error{color:#ffab96}}
 
 .exercise-stats table{min-width:540px}
+
+.chart-bar-selected{opacity:1;stroke:var(--ink);stroke-width:2}

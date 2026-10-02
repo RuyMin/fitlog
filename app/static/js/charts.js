@@ -15,7 +15,7 @@ function html(tag, text, className) {
 const shortDate = (date) => date.slice(5).replace("-", "/");
 
 /** Points are equally spaced, so callers supply every day/week, including nulls. */
-export function renderChart(container, {title, points, kind = "line", unit, format, zeroBaseline = true, integer = false}) {
+export function renderChart(container, {title, points, kind = "line", unit, format, zeroBaseline = true, integer = false, connectGaps = false}) {
   container.replaceChildren();
   const available = points.filter((point) => point.value != null);
   if (!available.length) {
@@ -80,12 +80,12 @@ export function renderChart(container, {title, points, kind = "line", unit, form
       const barWidth = Math.min(42, plotWidth / points.length * .65);
       points.forEach((point, index) => {
         if (point.value == null) return;
-        svg.append(svgElement("rect", {x:x(index)-barWidth/2,y:y(point.value),width:barWidth,height:Math.max(0, y(0)-y(point.value)),rx:2,class:"chart-bar"}));
+        svg.append(svgElement("rect", {x:x(index)-barWidth/2,y:y(point.value),width:barWidth,height:Math.max(0, y(0)-y(point.value)),rx:2,class:index === selected ? "chart-bar chart-bar-selected" : "chart-bar"}));
       });
     } else {
       let path = "", connected = false;
       points.forEach((point, index) => {
-        if (point.value == null) { connected = false; return; }
+        if (point.value == null) { if (!connectGaps) connected = false; return; }
         path += (connected ? "L" : "M") + x(index) + "," + y(point.value) + " ";
         connected = true;
       });
@@ -94,7 +94,7 @@ export function renderChart(container, {title, points, kind = "line", unit, form
         if (point.value != null) svg.append(svgElement("circle", {cx:x(index),cy:y(point.value),r:points.length > 90 ? 2 : 3.5,class:"chart-dot"}));
       });
     }
-    if (points[selected]?.value != null) svg.append(svgElement("circle", {cx:x(selected),cy:y(points[selected].value),r:5,class:"chart-selected"}));
+    if (kind !== "bar" && points[selected]?.value != null) svg.append(svgElement("circle", {cx:x(selected),cy:y(points[selected].value),r:5,class:"chart-selected"}));
     svg.addEventListener("click", (event) => {
       const ratio = Math.max(0, Math.min(1, (event.clientX-svg.getBoundingClientRect().left-left)/plotWidth));
       select(kind === "bar" ? Math.min(points.length-1,Math.floor(ratio*points.length)) : Math.round(ratio*(points.length-1)));
