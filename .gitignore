@@ -15,3 +15,7 @@ config/*
 *service-account*.json
 .env.*
 !.env.example
+
+deploy/ugreen/logs/
+deploy/ugreen/.update.lock
+deploy/ugreen/.update-failed
