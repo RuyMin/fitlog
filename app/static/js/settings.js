@@ -55,7 +55,7 @@
   }
   async function archives() {
     try {
-      const data = await api("archives"); const list = $("archive-list");
+      const data = await api("archives"); const list = $("archive-list"); list.replaceChildren();
       if (!data.length) { list.textContent = "아직 이관한 원본 자료가 없습니다."; return; }
       for (const item of data) {
         const box = node("div"); box.className = "archive-entry"; box.append(node("h3", item.filename));
@@ -68,5 +68,6 @@
       }
     } catch { $("archive-list").textContent = "원본 자료 목록을 불러오지 못했습니다."; }
   }
+  window.addEventListener("fitlog-imported", archives);
   status(); archives();
 })();

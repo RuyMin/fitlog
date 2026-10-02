@@ -175,7 +175,7 @@ class MigrationTests(unittest.TestCase):
                 migrate(e,path);finish_migration(e);migrate(e,path);finish_migration(e)
                 with e.connect() as c:
                     self.assertEqual(c.exec_driver_sql("SELECT source,memo FROM workouts").one(),("local","original"))
-                    self.assertEqual(c.exec_driver_sql("PRAGMA user_version").scalar(),1)
+                    self.assertEqual(c.exec_driver_sql("PRAGMA user_version").scalar(),2)
                 backups=list((path.parent/"backups").glob("*.db"));self.assertEqual(len(backups),1)
                 with closing(sqlite3.connect(backups[0])) as c:self.assertEqual(c.execute("SELECT memo FROM meals").fetchone()[0],"original")
             finally:e.dispose()

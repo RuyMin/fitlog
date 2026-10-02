@@ -12,9 +12,9 @@ def migrate(engine: Engine, path: Path) -> None:
     with engine.connect() as c:
         version = c.exec_driver_sql("PRAGMA user_version").scalar_one()
         old = c.exec_driver_sql("SELECT name FROM sqlite_master WHERE type='table' AND name='workouts'").first()
-    if version > 1:
+    if version > 2:
         raise RuntimeError("Database schema is newer than this application")
-    if version == 1:
+    if version == 2:
         return
     if old:
         directory = path.parent / "backups"
@@ -47,4 +47,4 @@ def finish_migration(engine: Engine) -> None:
     with engine.begin() as c:
         for table in TABLES:
             c.exec_driver_sql(f"CREATE UNIQUE INDEX IF NOT EXISTS uq_{table}_source_external ON {table}(source, external_id)")
-        c.exec_driver_sql("PRAGMA user_version=1")
+        c.exec_driver_sql("PRAGMA user_version=2")

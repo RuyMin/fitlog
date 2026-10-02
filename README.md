@@ -465,9 +465,9 @@ JSON 키/토큰/Google 원문 예외를 UI/로그로 출력하지 않으며 DB �
 - `app/sync_schemas.py`: 외부 행 계약/컬럼. 표준 데이터 타입과 입력 검증.
 - `app/services/sync_service.py`: 검증, ID 매칭, insert/update/skip, 전체 rollback, 결과와 최근 상태. 독립 함수 `sync_google_sheets()`는 향후 scheduler에서도 재사용할 수 있습니다.
 - `app/api/sync.py`: GET `/api/sync/status`, POST `/api/sync/google`, 원본 자료 목록/조회/다운로드.
-- `app/migrations.py`: 기존 DB 자동 백업 후 명시적 additive migration. 스키마 버전은 SQLite `PRAGMA user_version=1`.
+- `app/migrations.py`: 기존 DB 자동 백업 후 명시적 additive migration. 스키마 버전은 SQLite `PRAGMA user_version=2`.
 - `app/static/settings.html`, `css/settings.css`, `js/settings.js`: 관리 화면.
-- `app/services/legacy_xlsx.py`: 제공된 7개 시트 형식의 1회성 Excel 변환/이관 도구. 일반적인 모든 Excel 구조를 자동 추측하지 않습니다.
+- `app/services/legacy_xlsx.py`: 제공된 7개 시트 형식의 공통 Excel 변환기와 초기 이관 CLI. 일반적인 모든 Excel 구조를 자동 추측하지 않습니다.
 
 workouts/workout_sets/meals/body_metrics/sleep_records에 nullable `external_id`, `source_updated_at`, 기본 local인 `source`를 추가합니다.
 각 테이블에 `(source, external_id)` 고유 인덱스를 만들며 외부 ID 없는 기존 로컬 기록은 보존합니다.
@@ -486,7 +486,7 @@ workout_sets에는 nullable rpe/rir, meals에는 별도 image_url을 추가합�
 CSV를 Google Sheets에 올릴 때 이 ID를 유지하면 최초 Google sync도 중복 insert하지 않습니다.
 
 ```powershell
-# 로컬 변환 전용 의존성(openpyxl); 서버 Docker 이미지에는 필요하지 않음
+# Excel 변환 의존성(openpyxl)은 웹 업로드 지원을 위해 서버에도 포함
 python -m pip install -r requirements-import.txt
 python -m app.services.legacy_xlsx --prepare 'C:\Users\unlim\Desktop\운동_식사_통합기록.xlsx' --output data/imports/legacy-20260926
 # 생성된 report.json / CSV 검토 후, 운영 DB와 동일 컨테이너 환경에서 원자적 반영
@@ -511,3 +511,52 @@ python -m unittest discover -s tests -v
 
 Phase 1–5 기본 구현 완료. 이번 범위에는 Google export, 자동 주기 sync, OAuth, Drive 파일 탐색, 여러 Spreadsheet·사용자가 없습니다.
 후속 작업 후보는 인증/API token, 로컬 편집 충돌 정책, 양방향 export, 자동 sync, 러닝 및 확장 영양정보 전용 모델/통계입니다.
+
+
+## Excel 업로드 → 비교 → 선택 저장 (v0.6)
+
+[설정](http://localhost:51881/settings) 상단의 **Excel 기록 가져오기**에서 사용합니다.
+
+1. 기존 `운동_식사_통합기록.xlsx`와 같은 7개 시트·컬럼 순서를 유지한 파일을 선택합니다.
+2. **기존 기록과 비교**를 누릅니다. 이 단계에서는 운동·식단 등의 기록을 변경하지 않습니다.
+3. 신규·변경·동일·확인 필요 건수를 확인합니다. 각 항목을 펼치면 기존 값과 파일 값, 같은 날의 기존 후보를 볼 수 있습니다.
+4. 저장할 신규·변경 항목의 **이 기록 저장**을 선택합니다. 기본 선택은 없습니다. 필요하면 전체 선택 버튼을 사용합니다.
+5. **선택한 기록 저장**을 누릅니다. 선택하지 않은 데이터와 파일에서 빠진 기존 기록은 그대로 유지합니다. 선택이 없으면 원본 파일만 보관합니다.
+6. **최근 Excel 저장 이력**에서 실제 저장한 값의 이전/이후 내용을 확인합니다. 원본 자료 목록에서도 파일을 열람·다운로드할 수 있습니다.
+
+### 매칭 기준과 제한
+
+- 운동: 운동 날짜 + 제목(루틴/세션).
+- 세트: 연결된 운동 + 정확한 운동 종목명 + 세트 번호.
+- 식단: 식사 시각(UTC로 정규화) + 음식 이름.
+- 신체: 측정 시각(UTC로 정규화).
+- 이 Excel 양식에 없는 RPE·사진 URL은 기존 값이 있으면 유지합니다.
+- 행 번호는 매칭에 사용하지 않습니다. 원본 위치만 달라진 메모는 동일하게 처리합니다.
+- 식별 기준이 같은 파일 행이나 DB 후보가 여러 개면 **확인 필요**로 표시하고 해당 항목은 저장할 수 없습니다. 연결된 운동이 모호하면 그 세트도 제외합니다. 원본 중복을 수정하거나 기존 기록을 정리한 뒤 다시 비교하세요.
+- 날짜·시각·이름 자체를 바꾸면 새 기록으로 인식될 수 있습니다. 같은 날 후보를 함께 표시하지만 자동으로 합치지 않습니다. 이 경우 해당 신규 항목을 선택하지 말고 기존 기록을 앱에서 수정한 뒤 다시 비교하거나, 별도 기록임을 확인한 경우에만 신규 저장하세요.
+- 새 운동의 세트를 선택하면 해당 운동도 함께 선택됩니다. 서버에서도 부모 운동 선택 여부를 검사합니다.
+- 기존 Google Sheets에서 가져온 기록과 일치하면 그 DB 행과 외부 ID/source를 유지하여 수정합니다. Google Sheets로 내보내지는 않습니다. 이후 더 최신 Google 행이 다시 덮어쓸 수 있으므로 두 입력 경로의 기준 데이터를 일치시켜 주세요.
+- 현재는 기존 통합기록 양식만 지원합니다. 임의의 Excel 컬럼, 매크로, 암호화 파일, 기록 시트의 수식은 지원하지 않습니다. 수식은 계산하지 않으므로 값으로 붙여 넣어 업로드하세요.
+
+### 저장·업로드 안전성
+
+미리보기는 1시간 동안 유효합니다. 비교 이후 운동·식단·신체·수면·종목 중 하나라도 바뀌면 저장을 거부하고 재비교를 요청합니다.
+모든 선택 항목과 원본 보존·변경 이력을 하나의 SQLite 트랜잭션으로 저장합니다. 오류 발생 시 전체 rollback입니다.
+동일 저장 요청을 반복해도 한 번만 반영합니다. 이미 저장한 비교에 다른 선택을 보내면 거부합니다.
+기록을 변경하는 날짜/수치에 대한 기존 입력 검증을 재사용합니다.
+
+업로드는 .xlsx 최대 5MB, 압축 해제 총 20MB, ZIP 항목 1,000개, 시트당 5,000행/50열, 전체 셀 범위 200,000칸, 변환 기록 5,000개로 제한합니다.
+`openpyxl`과 `defusedxml`로 읽으며 파일 내 수식·외부 링크를 실행하지 않습니다. XML 방어 근거: [openpyxl 공식 보안 안내](https://openpyxl.readthedocs.io/en/stable/#security).
+비교 초안은 비공개 SQLite `excel_previews`에 저장합니다. 취소하면 제거하고, 만료 초안은 다음 업로드 때 정리합니다. 대기 초안은 최대 20개입니다.
+저장된 원본은 `import_archives`, 이전/이후 값과 처리 결과는 `excel_previews`에 보존합니다. 이력 화면/API는 최근 10회를 보여줍니다.
+스키마 v2 업그레이드는 기존 DB를 자동 백업한 뒤 새 테이블을 생성합니다.
+
+### API와 코드
+
+- `POST /api/sync/excel/preview?filename=records.xlsx`: XLSX 바이너리 본문, Content-Type `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. token/건수/비교 항목 반환.
+- `POST /api/sync/excel/{token}/commit`: JSON `{"selected":["0","2"]}`. 선택 키는 해당 미리보기 응답의 key만 사용합니다.
+- `DELETE /api/sync/excel/{token}`: 미저장 비교 취소.
+- `GET /api/sync/excel/history`: 최근 10개 저장 이력과 변경 전/후 값.
+
+`app/services/excel_import.py`가 비교·선택 저장·동시 변경 검사, `app/api/excel.py`가 업로드 제한/API, `app/static/js/excel-import.js`가 검토 UI를 담당합니다.
+배포는 `docker compose up -d --build`. Google 인증 설정 없이도 Excel 기능을 사용할 수 있습니다.

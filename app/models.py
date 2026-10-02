@@ -148,3 +148,13 @@ class ImportArchive(Base):
     payload: Mapped[str] = mapped_column(Text)
     report: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
+
+
+class ExcelPreview(Base):
+    """Expiring draft; applied previews retain the exact before/after audit trail."""
+    __tablename__ = "excel_previews"
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    payload: Mapped[str] = mapped_column(Text)
+    original: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    result: Mapped[str | None] = mapped_column(Text)

@@ -1,1 +1,51 @@
 .sync-details{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:24px 0}.sync-details dt{color:var(--muted)}.sync-details dd{margin:0;overflow-wrap:anywhere}.archive-card{margin-top:24px}.archive-card details{margin:16px 0}.archive-card summary{cursor:pointer;font-weight:600;padding:12px 0}.archive-scroll{overflow:auto;max-height:500px}.archive-scroll table{border-collapse:collapse;min-width:700px}.archive-scroll td,.archive-scroll th{border:1px solid var(--line);padding:10px;min-width:100px;max-width:340px;white-space:pre-wrap;overflow-wrap:anywhere}.archive-scroll th{position:sticky;top:0;background:var(--surface)}#sync-results p{margin:8px 0}#sync-message{white-space:pre-wrap}.archive-entry{margin:18px 0}.archive-entry a{display:inline-block;margin:10px}.archive-entry p{overflow-wrap:anywhere}button{min-height:44px}#sync-refresh{margin-left:8px}@media(max-width:400px){#sync-refresh{margin:8px 0}}
+
+.excel-card{margin-bottom:24px}.excel-card form{display:flex;flex-direction:column;gap:12px;margin:20px 0}.excel-card input[type=file]{max-width:100%;width:100%;font:inherit}.excel-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;align-items:center}.excel-actions label{display:flex;gap:8px;align-items:center}.excel-entry{border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0;overflow-wrap:anywhere}.excel-entry summary{cursor:pointer;font-weight:600;min-height:36px}.excel-entry label{display:flex;align-items:center;min-height:44px;gap:8px}.excel-entry input[type=checkbox]{width:20px;height:20px}.excel-values{margin-top:12px}.excel-values>div{border-top:1px solid var(--line);padding:10px 0}.excel-values p, .excel-entry pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px;margin:6px 0}.excel-entry pre{max-height:300px;overflow:auto}#excel-message{margin:12px 0}#excel-history{margin-top:20px}#excel-history-list details{padding:10px 0}#excel-history summary{cursor:pointer;overflow-wrap:anywhere}#excel-history-list .excel-values{max-height:400px;overflow:auto}
+
+/* Settings rhythm: separate explanations, controls and review content. */
+.settings-page main>.card{padding:24px;margin:0 0 24px}
+.settings-page .card>h2{margin-bottom:12px;font-size:19px}
+.settings-page .card p{line-height:1.8}
+.settings-page .card>.muted{font-size:14px;max-width:68ch}
+.settings-page main button{min-height:40px;padding:8px 12px;font-size:13px;line-height:1.5;border-radius:8px;width:auto;flex:0 0 auto}
+.settings-page main button:disabled{cursor:default}
+.settings-page .settings-actions,.settings-page .excel-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:20px 0}
+.settings-page #sync-refresh{margin:0}
+.settings-page #sync-help{margin:0 0 20px;font-size:14px}
+.settings-page .hint{margin:14px 0 0;line-height:1.85;font-size:12px}
+.settings-page #sync-message:empty,.settings-page #excel-message:empty,.settings-page #sync-results:empty{display:none}
+.settings-page #sync-message,.settings-page #excel-message{margin:20px 0;font-size:14px}
+.settings-page .sync-details{grid-template-columns:100px minmax(0,1fr);gap:16px 20px;padding:20px 0;margin:4px 0 20px;border-bottom:1px solid var(--line);font-size:14px}
+.settings-page .excel-card form{gap:12px;margin:24px 0;align-items:flex-start}
+.settings-page .excel-card form label{margin:0;font-size:13px}
+.settings-page .excel-card input[type=file]{margin:0;padding:10px;min-height:44px;font-size:13px;line-height:1.6}
+.settings-page input[type=file]::file-selector-button{font:inherit;padding:6px 10px;margin-right:12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer}
+.settings-page #excel-compare{margin-top:4px}
+.settings-page #excel-review{padding-top:24px;margin-top:24px;border-top:1px solid var(--line)}
+.settings-page #excel-counts{padding:14px 16px;background:var(--soft);border-radius:8px;font-size:14px;line-height:1.9}
+.settings-page .excel-actions label{margin:0;gap:10px;flex:1 1 100%;align-items:center}
+.settings-page .excel-actions select{width:auto;max-width:100%;min-height:40px;padding:8px 10px;margin:0;font-size:13px}
+.settings-page .excel-entry{margin:16px 0;padding:16px;border-radius:10px}
+.settings-page .excel-entry>summary{font-size:14px;line-height:1.8;min-height:0;padding:2px 0}
+.settings-page .excel-entry[open]>summary{margin-bottom:16px}
+.settings-page .excel-entry>label{margin:12px 0;gap:12px}
+.settings-page .excel-entry input[type=checkbox]{min-height:20px;margin:0;padding:0;flex-shrink:0}
+.settings-page .excel-entry>p{font-size:13px;color:var(--muted);margin:12px 0}
+.settings-page .excel-values{margin-top:20px}
+.settings-page .excel-values>div{padding:16px 0}
+.settings-page .excel-values strong{display:block;font-size:13px;margin-bottom:8px}
+.settings-page .excel-values p{margin:8px 0;line-height:1.9}
+.settings-page #excel-history{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.settings-page #excel-history>summary{font-size:14px;padding:4px 0}
+.settings-page #excel-history-list>p{margin-top:16px;font-size:13px;color:var(--muted)}
+.settings-page .archive-entry{margin:24px 0 0;padding:20px 0 0;border-top:1px solid var(--line)}
+.settings-page .archive-entry h3{font-size:15px;margin-bottom:12px;overflow-wrap:anywhere}
+.settings-page .archive-entry p{font-size:13px;margin:10px 0}
+.settings-page .archive-entry details{margin:16px 0 20px}
+.settings-page .archive-entry summary{font-size:13px;padding:8px 0}
+.settings-page .archive-entry a{margin:12px 0 0;display:block;width:fit-content;padding:8px 0;font-size:13px;text-decoration:underline;text-underline-offset:4px}
+.settings-page #archive-view:not(:empty){margin-top:28px;padding-top:24px;border-top:1px solid var(--line)}
+.settings-page #archive-view>h3{margin-bottom:20px;overflow-wrap:anywhere}
+@media(min-width:700px){.settings-page main>.card{padding:30px 32px;margin-bottom:28px}.settings-page .excel-card form{max-width:620px}.settings-page .excel-actions label{flex:0 1 auto;margin-right:8px}.settings-page .archive-entry a{display:inline-block;margin:0 0 0 16px;padding:8px}}
+@media(max-width:360px){.settings-page main>.card{padding:20px}.settings-page .sync-details{grid-template-columns:80px minmax(0,1fr);gap:14px}.settings-page .excel-actions{gap:10px}}
+@media(pointer:coarse){.settings-page main button{min-height:44px}}

@@ -4,8 +4,8 @@
 <meta name="theme-color" content="#183f35"><title>FitLog · 설정</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/workouts.css"><link rel="stylesheet" href="/static/css/settings.css">
-<script src="/static/js/app.js" defer></script><script src="/static/js/settings.js" defer></script>
-</head><body>
+<script src="/static/js/app.js" defer></script><script src="/static/js/settings.js" defer></script><script src="/static/js/excel-import.js" defer></script>
+</head><body class="settings-page">
 <a class="skip" href="#main">본문으로 이동</a>
 <aside class="sidebar"><a class="brand" href="/"><span class="brand-mark">F<span>·</span></span> FitLog</a><p class="brand-caption">나를 알아가는 작은 기록</p>
 <nav class="navigation" aria-label="주 메뉴"><a href="/"><span aria-hidden="true">⌂</span>홈</a><a href="/workouts"><span aria-hidden="true">↗</span>운동</a><a href="/meals"><span aria-hidden="true">◒</span>식단</a><a href="/statistics"><span aria-hidden="true">▥</span>통계</a><a href="/settings" class="active" aria-current="page"><span aria-hidden="true">⚙</span>설정</a></nav>
@@ -13,8 +13,17 @@
 <main id="main">
 <header class="topbar"><span class="eyebrow">MY SETTINGS</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
 <section class="page-heading"><div><p id="today" class="date"></p><h1>설정과 데이터</h1><p class="muted">Google Sheets 기록을 FitLog로 가져옵니다.</p></div></section>
+<section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
+<p class="muted">기존 운동·식사 통합기록 양식의 .xlsx 파일을 현재 기록과 비교합니다. 비교만으로는 기록을 바꾸지 않습니다.</p>
+<form id="excel-upload"><label for="excel-file">통합기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required><button id="excel-compare" class="primary" type="submit">기존 기록과 비교</button></form>
+<p id="excel-message" role="status" aria-live="polite"></p>
+<div id="excel-review" hidden><p id="excel-counts"></p><p class="hint">날짜·시각·이름을 바꾼 행은 신규로 표시될 수 있습니다. 후보와 변경 내용을 확인한 뒤 선택하세요. 확인 필요 항목은 자동 저장하지 않습니다.</p>
+<div class="excel-actions"><label>표시<select id="excel-filter"><option value="changes">신규·변경·확인 필요</option><option value="all">전체</option><option value="conflict">확인 필요</option><option value="identical">동일</option></select></label><button id="excel-select-all" type="button">신규·변경 모두 선택</button><button id="excel-select-none" type="button">선택 해제</button></div>
+<div id="excel-entries"></div><button id="excel-more" type="button" hidden>100개 더 보기</button>
+<div class="excel-actions"><button id="excel-save" class="primary" type="button">선택한 기록 저장</button><button id="excel-cancel" type="button">비교 취소</button></div><p id="excel-selection" class="hint"></p><p class="hint">선택한 기록과 원본 파일을 함께 저장합니다. 선택이 없으면 원본만 보관합니다. 파일에서 빠진 기존 기록은 삭제하지 않습니다. 비교는 1시간 동안 유효합니다.</p></div>
+<details id="excel-history"><summary>최근 Excel 저장 이력</summary><div id="excel-history-list"></div></details></section>
 <section class="card"><h2>Google Sheets</h2><dl class="sync-details"><dt>연결 상태</dt><dd id="sync-connection">확인 중</dd><dt>Spreadsheet</dt><dd id="sync-sheet">—</dd><dt>마지막 동기화</dt><dd id="sync-last">—</dd></dl>
-<p id="sync-help" class="muted"></p><button id="sync-now" class="primary" disabled>지금 동기화</button><button id="sync-refresh" type="button">상태 새로고침</button><p id="sync-message" role="status" aria-live="polite"></p><div id="sync-results"></div>
+<p id="sync-help" class="muted"></p><div class="settings-actions"><button id="sync-now" class="primary" disabled>지금 동기화</button><button id="sync-refresh" type="button">상태 새로고침</button></div><p id="sync-message" role="status" aria-live="polite"></p><div id="sync-results"></div>
 <p class="hint">최신 updated_at만 반영합니다. 시트에서 행을 지워도 FitLog 기록은 삭제되지 않습니다. 동기화한 기록을 앱에서 수정해도 시트에는 전달되지 않습니다.</p></section>
 <section class="card archive-card"><h2>이관한 원본 자료</h2><p class="muted">루틴·러닝 상세·추가 영양정보를 포함한 원본을 확인할 수 있습니다.</p><div id="archive-list"></div><div id="archive-view"></div></section>
 <p id="pwa-note" class="muted pwa-note" role="status"></p><noscript>설정 조회와 동기화에는 JavaScript와 서버 연결이 필요합니다.</noscript></main></body></html>

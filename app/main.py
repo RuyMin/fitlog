@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
+from app.api.excel import router as excel_router
 from app.api.sync import router as sync_router
 from app.api.health import router as health_router
 from app.api.workouts import router as workouts_router
@@ -29,7 +30,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         engine.dispose()
 
 
-app = FastAPI(title="FitLog", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="FitLog", version="0.6.0", lifespan=lifespan)
+app.include_router(excel_router)
 app.include_router(sync_router)
 app.include_router(health_router)
 app.include_router(workouts_router)

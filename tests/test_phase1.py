@@ -32,7 +32,7 @@ class PhaseOneTests(unittest.TestCase):
         self.assertTrue(DATABASE_PATH.is_file())
         self.assertTrue((Path(_TEMP.name) / "uploads").is_dir())
         self.assertEqual(set(inspect(engine).get_table_names()), {
-            "workouts", "exercises", "workout_sets", "meals", "body_metrics", "sleep_records", "sync_state", "import_archives"
+            "workouts", "exercises", "workout_sets", "meals", "body_metrics", "sleep_records", "sync_state", "import_archives", "excel_previews"
         })
         with engine.connect() as connection:
             self.assertEqual(connection.scalar(text("PRAGMA foreign_keys")), 1)
