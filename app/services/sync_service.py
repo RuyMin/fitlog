@@ -129,14 +129,25 @@ def sync_google_sheets(reader: SheetReader | None = None) -> dict:
         cfg = GoogleSettings.from_env()
         try:
             snapshot = (reader or GoogleSheetsReader(cfg)).read()
-            parsed = parse_tables(snapshot.tables)
+            korean_plan = None
+            if snapshot.format == "korean":
+                from app.services.korean_sheets import prepare_korean
+                korean_plan = prepare_korean(snapshot.tables)
+                parsed = None
+            else:
+                parsed = parse_tables(snapshot.tables)
             with SessionLocal() as session:
                 session.execute(text("BEGIN IMMEDIATE"))
                 try:
                     state = state_record(session)
                     if state.spreadsheet_id and state.spreadsheet_id != cfg.spreadsheet_id:
                         raise SyncError("이미 다른 Spreadsheet에 연결된 데이터입니다. 기존 ID를 복원해 주세요.", 409)
-                    result = {"status": "ok", "source": SOURCE, **apply_rows(session, parsed)}
+                    if korean_plan is not None:
+                        from app.services.korean_sheets import apply_korean
+                        counts = apply_korean(session, korean_plan, cfg.spreadsheet_id)
+                    else:
+                        counts = apply_rows(session, parsed)
+                    result = {"status": "ok", "source": SOURCE, **counts}
                     state.spreadsheet_id = cfg.spreadsheet_id or None
                     state.spreadsheet_title = snapshot.title
                     state.last_sync_at, state.last_sync_status, state.last_sync_error = utc_now(), "ok", None

@@ -30,7 +30,7 @@ def sync(request: Request) -> dict:
 @router.get("/archives")
 def archives() -> list[dict]:
     with SessionLocal() as session:
-        return [{"id": r.id, "filename": r.filename, "sha256": r.sha256, "report": json.loads(r.report)}
+        return [{"id": r.id, "filename": r.filename, "sha256": r.sha256, "report": {k: v for k, v in json.loads(r.report).items() if k != "bindings"}}
                 for r in session.scalars(select(ImportArchive).order_by(ImportArchive.id.desc()))]
 
 
@@ -40,7 +40,7 @@ def archive(archive_id: int) -> dict:
         r = session.get(ImportArchive, archive_id)
         if r is None:
             raise HTTPException(404, "원본 자료를 찾을 수 없습니다.")
-        return {"filename": r.filename, "sheets": json.loads(r.payload), "report": json.loads(r.report)}
+        return {"filename": r.filename, "sheets": json.loads(r.payload), "report": {k: v for k, v in json.loads(r.report).items() if k != "bindings"}}
 
 
 @router.get("/archives/{archive_id}/download")
@@ -50,5 +50,5 @@ def download_archive(archive_id: int) -> Response:
         r = session.get(ImportArchive, archive_id)
         if r is None:
             raise HTTPException(404, "원본 자료를 찾을 수 없습니다.")
-        return Response(r.original, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        return Response(r.original, media_type="application/json" if r.filename.endswith(".json") else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         headers={"Content-Disposition": "attachment; filename*=UTF-8''" + quote(r.filename)})

@@ -143,6 +143,7 @@ class SyncTests(unittest.TestCase):
     def test_google_adapter_readonly_batch(self):
         from unittest.mock import MagicMock
         book=MagicMock();book.title="Test";book.values_batch_get.return_value={"valueRanges":[{"values":v} for v in self.tables.values()]}
+        book.worksheets.return_value = [type("Sheet", (), {"title": key})() for key in COLUMNS]
         client=MagicMock();client.open_by_key.return_value=book
         with tempfile.NamedTemporaryFile() as f, patch("google.oauth2.service_account.Credentials.from_service_account_file") as auth, patch("google.auth.transport.requests.AuthorizedSession"), patch("gspread.Client",return_value=client):
             cfg=GoogleSettings(f.name,"valid_id_12345",{k:k for k in COLUMNS})

@@ -18,6 +18,7 @@ class SyncError(Exception):
 class SheetSnapshot:
     title: str
     tables: dict[str, list[list]]
+    format: str = "standard"
 
 
 class SheetReader(Protocol):
@@ -68,13 +69,24 @@ class GoogleSheetsReader:
             client = gspread.Client(auth=credentials, session=AuthorizedSession(credentials, refresh_timeout=25, max_refresh_attempts=1))
             client.set_timeout((5, 25))
             book = client.open_by_key(cfg.spreadsheet_id)
-            # Fetch all five tabs in one request, with plain ISO text dates.
-            ranges = ["'" + cfg.worksheets[key].replace("'", "''") + "'!A:AZ" for key in COLUMNS]
+            names = {w.title for w in book.worksheets()}
+            korean = {"12주 루틴", "러닝 기록", "웨이트 기록", "인바디 기록", "대시보드", "식사 기록", "일일 운동 기록"}
+            if set(cfg.worksheets.values()).issubset(names):
+                mapping, sheet_format = cfg.worksheets, "standard"
+            elif korean.issubset(names):
+                if names != korean:
+                    raise SyncError("한글 통합기록은 현재 7개 탭을 지원합니다. 추가 탭도 보존하려면 변환기 확장이 필요합니다.")
+                mapping, sheet_format = {name: name for name in sorted(korean)}, "korean"
+            else:
+                raise SyncError("영어 표준 시트 5개 또는 기존 한글 통합기록 시트 7개가 필요합니다.")
+            # Sentinel row/column lets validation reject oversized Korean snapshots.
+            area = "A1:AY5001" if sheet_format == "korean" else "A:AZ"
+            ranges = ["'" + name.replace("'", "''") + "'!" + area for name in mapping.values()]
             response = book.values_batch_get(ranges, params={"valueRenderOption": "UNFORMATTED_VALUE", "dateTimeRenderOption": "FORMATTED_STRING"})
             values = response.get("valueRanges", [])
-            if len(values) != len(COLUMNS):
+            if len(values) != len(mapping):
                 raise SyncError("Worksheet 응답이 완전하지 않습니다. 다시 시도해 주세요.", 502)
-            return SheetSnapshot(book.title, {key: value.get("values", []) for key, value in zip(COLUMNS, values)})
+            return SheetSnapshot(book.title, {key: value.get("values", []) for key, value in zip(mapping, values)}, sheet_format)
         except SyncError:
             raise
         except (gspread.SpreadsheetNotFound, PermissionError):

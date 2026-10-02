@@ -74,6 +74,17 @@ def build_plan(original: bytes, filename: str) -> dict:
         raise ValueError("예상한 7개 시트와 다릅니다. 원본 구조를 검토한 후 변환기를 조정하세요.")
     archive = {s.title: [{"row": i, "values": [cell_value(v) for v in row]}
                for i, row in enumerate(s.values, 1) if any(v is not None for v in row)] for s in book}
+    try:
+        tables, report = convert_book(book, archive)
+    finally:
+        book.close()
+    return {"sha256": hashlib.sha256(original).hexdigest(), "filename": filename,
+            "original": base64.b64encode(original).decode(), "archive": archive,
+            "tables": tables, "report": report}
+
+
+def convert_book(book, archive: dict, *, merge_legacy_daily: bool = True) -> tuple[dict, dict]:
+    """Convert an already validated workbook; shared with the Sheets value adapter."""
     required_headers = {
         "웨이트 기록": "날짜|루틴|운동|세트1|세트2|세트3|세트4|반복 범위|RIR|총볼륨(kg)|컨디션(1~5)|통증/불편|메모|주차",
         "러닝 기록": "날짜|세션|거리(km)|운동시간|평균페이스|평균심박|최대심박|평균케이던스|최대케이던스|상승고도(m)|칼로리|VO2max|RPE(1~10)|수면(시간)|체중(kg)|메모|주차",
@@ -148,7 +159,7 @@ def build_plan(original: bytes, filename: str) -> dict:
             if row[0] is None: continue
             if not isinstance(row[0],datetime): raise ValueError(f"{title} {i}행 날짜 확인 필요")
             day=row[0].date().isoformat(); note=memo(headers,row,f"{title} {i}행")
-            if key=="daily" and (day,"등") in groups:
+            if merge_legacy_daily and key=="daily" and (day,"등") in groups:
                 groups[(day,"등")]["memo"] += "\n" + note
                 continue
             values={"workout_date":day,"title":("걷기" if row[1]=="걷기" else "러닝 · "+str(row[1])) if key=="run" else str(row[1]),"memo":note}
@@ -187,9 +198,7 @@ def build_plan(original: bytes, filename: str) -> dict:
     # Fail closed before producing an importable plan.
     from app.services.sync_service import parse_tables
     parse_tables(tables)
-    plan={"sha256":hashlib.sha256(original).hexdigest(),"filename":filename,"original":base64.b64encode(original).decode(),"archive":archive,"tables":tables,"report":report}
-    book.close()
-    return plan
+    return tables, report
 
 
 def prepare(path: Path, directory: Path) -> dict:
