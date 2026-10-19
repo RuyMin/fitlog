@@ -1,7 +1,7 @@
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 
-from support import TEMP
+from support import TEMP, fresh_owner
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -17,9 +17,7 @@ class DailyRecordAPITests(unittest.TestCase):
     def setUp(self) -> None:
         self.client = TestClient(app)
         self.client.__enter__()
-        with engine.begin() as connection:
-            for table in reversed(Base.metadata.sorted_tables):
-                connection.execute(table.delete())
+        self.user = fresh_owner()
         self.meal = {"name": "점심", "eaten_at": "2026-09-25T12:00:00+09:00", "meal_type": "lunch"}
         self.body = {"measured_at": "2026-09-25T08:00:00+09:00", "weight": 78.4}
         self.sleep = {"sleep_start": "2026-09-24T23:30:00+09:00", "sleep_end": "2026-09-25T06:12:00+09:00", "sleep_type": "main"}
@@ -93,7 +91,7 @@ class DailyRecordAPITests(unittest.TestCase):
         def write(_: int) -> str:
             with SessionLocal() as session:
                 try:
-                    save_sleep(session, data)
+                    save_sleep(session, self.user.id, data)
                     return "created"
                 except RecordConflict:
                     return "conflict"

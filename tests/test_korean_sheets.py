@@ -6,7 +6,7 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock
 from tempfile import NamedTemporaryFile
 
-from support import TEMP
+from support import TEMP, fresh_owner
 from fastapi.testclient import TestClient
 from sqlalchemy import select, func
 from app.database import Base, SessionLocal, engine
@@ -34,15 +34,14 @@ class KoreanSyncTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
         self.client.__enter__()
-        with engine.begin() as c:
-            for table in reversed(Base.metadata.sorted_tables): c.execute(table.delete())
+        self.user = fresh_owner()
         self.env = patch.dict(os.environ, {'GOOGLE_SPREADSHEET_ID': 'korean_test_123'})
         self.env.start()
         self.tables = fixture()
     def tearDown(self):
         self.env.stop()
         self.client.__exit__(None, None, None)
-    def sync(self): return sync_google_sheets(Reader(self.tables))
+    def sync(self): return sync_google_sheets(self.user.id, Reader(self.tables))
     def count(self, model):
         with SessionLocal() as s: return s.scalar(select(func.count()).select_from(model))
     def test_insert_repeat_update_revert_and_archive(self):
@@ -65,7 +64,7 @@ class KoreanSyncTests(unittest.TestCase):
     def test_existing_legacy_ids_are_reused(self):
         plan = build_plan(content(workbook()), 'test.xlsx')
         with SessionLocal() as s:
-            apply_rows(s, parse_tables(plan['tables']))
+            apply_rows(s, self.user.id, parse_tables(plan['tables']))
             s.commit()
             old_id = s.scalar(select(Meal)).external_id
         self.assertEqual(self.sync()['meals']['inserted'], 0)

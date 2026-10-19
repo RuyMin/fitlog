@@ -1,5 +1,7 @@
 import os
+import re
 import sqlite3
+from collections import defaultdict
 import tempfile
 import unittest
 from contextlib import closing
@@ -9,6 +11,7 @@ from unittest.mock import patch
 from support import TEMP  # noqa: F401 — isolate FITLOG_DATA_DIR before app imports
 from sqlalchemy import create_engine
 
+from app.database import Base
 from app.migrations import migrate
 
 SCHEMA_V2 = (Path(__file__).parent / "fixtures" / "schema_v2.sql").read_text(encoding="utf-8")
@@ -156,9 +159,43 @@ class V3MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "newer"):
             self.upgrade()
 
+    def test_migrated_schema_equals_models(self) -> None:
+        """migrations.py DDL and models.py must describe the same database."""
+        self.seed()
+        self.upgrade()
+        Base.metadata.create_all(self.engine)
+        fresh = Path(self.tmp.name) / "fresh.db"
+        engine = create_engine("sqlite:///" + fresh.as_posix())
+        try:
+            Base.metadata.create_all(engine)
+        finally:
+            engine.dispose()
+        migrated, created = describe(self.path), describe(fresh)
+        self.assertEqual(set(migrated), set(created))
+        for table in created:
+            self.assertEqual(migrated[table], created[table], table)
+
     def tables(self) -> set[str]:
         with closing(sqlite3.connect(self.path)) as c:
             return {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+
+
+def describe(path: Path) -> dict:
+    """Column, index, foreign key and constraint facts per table; ignores column order and formatting."""
+    result = {}
+    with closing(sqlite3.connect(path)) as c:
+        for table, sql in c.execute("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall():
+            columns = {r[1]: (r[2].upper(), r[3], r[4], r[5]) for r in c.execute(f"PRAGMA table_info({table})")}
+            indexes = set()
+            for _, name, unique, origin, _ in c.execute(f"PRAGMA index_list({table})").fetchall():
+                cols = tuple(r[2] for r in c.execute(f"PRAGMA index_info('{name}')"))
+                indexes.add((None if name.startswith("sqlite_autoindex") else name, unique, origin, cols))
+            keys = defaultdict(list)
+            for key, _, parent, child, parent_col, _, on_delete, _ in c.execute(f"PRAGMA foreign_key_list({table})"):
+                keys[key].append((parent, child, parent_col, on_delete))
+            checks = sorted(re.findall(r"CONSTRAINT (\w+) CHECK", sql)), sql.count("CHECK (")
+            result[table] = (columns, indexes, {tuple(v) for v in keys.values()}, checks)
+    return result
 
 
 if __name__ == "__main__":

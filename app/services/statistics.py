@@ -18,7 +18,7 @@ def local_day(value: datetime, zone: ZoneInfo) -> date:
 
 
 def get_statistics(
-    session: Session, date_from: date, date_to: date, zone: ZoneInfo, completed_only: bool,
+    session: Session, user_id: int, date_from: date, date_to: date, zone: ZoneInfo, completed_only: bool,
 ) -> StatisticsResponse:
     days = {
         date_from + timedelta(days=index): DailyStatistics(date=date_from + timedelta(days=index))
@@ -33,7 +33,7 @@ def get_statistics(
                 period_end=min(monday + timedelta(days=6), date_to),
             )
     workouts = session.execute(select(Workout.id, Workout.workout_date).where(
-        Workout.workout_date >= date_from, Workout.workout_date <= date_to
+        Workout.user_id == user_id, Workout.workout_date >= date_from, Workout.workout_date <= date_to
     )).all()
     for _, day in workouts:
         days[day].workouts_count += 1
@@ -41,7 +41,7 @@ def get_statistics(
         Workout.workout_date, WorkoutSet.exercise_id, Exercise.name, WorkoutSet.weight, WorkoutSet.reps
     ).join(WorkoutSet, WorkoutSet.workout_id == Workout.id).join(
         Exercise, Exercise.id == WorkoutSet.exercise_id
-    ).where(Workout.workout_date >= date_from, Workout.workout_date <= date_to)
+    ).where(Workout.user_id == user_id, Workout.workout_date >= date_from, Workout.workout_date <= date_to)
     if completed_only:
         sets_query = sets_query.where(WorkoutSet.completed.is_(True))
     exercises: dict[int, ExerciseStatistics] = {}
@@ -71,14 +71,14 @@ def get_statistics(
     end = utc_naive(datetime.combine(date_to + timedelta(days=1), time.min, zone))
     # Ascending timestamp + id means the final weight on a local day wins.
     measurements = session.execute(select(BodyMetric.measured_at, BodyMetric.weight).where(
-        BodyMetric.measured_at >= start, BodyMetric.measured_at < end, BodyMetric.weight.is_not(None)
+        BodyMetric.user_id == user_id, BodyMetric.measured_at >= start, BodyMetric.measured_at < end, BodyMetric.weight.is_not(None)
     ).order_by(BodyMetric.measured_at, BodyMetric.id))
     for measured_at, weight in measurements:
         point = days[local_day(measured_at, zone)]
         point.weight = weight
         point.weight_measured_at = measured_at
     for ended_at, minutes in session.execute(select(SleepRecord.sleep_end, SleepRecord.duration_minutes).where(
-        SleepRecord.sleep_end >= start, SleepRecord.sleep_end < end
+        SleepRecord.user_id == user_id, SleepRecord.sleep_end >= start, SleepRecord.sleep_end < end
     )):
         point = days[local_day(ended_at, zone)]
         point.sleep_records_count += 1

@@ -5,7 +5,7 @@ from io import BytesIO
 import unittest
 from unittest.mock import patch
 
-from support import TEMP
+from support import TEMP, fresh_owner
 from fastapi.testclient import TestClient
 from openpyxl import Workbook, load_workbook
 from sqlalchemy import select, func
@@ -47,8 +47,7 @@ def content(book):
 class ExcelTests(unittest.TestCase):
     def setUp(self):
         self.client=TestClient(app);self.client.__enter__()
-        with engine.begin() as c:
-            for t in reversed(Base.metadata.sorted_tables):c.execute(t.delete())
+        self.user=fresh_owner()
         self.original=content(workbook())
     def tearDown(self):self.client.__exit__(None,None,None)
     def upload(self,data=None):
@@ -93,7 +92,7 @@ class ExcelTests(unittest.TestCase):
     def test_multiple_database_candidates_are_conflict(self):
         self.seed()
         with SessionLocal() as s:
-            m=s.scalar(select(Meal));s.add(Meal(eaten_at=m.eaten_at,meal_type=m.meal_type,name=m.name));s.commit()
+            m=s.scalar(select(Meal));s.add(Meal(user_id=self.user.id,eaten_at=m.eaten_at,meal_type=m.meal_type,name=m.name));s.commit()
         p=self.upload();self.assertEqual(p["counts"]["conflict"],1)
     def test_stale_preview_rejected(self):
         self.seed();book=load_workbook(BytesIO(self.original));book["식사 기록"]["H4"]=42;p=self.upload(content(book))

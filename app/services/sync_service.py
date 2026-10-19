@@ -55,28 +55,29 @@ def parse_tables(tables: dict[str, list[list]]) -> dict[str, list]:
     return parsed
 
 
-def apply_rows(session: Session, rows: dict[str, list]) -> dict:
+def apply_rows(session: Session, user_id: int, rows: dict[str, list]) -> dict:
     """Caller owns the transaction. Used by Google sync and the local archive importer."""
     counts = {key: {"inserted": 0, "updated": 0, "skipped": 0} for key in MODELS}
     for key, model in MODELS.items():
         for number, row in enumerate(rows[key], 2):
-            record = session.scalar(select(model).where(model.source == SOURCE, model.external_id == row.external_id))
+            record = session.scalar(select(model).where(model.user_id == user_id, model.source == SOURCE, model.external_id == row.external_id))
             stamp = utc(row.updated_at)
             if record is not None and record.source_updated_at is not None and stamp <= record.source_updated_at:
                 counts[key]["skipped"] += 1
                 continue
             action = "inserted" if record is None else "updated"
             if record is None:
-                record = model(source=SOURCE, external_id=row.external_id)
+                record = model(user_id=user_id, source=SOURCE, external_id=row.external_id)
             values = row.model_dump(exclude={"external_id", "updated_at"})
             if key == "workout_sets":
-                parent = session.scalar(select(Workout).where(Workout.source == SOURCE, Workout.external_id == values.pop("workout_external_id")))
+                parent = session.scalar(select(Workout).where(
+                    Workout.user_id == user_id, Workout.source == SOURCE, Workout.external_id == values.pop("workout_external_id")))
                 if parent is None:
                     raise SyncError(f"workout_sets {number}행: 연결할 workout_external_id가 없습니다.")
                 name = values.pop("exercise")
-                exercise = session.scalar(select(Exercise).where(Exercise.name == name))
+                exercise = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.name == name))
                 if exercise is None:
-                    exercise = Exercise(name=name)
+                    exercise = Exercise(user_id=user_id, name=name)
                     session.add(exercise)
                     session.flush()
                 values.update(workout_id=parent.id, exercise_id=exercise.id)
@@ -91,25 +92,25 @@ def apply_rows(session: Session, rows: dict[str, list]) -> dict:
             session.flush()
             counts[key][action] += 1
     # Validate the final sleep intervals, including local records and all changed rows.
-    intervals = session.scalars(select(SleepRecord).order_by(SleepRecord.sleep_start, SleepRecord.id)).all()
+    intervals = session.scalars(select(SleepRecord).where(SleepRecord.user_id == user_id).order_by(SleepRecord.sleep_start, SleepRecord.id)).all()
     for previous, current in zip(intervals, intervals[1:]):
         if current.sleep_start < previous.sleep_end:
             raise SyncError("수면 시간이 기존 기록 또는 다른 행과 겹칩니다. 전체 동기화를 취소했습니다.")
     return counts
 
 
-def state_record(session: Session) -> SyncState:
-    state = session.get(SyncState, 1)
+def state_record(session: Session, user_id: int) -> SyncState:
+    state = session.scalar(select(SyncState).where(SyncState.user_id == user_id))
     if state is None:
-        state = SyncState(id=1)
+        state = SyncState(user_id=user_id)
         session.add(state)
     return state
 
 
-def get_sync_status() -> dict:
+def get_sync_status(user_id: int) -> dict:
     cfg = GoogleSettings.from_env()
     with SessionLocal() as session:
-        state = session.get(SyncState, 1)
+        state = session.scalar(select(SyncState).where(SyncState.user_id == user_id))
         configured = cfg.configured()
         bound = bool(state and state.spreadsheet_id and state.spreadsheet_id != cfg.spreadsheet_id)
         return {"source": SOURCE, "configured": configured, "running": RUN_LOCK.locked(),
@@ -122,7 +123,8 @@ def get_sync_status() -> dict:
                 "last_result": json.loads(state.last_result) if state and state.last_result else None}
 
 
-def sync_google_sheets(reader: SheetReader | None = None) -> dict:
+def sync_google_sheets(user_id: int, reader: SheetReader | None = None) -> dict:
+    """One server-wide Spreadsheet in phase 6, so only the admin calls this."""
     if not RUN_LOCK.acquire(blocking=False):
         raise SyncError("이미 동기화 중입니다. 완료 후 다시 시도해 주세요.", 409)
     try:
@@ -139,14 +141,14 @@ def sync_google_sheets(reader: SheetReader | None = None) -> dict:
             with SessionLocal() as session:
                 session.execute(text("BEGIN IMMEDIATE"))
                 try:
-                    state = state_record(session)
+                    state = state_record(session, user_id)
                     if state.spreadsheet_id and state.spreadsheet_id != cfg.spreadsheet_id:
                         raise SyncError("이미 다른 Spreadsheet에 연결된 데이터입니다. 기존 ID를 복원해 주세요.", 409)
                     if korean_plan is not None:
                         from app.services.korean_sheets import apply_korean
-                        counts = apply_korean(session, korean_plan, cfg.spreadsheet_id)
+                        counts = apply_korean(session, user_id, korean_plan, cfg.spreadsheet_id)
                     else:
-                        counts = apply_rows(session, parsed)
+                        counts = apply_rows(session, user_id, parsed)
                     result = {"status": "ok", "source": SOURCE, **counts}
                     state.spreadsheet_id = cfg.spreadsheet_id or None
                     state.spreadsheet_title = snapshot.title
@@ -168,7 +170,7 @@ def sync_google_sheets(reader: SheetReader | None = None) -> dict:
             error = SyncError("동기화 처리에 실패했습니다. 설정과 입력 형식을 확인해 주세요.", 502)
         try:
             with SessionLocal() as session:
-                state = state_record(session)
+                state = state_record(session, user_id)
                 state.last_sync_at, state.last_sync_status = utc_now(), "error"
                 state.last_sync_error, state.last_result = error.message, None
                 session.commit()

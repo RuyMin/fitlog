@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Exercise, ImportArchive, utc_now
 from app.services.google_sheets import SyncError
+from app.services.persistence import owned
 from app.services.legacy_xlsx import convert_book
 
 SHEETS = {"12주 루틴", "러닝 기록", "웨이트 기록", "인바디 기록", "대시보드", "식사 기록", "일일 운동 기록"}
@@ -106,14 +107,15 @@ def entry_identity(entry: dict, entries: dict) -> str:
     return json.dumps([entry["kind"], value], ensure_ascii=False)
 
 
-def apply_korean(session: Session, plan: dict, spreadsheet_id: str) -> dict:
+def apply_korean(session: Session, user_id: int, plan: dict, spreadsheet_id: str) -> dict:
     """Caller owns one transaction for records, snapshot and sync state."""
     from app.services.excel_import import compare, normalized
     from app.services.sync_service import MODELS
     filename = f"google-sheets-{spreadsheet_id}.json"
-    previous = session.scalar(select(ImportArchive).where(ImportArchive.filename == filename).order_by(ImportArchive.id.desc()))
+    previous = session.scalar(select(ImportArchive).where(
+        ImportArchive.user_id == user_id, ImportArchive.filename == filename).order_by(ImportArchive.id.desc()))
     baseline = json.loads(previous.report).get("bindings", {}) if previous else {}
-    entries = {e["key"]: e for e in compare(session, plan["rows"])}
+    entries = {e["key"]: e for e in compare(session, user_id, plan["rows"])}
     identities = {key: entry_identity(e, entries) for key, e in entries.items()}
     current = set(identities.values())
     # Without an explicit source ID, renames cannot safely be distinguished from delete+add.
@@ -139,15 +141,15 @@ def apply_korean(session: Session, plan: dict, spreadsheet_id: str) -> dict:
             if any(before.get(k) != old["values"].get(k) for k in changed):
                 raise SyncError("동일한 항목이 FitLog와 Google Sheets 양쪽에서 수정되었습니다. 값을 일치시킨 후 다시 동기화해 주세요.", 409)
         model = MODELS[kind]
-        record = session.get(model, entry["target_id"]) if entry["target_id"] is not None else model(
-            source="google_sheets", external_id="ko_" + hashlib.sha256((spreadsheet_id + ident).encode()).hexdigest())
+        record = owned(session, model, user_id, entry["target_id"]) if entry["target_id"] is not None else model(
+            user_id=user_id, source="google_sheets", external_id="ko_" + hashlib.sha256((spreadsheet_id + ident).encode()).hexdigest())
         if changed:
             values = {k: entry["incoming"][k] for k in changed}
             if kind == "workout_sets":
                 name = entry["incoming"]["exercise"]
-                exercise = session.scalar(select(Exercise).where(Exercise.name == name))
+                exercise = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.name == name))
                 if exercise is None:
-                    exercise = Exercise(name=name)
+                    exercise = Exercise(user_id=user_id, name=name)
                     session.add(exercise)
                     session.flush()
                 values.pop("exercise", None)
@@ -171,9 +173,9 @@ def apply_korean(session: Session, plan: dict, spreadsheet_id: str) -> dict:
         return {**counts, "format": "korean", "archive_id": previous.id}
     digest = hashlib.sha256((spreadsheet_id + (previous.sha256 if previous else "")).encode() + plan["original"] +
                             json.dumps(bindings, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    archive = session.scalar(select(ImportArchive).where(ImportArchive.sha256 == digest))
+    archive = session.scalar(select(ImportArchive).where(ImportArchive.user_id == user_id, ImportArchive.sha256 == digest))
     if archive is None:
-        archive = ImportArchive(sha256=digest, filename=filename, original=plan["original"],
+        archive = ImportArchive(user_id=user_id, sha256=digest, filename=filename, original=plan["original"],
             payload=json.dumps(plan["archive"], ensure_ascii=False),
             report=json.dumps({**plan["report"], "bindings": bindings}, ensure_ascii=False))
         session.add(archive)
