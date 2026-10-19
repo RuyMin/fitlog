@@ -37,6 +37,19 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class AuthSession(Base):
+    """Server-side login session. The cookie holds the token; only its SHA-256 is stored."""
+    __tablename__ = "auth_sessions"
+    __table_args__ = (CheckConstraint("expires_at > created_at", name="ck_session_expiry"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    last_seen_at: Mapped[datetime] = mapped_column(default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class Owned:
     """Every user-owned row. Services filter on it and answer 404 for other owners."""
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))

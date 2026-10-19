@@ -33,7 +33,7 @@ async function loadRecent() {
     }
     for (const workout of recent) {
       const link = document.createElement("a"); link.href = "/workouts#" + workout.id;
-      link.style.cssText = "display:block;padding:14px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere";
+      link.className = "recent-link";
       link.textContent = workout.workout_date + " · " + workout.title + " · " + workout.sets.length + "세트"; target.append(link);
     }
   } catch { target.textContent = "운동 기록을 불러오지 못했습니다. 연결 후 새로고침해 주세요."; }

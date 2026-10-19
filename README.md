@@ -215,9 +215,12 @@ service worker는 정적 UI만 캐시하며 `/api/*`는 캐시하지 않습니�
 모바일 설치는 NAS reverse proxy에서 HTTPS 설정 후 브라우저의 홈 화면 추가 기능을 사용합니다.
 설치 UI는 OS와 브라우저에 따라 다릅니다. 앱은 인증서를 관리하지 않습니다.
 
-현재 로그인/API token은 없습니다. 51881 포트는 신뢰할 수 있는 내부 네트워크에서 사용하세요.
-외부 공개 전 reverse proxy 접근 제한이나 인증을 추가해야 합니다.
-인증은 추후 API router 공통 dependency로 추가하고 개인 API 응답은 캐시하지 않는 정책을 유지합니다.
+개인 API는 로그인 세션이 필요합니다(`app/api/deps.py`의 `current_user`). 설계: [docs/design/phase6-auth-isolation.md](docs/design/phase6-auth-isolation.md).
+세션은 서버 측 `auth_sessions`에 토큰 해시만 저장하고, 쿠키는 `__Host-fitlog_session`(HttpOnly·Secure·SameSite=Lax)입니다. 유휴 30일, 최대 90일 후 만료됩니다.
+다른 Origin·사이트에서 보낸 POST/PUT/DELETE는 403으로 거부하고, 모든 응답에 CSP·nosniff·frame 차단 헤더를 붙입니다. 개인 API 응답은 캐시하지 않습니다.
+CSP는 인라인 script/style과 외부 리소스를 허용하지 않으므로 화면 코드는 CSS 클래스와 로컬 파일만 사용하세요.
+Google 로그인과 초대 링크는 다음 단계에서 추가되며, 그 전까지 이 브랜치의 개인 API는 모두 401을 반환합니다.
+로컬 HTTP 개발에서 Secure 쿠키를 쓸 수 없다면 `FITLOG_INSECURE_COOKIES=1`을 설정합니다(운영 금지).
 
 ## 향후 로드맵
 
@@ -456,7 +459,7 @@ curl -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:51881/
 Compose는 `./config:/app/config:ro`로 디렉터리를 읽기 전용 마운트합니다. 파일 자체를 필수 bind하지 않으므로 JSON이 없어도 앱은 정상 시작하며 Sync만 Not configured입니다.
 Docker secret을 쓰면 secret 마운트를 추가하고 GOOGLE_SERVICE_ACCOUNT_FILE을 `/run/secrets/google-service-account.json`으로 설정해도 됩니다.
 `.env`, credential JSON, `*.key.json`은 Git 제외, config 전체와 환경 파일은 Docker 빌드 컨텍스트에서도 제외합니다. 키는 이미지에 포함하지 않습니다.
-Sync API도 기존 앱과 같이 로그인 없이 동작합니다. 개인 LAN/VPN에서 사용하고 외부 접근 시 NAS reverse proxy 인증/HTTPS와 접근 제한을 적용하세요.
+Google Sheets 동기화 실행과 상태 조회는 관리자 계정만 사용할 수 있습니다. 서비스 계정과 Spreadsheet가 서버 전체에 하나뿐이기 때문입니다.
 JSON 키/토큰/Google 원문 예외를 UI/로그로 출력하지 않으며 DB 오류도 안전한 메시지로 치환합니다.
 
 ### 코드와 SQLite 변경

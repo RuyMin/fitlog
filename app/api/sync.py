@@ -17,11 +17,9 @@ def status(user: AdminUser) -> dict:
 
 @router.post("/google")
 def sync(request: Request, user: AdminUser) -> dict:
-    # Browsers must issue a JSON request; cross-origin form posts cannot trigger sync.
+    # Browsers must issue a JSON request; cross-origin requests stop at the security middleware.
     if request.headers.get("content-type", "").split(";")[0] != "application/json":
         raise HTTPException(415, "Content-Type: application/json을 사용해 주세요.")
-    if request.headers.get("sec-fetch-site") == "cross-site":
-        raise HTTPException(403, "다른 사이트에서는 동기화를 실행할 수 없습니다.")
     try:
         return sync_google_sheets(user.id)
     except SyncError as exc:

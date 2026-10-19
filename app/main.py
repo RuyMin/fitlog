@@ -8,6 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
+from app import config
+from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
 from app.api.sync import router as sync_router
 from app.api.health import router as health_router
@@ -31,6 +33,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="FitLog", version="0.6.0", lifespan=lifespan)
+app.include_router(auth_router)
 app.include_router(excel_router)
 app.include_router(sync_router)
 app.include_router(health_router)
@@ -54,11 +57,35 @@ async def database_unavailable(_: Request, error: OperationalError) -> JSONRespo
     return JSONResponse(status_code=503, content={"detail": "DB를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요."})
 
 
+UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+SECURITY_HEADERS = {
+    # Everything is served locally: no CDN, inline script/style or external images.
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; object-src 'none'; "
+                               "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "same-origin",
+}
+
+
+def cross_origin(request: Request) -> bool:
+    """CSRF guard for cookie sessions, on top of SameSite=Lax."""
+    if request.headers.get("sec-fetch-site") in {"cross-site", "same-site"}:
+        return True
+    origin = request.headers.get("origin")
+    expected = config.PUBLIC_ORIGIN or f"{request.url.scheme}://{request.url.netloc}".lower()
+    return origin is not None and origin.lower() != expected
+
+
 @app.middleware("http")
-async def api_cache_policy(request: Request, call_next: RequestResponseEndpoint) -> Response:
-    response = await call_next(request)
-    if request.url.path.startswith("/api/"):
+async def security_policy(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    if request.method in UNSAFE_METHODS and cross_origin(request):
+        response: Response = JSONResponse(status_code=403, content={"detail": "다른 사이트에서 보낸 요청은 처리할 수 없습니다."})
+    else:
+        response = await call_next(request)
+    if request.url.path.startswith(("/api/", "/auth/")):
         response.headers["Cache-Control"] = "no-store"
+    response.headers.update(SECURITY_HEADERS)
     return response
 
 
