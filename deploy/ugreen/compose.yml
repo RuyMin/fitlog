@@ -1,12 +1,38 @@
 name: fitlog-nas
 services:
+  # Own tailnet device ("fitlog"). Funnel publishes only this device at
+  # https://fitlog.<tailnet>.ts.net; the NAS itself stays private. See FUNNEL.md.
+  tailscale:
+    image: tailscale/tailscale:${TAILSCALE_IMAGE_TAG:-stable}
+    hostname: ${TS_HOSTNAME:-fitlog}
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_AUTH_ONCE: "true"
+      TS_HOSTNAME: ${TS_HOSTNAME:-fitlog}
+      TS_STATE_DIR: /var/lib/tailscale
+      # Directory mount so edits to serve.json (e.g. AllowFunnel false) apply without restart.
+      TS_SERVE_CONFIG: /serve/serve.json
+    volumes:
+      - /volume1/docker/fitlog/tailscale:/var/lib/tailscale
+      - ./tailscale:/serve:ro
+    ports:
+      # FitLog shares this network namespace. Host-only, for health checks;
+      # users reach the app through the Funnel HTTPS address.
+      - "127.0.0.1:51881:51881"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   fitlog:
     image: ghcr.io/ruymin/fitlog:${FITLOG_IMAGE_TAG:-latest}
     platform: linux/amd64
     user: "10001:10001"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "51881", "--workers", "1"]
-    ports:
-      - "51881:51881"
+    network_mode: service:tailscale
     environment:
       FITLOG_DATA_DIR: /app/data
       GOOGLE_SERVICE_ACCOUNT_FILE: /app/config/google-service-account.json
