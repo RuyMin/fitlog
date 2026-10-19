@@ -18,7 +18,15 @@ function showAuthError(code) {
   target.hidden = false;
 }
 
-showAuthError(new URLSearchParams(location.search).get("error"));
+const authQuery = new URLSearchParams(location.search);
+showAuthError(authQuery.get("error"));
+
+// After login, return to the page that sent us here (the server re-validates the path).
+const loginLink = document.querySelector('a[href="/auth/google/start"]');
+const returnPath = authQuery.get("next");
+if (loginLink && returnPath && returnPath.startsWith("/") && !returnPath.startsWith("//")) {
+  loginLink.href = "/auth/google/start?" + new URLSearchParams({next: returnPath});
+}
 
 const inviteToken = document.getElementById("invite-token");
 if (inviteToken) {

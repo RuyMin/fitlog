@@ -216,6 +216,7 @@ service worker는 정적 UI만 캐시하며 `/api/*`는 캐시하지 않습니�
 설치 UI는 OS와 브라우저에 따라 다릅니다. 앱은 인증서를 관리하지 않습니다.
 
 개인 API는 로그인 세션이 필요합니다(`app/api/deps.py`의 `current_user`). 설계: [docs/design/phase6-auth-isolation.md](docs/design/phase6-auth-isolation.md).
+화면에서는 `app.js`가 모든 페이지의 API 응답을 확인하여 401이면 `/login?next=<현재 경로>`로 보내고, 로그인 후 원래 화면으로 돌아옵니다. 설정 화면에서 계정·로그아웃·동의 내역을 확인하고 AI 외부 전송 동의를 철회하거나 다시 할 수 있습니다(`/api/me/consents`). Google Sheets 동기화 영역은 관리자에게만 보입니다.
 세션은 서버 측 `auth_sessions`에 토큰 해시만 저장하고, 쿠키는 `__Host-fitlog_session`(HttpOnly·Secure·SameSite=Lax)입니다. 유휴 30일, 최대 90일 후 만료됩니다.
 다른 Origin·사이트에서 보낸 POST/PUT/DELETE는 403으로 거부하고, 모든 응답에 CSP·nosniff·frame 차단 헤더를 붙입니다. 개인 API 응답은 캐시하지 않습니다.
 CSP는 인라인 script/style과 외부 리소스를 허용하지 않으므로 화면 코드는 CSS 클래스와 로컬 파일만 사용하세요.

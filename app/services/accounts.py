@@ -167,6 +167,39 @@ def resolve_session(session: Session, token: str | None) -> User | None:
     return user
 
 
+def consent_status(session: Session, user_id: int) -> dict:
+    """Latest record per kind; `active` only for the current notice version and not withdrawn."""
+    result = {}
+    for kind in ("service", "ai_transfer"):
+        record = session.scalar(select(Consent).where(Consent.user_id == user_id, Consent.kind == kind)
+                                .order_by(Consent.granted_at.desc(), Consent.id.desc()).limit(1))
+        result[kind] = None if record is None else {
+            "version": record.version, "granted_at": record.granted_at, "withdrawn_at": record.withdrawn_at,
+            "active": record.withdrawn_at is None and record.version == CONSENT_VERSION,
+        }
+    return result
+
+
+def has_ai_consent(session: Session, user_id: int) -> bool:
+    """Gate for any feature that sends this user's data to an external AI."""
+    status = consent_status(session, user_id)["ai_transfer"]
+    return bool(status and status["active"])
+
+
+def grant_ai_consent(session: Session, user_id: int) -> None:
+    if not has_ai_consent(session, user_id):
+        session.add(Consent(user_id=user_id, kind="ai_transfer", version=CONSENT_VERSION))
+        session.commit()
+
+
+def withdraw_ai_consent(session: Session, user_id: int) -> None:
+    now = utc_now()
+    for record in session.scalars(select(Consent).where(
+            Consent.user_id == user_id, Consent.kind == "ai_transfer", Consent.withdrawn_at.is_(None))):
+        record.withdrawn_at = now
+    session.commit()
+
+
 def find_user(session: Session, email: str) -> User:
     users = session.scalars(select(User).where(User.email == email.strip().lower())).all()
     if len(users) != 1:

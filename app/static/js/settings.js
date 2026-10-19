@@ -69,5 +69,51 @@
     } catch { $("archive-list").textContent = "원본 자료 목록을 불러오지 못했습니다."; }
   }
   window.addEventListener("fitlog-imported", archives);
-  status(); archives();
+
+  const when = (value) => new Date(value).toLocaleString("ko-KR");
+  function consentText(entry, isAdmin) {
+    if (!entry) return isAdmin ? "운영자 계정 · 해당 없음" : "기록 없음";
+    if (entry.withdrawn_at) return "철회함 · " + when(entry.withdrawn_at);
+    return entry.active ? "동의함 · " + when(entry.granted_at) : `이전 고지(${entry.version})에 동의함 · 다시 확인 필요`;
+  }
+  async function consents(me) {
+    try {
+      const r = await fetch("/api/me/consents", {cache: "no-store", signal: AbortSignal.timeout(10000)});
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      $("consent-service").textContent = consentText(data.service, me.role === "admin");
+      $("consent-ai").textContent = data.ai_transfer ? consentText(data.ai_transfer, false) : "동의하지 않음";
+      const toggle = $("consent-ai-toggle"), active = Boolean(data.ai_transfer && data.ai_transfer.active);
+      toggle.textContent = active ? "AI 외부 전송 동의 철회" : "고지를 확인했고 AI 외부 전송에 동의";
+      toggle.dataset.active = active ? "1" : "";
+      toggle.hidden = false;
+    } catch { $("consent-ai").textContent = "동의 내역을 확인하지 못했습니다."; }
+  }
+  $("consent-ai-toggle").addEventListener("click", async () => {
+    const toggle = $("consent-ai-toggle"), active = toggle.dataset.active === "1";
+    if (!active && !confirm("위 'AI 외부 전송 고지'를 확인했고 동의합니까? 동의 후에도 언제든 철회할 수 있습니다.")) return;
+    toggle.disabled = true;
+    try {
+      const r = await fetch("/api/me/consents/ai_transfer", {method: active ? "DELETE" : "POST", cache: "no-store", signal: AbortSignal.timeout(10000)});
+      if (!r.ok) throw new Error();
+      $("account-message").textContent = active ? "AI 외부 전송 동의를 철회했습니다." : "AI 외부 전송에 동의했습니다.";
+      await consents(await window.fitlogMe);
+    } catch { $("account-message").textContent = "동의 상태를 바꾸지 못했습니다. 다시 시도해 주세요."; }
+    finally { toggle.disabled = false; }
+  });
+  $("logout").addEventListener("click", async () => {
+    $("logout").disabled = true;
+    try { await fetch("/auth/logout", {method: "POST", cache: "no-store", signal: AbortSignal.timeout(10000)}); } catch { /* the session cookie is cleared on the next successful request */ }
+    location.replace("/login");
+  });
+
+  archives();
+  window.fitlogMe.then((me) => {
+    if (!me) return;
+    $("account-email").textContent = me.display_name ? `${me.display_name} (${me.email})` : me.email;
+    $("account-role").textContent = me.role === "admin" ? "관리자" : "멤버";
+    consents(me);
+    // The service account and Spreadsheet are server-wide, so only the admin syncs.
+    if (me.role === "admin") { $("sync-card").hidden = false; status(); }
+  });
 })();

@@ -1,4 +1,20 @@
 "use strict";
+// Loaded first on every app page. A private API answering 401 means there is no
+// valid session: return to login and come back here afterwards. One hook covers
+// every page script's own fetch wrapper.
+const nativeFetch = window.fetch.bind(window);
+let leavingForLogin = false;
+window.fetch = async (...args) => {
+  const response = await nativeFetch(...args);
+  if (response.status === 401 && new URL(response.url || location.href).pathname.startsWith("/api/") && !leavingForLogin) {
+    leavingForLogin = true;
+    location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search + location.hash));
+  }
+  return response;
+};
+// The signed-in account, shared by page scripts: {id, email, display_name, role}.
+window.fitlogMe = fetch("/api/me", {cache: "no-store"}).then((r) => r.ok ? r.json() : null).catch(() => null);
+
 const today = document.querySelector("#today");
 today.textContent = new Intl.DateTimeFormat("ko-KR", {
   month: "long", day: "numeric", weekday: "long"
