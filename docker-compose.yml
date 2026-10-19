@@ -14,6 +14,9 @@ services:
       GOOGLE_WORKSHEET_SLEEP: ${GOOGLE_WORKSHEET_SLEEP:-sleep}
       FITLOG_DATA_DIR: /app/data
       FITLOG_PROTEIN_GOAL_G: "${FITLOG_PROTEIN_GOAL_G:-150}"
+      FITLOG_PUBLIC_URL: ${FITLOG_PUBLIC_URL:-}
+      FITLOG_OWNER_EMAIL: ${FITLOG_OWNER_EMAIL:-}
+      FITLOG_INSECURE_COOKIES: ${FITLOG_INSECURE_COOKIES:-}
     volumes:
       - ./data:/app/data
       - ./config:/app/config:ro

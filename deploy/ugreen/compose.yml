@@ -11,6 +11,8 @@ services:
       FITLOG_DATA_DIR: /app/data
       GOOGLE_SERVICE_ACCOUNT_FILE: /app/config/google-service-account.json
       GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID:?Set GOOGLE_SPREADSHEET_ID in .env}
+      FITLOG_PUBLIC_URL: ${FITLOG_PUBLIC_URL:-}
+      FITLOG_OWNER_EMAIL: ${FITLOG_OWNER_EMAIL:-}
     volumes:
       - /volume1/docker/fitlog/data:/app/data
       - /volume1/docker/fitlog/config:/app/config:ro

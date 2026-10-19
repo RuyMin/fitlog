@@ -10,14 +10,8 @@ from app.services.legacy_xlsx import MAX_UPLOAD_BYTES
 router=APIRouter(prefix="/api/sync/excel",tags=["excel import"])
 
 
-def same_site(request: Request):
-    if request.headers.get("sec-fetch-site") == "cross-site":
-        raise HTTPException(403,"다른 사이트에서는 업로드·저장을 실행할 수 없습니다.")
-
-
 @router.post("/preview")
 async def preview(request: Request, user: CurrentUser, filename: Annotated[str,Query(min_length=1,max_length=200)]):
-    same_site(request)
     if not filename.lower().endswith(".xlsx") or "/" in filename or "\\" in filename:
         raise HTTPException(422,".xlsx 파일 이름을 지정해 주세요.")
     if request.headers.get("content-type", "").split(";")[0] != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
@@ -39,15 +33,13 @@ class Selection(BaseModel):
 
 
 @router.post("/{token}/commit")
-def commit(token: str, data: Selection, request: Request, user: CurrentUser):
-    same_site(request)
+def commit(token: str, data: Selection, user: CurrentUser):
     try: return excel_import.commit_preview(user.id,token,data.selected)
     except SyncError as exc: raise HTTPException(exc.code,exc.message) from None
 
 
 @router.delete("/{token}")
-def discard(token: str, request: Request, user: CurrentUser):
-    same_site(request)
+def discard(token: str, user: CurrentUser):
     return excel_import.discard_preview(user.id,token)
 
 
