@@ -26,6 +26,22 @@ def clear_session_cookie(response: Response) -> None:
     response.delete_cookie(cookie_name(), path="/", secure=not config.INSECURE_COOKIES, httponly=True, samesite="lax")
 
 
+def oauth_cookie_name() -> str:
+    return "fitlog_oauth" if config.INSECURE_COOKIES else "__Host-fitlog_oauth"
+
+
+def set_oauth_cookie(response: Response, state: str) -> None:
+    # Binds the login attempt to this browser, so a stolen callback URL cannot log anyone in.
+    response.set_cookie(
+        oauth_cookie_name(), state, max_age=600, path="/",
+        secure=not config.INSECURE_COOKIES, httponly=True, samesite="lax",
+    )
+
+
+def clear_oauth_cookie(response: Response) -> None:
+    response.delete_cookie(oauth_cookie_name(), path="/", secure=not config.INSECURE_COOKIES, httponly=True, samesite="lax")
+
+
 def current_user(request: Request, db: Annotated[Session, Depends(get_session)]) -> User:
     user = resolve_session(db, request.cookies.get(cookie_name()))
     if user is None:

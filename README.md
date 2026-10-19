@@ -219,8 +219,38 @@ service worker는 정적 UI만 캐시하며 `/api/*`는 캐시하지 않습니�
 세션은 서버 측 `auth_sessions`에 토큰 해시만 저장하고, 쿠키는 `__Host-fitlog_session`(HttpOnly·Secure·SameSite=Lax)입니다. 유휴 30일, 최대 90일 후 만료됩니다.
 다른 Origin·사이트에서 보낸 POST/PUT/DELETE는 403으로 거부하고, 모든 응답에 CSP·nosniff·frame 차단 헤더를 붙입니다. 개인 API 응답은 캐시하지 않습니다.
 CSP는 인라인 script/style과 외부 리소스를 허용하지 않으므로 화면 코드는 CSS 클래스와 로컬 파일만 사용하세요.
-Google 로그인과 초대 링크는 다음 단계에서 추가되며, 그 전까지 이 브랜치의 개인 API는 모두 401을 반환합니다.
+로그인은 Google 계정(OpenID Connect, PKCE·state·nonce)과 1회용 초대 링크로만 합니다. 공개 가입은 없습니다. 아래 [로그인과 초대](#로그인과-초대)를 참고하세요.
 로컬 HTTP 개발에서 Secure 쿠키를 쓸 수 없다면 `FITLOG_INSECURE_COOKIES=1`을 설정합니다(운영 금지).
+
+## 로그인과 초대
+
+**준비 (최초 1회)**
+
+1. 외부에서 접속할 HTTPS 도메인을 reverse proxy에 연결합니다. Google은 IP 주소나 HTTPS가 아닌 redirect 주소를 허용하지 않습니다.
+2. Google Cloud 콘솔 → API 및 서비스 → OAuth 동의 화면에서 범위를 `openid`, `email`, `profile`만 추가합니다.
+3. 사용자 인증 정보 → OAuth 클라이언트 ID → "웹 애플리케이션"을 만들고, 승인된 리디렉션 URI에 `https://<도메인>/auth/google/callback`을 등록합니다.
+4. 클라이언트 보안 비밀번호를 `config/google-oauth-client-secret` 파일 한 줄로 저장합니다(Git·이미지에서 제외됨).
+5. `.env`에 `FITLOG_PUBLIC_URL`, `FITLOG_OWNER_EMAIL`(본인 Google 이메일), `GOOGLE_OAUTH_CLIENT_ID`를 설정하고 재시작합니다.
+6. `/login`에서 본인 Google 계정으로 로그인합니다. 첫 로그인 때만 이메일이 일치하는 관리자 계정에 연결되고, 이후에는 Google 계정 식별자(`sub`)로만 확인합니다.
+
+**지인 초대와 계정 관리** (컨테이너 안에서 실행)
+
+```bash
+docker compose exec fitlog python -m app.admin invite --note "민수"
+```
+
+출력된 링크는 7일 동안 한 번만 쓸 수 있습니다(`--days 1-30`). 링크를 가진 사람은 누구나 가입할 수 있으므로 개인 메시지로만 보내세요.
+링크를 연 사람은 서비스 이용 동의(필수)와 AI 외부 전송 동의(선택)를 각각 확인한 뒤 Google 계정으로 가입합니다. 동의 항목·고지 버전·시각은 `consents`에 기록됩니다.
+
+```bash
+docker compose exec fitlog python -m app.admin users
+docker compose exec fitlog python -m app.admin disable friend@example.com
+docker compose exec fitlog python -m app.admin delete-user friend@example.com --yes
+```
+
+`disable`은 즉시 모든 세션을 끝냅니다. `delete-user`는 그 사용자의 모든 기록을 한 트랜잭션에서 삭제하지만, 그 전에 만든 백업 파일에는 남습니다. 관리자 화면이나 다른 사용자의 기록을 열람하는 명령은 의도적으로 두지 않았습니다.
+
+로그인 오류는 `/login?error=<코드>`로만 표시하며 Google 원문 응답·토큰은 화면이나 로그에 남기지 않습니다. 로그인 요청은 IP별 분당 20회로 제한합니다.
 
 ## 향후 로드맵
 

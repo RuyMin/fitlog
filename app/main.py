@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -18,7 +19,8 @@ from app.api.records import router as records_router
 from app.api.statistics import router as statistics_router
 from app.services.persistence import RecordConflict, RecordNotFound
 from sqlalchemy.exc import OperationalError
-from app.database import engine, initialize_database
+from app.database import SessionLocal, engine, initialize_database
+from app.services.accounts import ensure_owner
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -26,6 +28,8 @@ STATIC_DIR = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     initialize_database()
+    with SessionLocal() as session:
+        ensure_owner(session, os.environ.get("FITLOG_OWNER_EMAIL", ""))
     try:
         yield
     finally:
