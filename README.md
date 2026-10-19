@@ -475,7 +475,7 @@ workout_sets에는 nullable rpe/rir, meals에는 별도 image_url을 추가합�
 `sync_state`는 연결 문서와 최근 결과/오류, `import_archives`는 원본 파일 바이트·셀 데이터·이관 보고서를 저장합니다.
 시간은 기존 방식인 UTC-naive DB 저장, API 출력 시 UTC offset, UI에서 로컬 시간으로 표시합니다. Excel의 시각 없는 측정 날짜는 메모에 가정한 정렬 시각을 명시합니다.
 
-기존 DB는 최초 업그레이드 전에 `data/backups/before-sync-*.db`로 SQLite backup API를 이용해 백업합니다. 파일 복사로 WAL을 누락하지 않습니다.
+기존 DB는 스키마 버전을 올리기 전마다 `data/backups/before-v{대상 버전}-*.db`로 SQLite backup API를 이용해 백업합니다. 파일 복사로 WAL을 누락하지 않습니다.
 새 스키마에서는 이전 이미지로 단순 롤백하지 말고, 앱을 멈춘 뒤 해당 백업을 별도 안전한 위치에 복원하여 사용하세요.
 운영 중 수동 SQLite 접근은 호스트와 컨테이너가 동시에 쓰지 않도록 하며, 아래 이관은 실행 컨테이너 안에서 수행합니다.
 
