@@ -13,8 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-# Raise to 3 together with the v3 models and user-scoped services.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -351,7 +350,5 @@ STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3}
 def finish_migration(engine: Engine) -> None:
     """Stamp a newly created schema; existing databases were stamped by their steps."""
     with engine.begin() as c:
-        for table in TABLES:
-            c.exec_driver_sql(f"CREATE UNIQUE INDEX IF NOT EXISTS uq_{table}_source_external ON {table}(source, external_id)")
         if c.exec_driver_sql("PRAGMA user_version").scalar_one() == 0:
             c.exec_driver_sql(f"PRAGMA user_version={SCHEMA_VERSION}")

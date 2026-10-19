@@ -1,6 +1,11 @@
-"""Shared errors and transaction boundary for record services."""
+"""Shared errors, ownership lookup and transaction boundary for record services."""
+from typing import TypeVar
+
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+T = TypeVar("T")
 
 
 class RecordNotFound(Exception):
@@ -9,6 +14,14 @@ class RecordNotFound(Exception):
 
 class RecordConflict(Exception):
     pass
+
+
+def owned(session: Session, model: type[T], user_id: int, record_id: int, message: str = "기록을 찾을 수 없습니다.") -> T:
+    """Another owner's row is indistinguishable from a missing one."""
+    record = session.scalar(select(model).where(model.id == record_id, model.user_id == user_id))
+    if record is None:
+        raise RecordNotFound(message)
+    return record
 
 
 def commit(session: Session) -> None:

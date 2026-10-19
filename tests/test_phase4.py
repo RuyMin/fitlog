@@ -1,6 +1,6 @@
 import unittest
 
-from support import TEMP
+from support import TEMP, fresh_owner
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
@@ -13,9 +13,7 @@ class StatisticsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.client = TestClient(app)
         self.client.__enter__()
-        with engine.begin() as connection:
-            for table in reversed(Base.metadata.sorted_tables):
-                connection.execute(table.delete())
+        self.user = fresh_owner()
 
     def tearDown(self) -> None:
         self.client.__exit__(None, None, None)

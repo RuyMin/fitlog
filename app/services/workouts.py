@@ -1,4 +1,4 @@
-"""Workout business rules shared by REST and future import adapters."""
+"""Workout business rules shared by REST and import adapters. Always scoped to one user."""
 from datetime import date, datetime, timezone
 
 from sqlalchemy import Select, select
@@ -8,22 +8,20 @@ from app.models import Exercise, Workout, WorkoutSet, utc_now
 from app.schemas import ExerciseInput, SetInput, WorkoutInput
 
 
-from app.services.persistence import RecordConflict, RecordNotFound, commit
+from app.services.persistence import RecordConflict, RecordNotFound, commit, owned
 
 
-def get_exercise(session: Session, exercise_id: int) -> Exercise:
-    item = session.get(Exercise, exercise_id)
-    if item is None:
-        raise RecordNotFound("운동 종목을 찾을 수 없습니다.")
-    return item
+def get_exercise(session: Session, user_id: int, exercise_id: int) -> Exercise:
+    return owned(session, Exercise, user_id, exercise_id, "운동 종목을 찾을 수 없습니다.")
 
 
-def list_exercises(session: Session, limit: int, offset: int) -> list[Exercise]:
-    return list(session.scalars(select(Exercise).order_by(Exercise.name, Exercise.id).limit(limit).offset(offset)))
+def list_exercises(session: Session, user_id: int, limit: int, offset: int) -> list[Exercise]:
+    query = select(Exercise).where(Exercise.user_id == user_id)
+    return list(session.scalars(query.order_by(Exercise.name, Exercise.id).limit(limit).offset(offset)))
 
 
-def save_exercise(session: Session, data: ExerciseInput, exercise_id: int | None = None) -> Exercise:
-    item = get_exercise(session, exercise_id) if exercise_id is not None else Exercise()
+def save_exercise(session: Session, user_id: int, data: ExerciseInput, exercise_id: int | None = None) -> Exercise:
+    item = get_exercise(session, user_id, exercise_id) if exercise_id is not None else Exercise(user_id=user_id)
     for key, value in data.model_dump().items():
         setattr(item, key, value)
     session.add(item)
@@ -31,20 +29,22 @@ def save_exercise(session: Session, data: ExerciseInput, exercise_id: int | None
     return item
 
 
-def delete_exercise(session: Session, exercise_id: int) -> None:
-    item = get_exercise(session, exercise_id)
+def delete_exercise(session: Session, user_id: int, exercise_id: int) -> None:
+    item = get_exercise(session, user_id, exercise_id)
     if session.scalar(select(WorkoutSet.id).where(WorkoutSet.exercise_id == exercise_id).limit(1)):
         raise RecordConflict("세트에서 사용 중인 종목은 삭제할 수 없습니다.")
     session.delete(item)
     commit(session)
 
 
-def workout_query() -> Select[tuple[Workout]]:
-    return select(Workout).options(selectinload(Workout.sets).joinedload(WorkoutSet.exercise))
+def workout_query(user_id: int) -> Select[tuple[Workout]]:
+    return select(Workout).where(Workout.user_id == user_id).options(
+        selectinload(Workout.sets).joinedload(WorkoutSet.exercise)
+    )
 
 
-def list_workouts(session: Session, limit: int, offset: int, date_from: date | None, date_to: date | None) -> list[Workout]:
-    query = workout_query()
+def list_workouts(session: Session, user_id: int, limit: int, offset: int, date_from: date | None, date_to: date | None) -> list[Workout]:
+    query = workout_query(user_id)
     if date_from is not None:
         query = query.where(Workout.workout_date >= date_from)
     if date_to is not None:
@@ -52,52 +52,52 @@ def list_workouts(session: Session, limit: int, offset: int, date_from: date | N
     return list(session.scalars(query.order_by(Workout.workout_date.desc(), Workout.id.desc()).limit(limit).offset(offset)))
 
 
-def get_workout(session: Session, workout_id: int) -> Workout:
-    item = session.scalar(workout_query().where(Workout.id == workout_id).execution_options(populate_existing=True))
+def get_workout(session: Session, user_id: int, workout_id: int) -> Workout:
+    item = session.scalar(workout_query(user_id).where(Workout.id == workout_id).execution_options(populate_existing=True))
     if item is None:
         raise RecordNotFound("운동 기록을 찾을 수 없습니다.")
     return item
 
 
-def save_workout(session: Session, data: WorkoutInput, workout_id: int | None = None) -> Workout:
-    item = get_workout(session, workout_id) if workout_id is not None else Workout()
+def save_workout(session: Session, user_id: int, data: WorkoutInput, workout_id: int | None = None) -> Workout:
+    item = get_workout(session, user_id, workout_id) if workout_id is not None else Workout(user_id=user_id)
     for key, value in data.model_dump().items():
         if isinstance(value, datetime):
             value = value.astimezone(timezone.utc).replace(tzinfo=None)
         setattr(item, key, value)
     session.add(item)
     commit(session)
-    return get_workout(session, item.id)
+    return get_workout(session, user_id, item.id)
 
 
-def delete_workout(session: Session, workout_id: int) -> None:
-    session.delete(get_workout(session, workout_id))
+def delete_workout(session: Session, user_id: int, workout_id: int) -> None:
+    session.delete(get_workout(session, user_id, workout_id))
     commit(session)
 
 
-def get_set(session: Session, workout_id: int, set_id: int) -> WorkoutSet:
+def get_set(session: Session, user_id: int, workout_id: int, set_id: int) -> WorkoutSet:
     item = session.scalar(select(WorkoutSet).options(joinedload(WorkoutSet.exercise)).where(
-        WorkoutSet.id == set_id, WorkoutSet.workout_id == workout_id
+        WorkoutSet.id == set_id, WorkoutSet.workout_id == workout_id, WorkoutSet.user_id == user_id
     ).execution_options(populate_existing=True))
     if item is None:
         raise RecordNotFound("이 운동의 세트를 찾을 수 없습니다.")
     return item
 
 
-def save_set(session: Session, workout_id: int, data: SetInput, set_id: int | None = None) -> WorkoutSet:
-    workout = get_workout(session, workout_id)
-    item = get_set(session, workout_id, set_id) if set_id is not None else WorkoutSet(workout_id=workout_id)
-    get_exercise(session, data.exercise_id)
+def save_set(session: Session, user_id: int, workout_id: int, data: SetInput, set_id: int | None = None) -> WorkoutSet:
+    workout = get_workout(session, user_id, workout_id)
+    item = get_set(session, user_id, workout_id, set_id) if set_id is not None else WorkoutSet(workout_id=workout_id, user_id=user_id)
+    get_exercise(session, user_id, data.exercise_id)
     for key, value in data.model_dump().items():
         setattr(item, key, value)
     workout.updated_at = utc_now()
     session.add(item)
     commit(session)
-    return get_set(session, workout_id, item.id)
+    return get_set(session, user_id, workout_id, item.id)
 
 
-def delete_set(session: Session, workout_id: int, set_id: int) -> None:
-    workout = get_workout(session, workout_id)
-    session.delete(get_set(session, workout_id, set_id))
+def delete_set(session: Session, user_id: int, workout_id: int, set_id: int) -> None:
+    workout = get_workout(session, user_id, workout_id)
+    session.delete(get_set(session, user_id, workout_id, set_id))
     workout.updated_at = utc_now()
     commit(session)

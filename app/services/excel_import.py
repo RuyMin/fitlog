@@ -15,6 +15,7 @@ from app.models import ExcelPreview, ImportArchive, Exercise, Workout, WorkoutSe
 from app.services.legacy_xlsx import build_plan
 from app.services.sync_service import MODELS, parse_tables
 from app.services.google_sheets import SyncError
+from app.services.persistence import owned
 
 TTL = timedelta(hours=1)
 LABELS = {"workouts": "운동", "workout_sets": "세트", "meals": "식단", "body_metrics": "신체", "sleep": "수면"}
@@ -38,12 +39,13 @@ def normalized(values: dict) -> dict:
     return result
 
 
-def fingerprint(session: Session) -> str:
+def fingerprint(session: Session, user_id: int) -> str:
+    """Only this user's records; another user's writes never stale this preview."""
     state = {}
     for model in [*MODELS.values(), Exercise]:
         state[model.__tablename__] = [
             {col.name: wire(getattr(row, col.name)) for col in model.__table__.columns}
-            for row in session.scalars(select(model).order_by(model.id))
+            for row in session.scalars(select(model).where(model.user_id == user_id).order_by(model.id))
         ]
     return hashlib.sha256(json.dumps(state, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
@@ -63,7 +65,7 @@ def identity(kind: str, value: dict) -> tuple:
     return value["exercise"], value["set_number"]
 
 
-def compare(session: Session, rows: dict) -> list[dict]:
+def compare(session: Session, user_id: int, rows: dict) -> list[dict]:
     entries, parents = [], {}
     for kind, model in MODELS.items():
         prepared = []
@@ -77,7 +79,7 @@ def compare(session: Session, rows: dict) -> list[dict]:
             if parent: key = (parent["key"], *key)
             prepared.append((row, values, key, parent))
         duplicates = Counter(item[2] for item in prepared)
-        existing = list(session.scalars(select(model).order_by(model.id)))
+        existing = list(session.scalars(select(model).where(model.user_id == user_id).order_by(model.id)))
         lookup = defaultdict(list)
         # Index exact semantic keys, never legacy row-number IDs.
         for record in existing:
@@ -123,7 +125,7 @@ def compare(session: Session, rows: dict) -> list[dict]:
     return entries
 
 
-def create_preview(original: bytes, filename: str) -> dict:
+def create_preview(user_id: int, original: bytes, filename: str) -> dict:
     try:
         plan = build_plan(original, filename)
         rows = parse_tables(plan["tables"])
@@ -137,29 +139,29 @@ def create_preview(original: bytes, filename: str) -> dict:
         raise SyncError("Excel 파일을 읽지 못했습니다. 손상·암호 설정·시트 형식을 확인해 주세요.") from None
     with SessionLocal() as session:
         session.execute(text("BEGIN"))
-        digest = fingerprint(session)
-        entries = compare(session, rows)
-        archived = session.scalar(select(ImportArchive.id).where(ImportArchive.sha256 == plan["sha256"]))
+        digest = fingerprint(session, user_id)
+        entries = compare(session, user_id, rows)
+        archived = session.scalar(select(ImportArchive.id).where(ImportArchive.user_id == user_id, ImportArchive.sha256 == plan["sha256"]))
     plan.pop("original")
     payload = {"plan":plan,"fingerprint":digest,"entries":entries}
     with SessionLocal() as session:
         session.execute(text("BEGIN IMMEDIATE"))
         session.execute(delete(ExcelPreview).where(ExcelPreview.result.is_(None), ExcelPreview.created_at < utc_now()-TTL))
-        if session.scalar(select(func.count()).select_from(ExcelPreview).where(ExcelPreview.result.is_(None))) >= 20:
+        if session.scalar(select(func.count()).select_from(ExcelPreview).where(ExcelPreview.user_id == user_id, ExcelPreview.result.is_(None))) >= 20:
             raise SyncError("대기 중인 비교가 많습니다. 기존 비교를 취소하거나 만료 후 다시 시도해 주세요.",429)
-        preview = ExcelPreview(token=secrets.token_urlsafe(32),payload=json.dumps(payload,ensure_ascii=False),original=original)
+        preview = ExcelPreview(user_id=user_id,token=secrets.token_urlsafe(32),payload=json.dumps(payload,ensure_ascii=False),original=original)
         session.add(preview);session.commit()
         return {"token":preview.token,"filename":filename,"expires_at":wire(preview.created_at+TTL),
                 "previous_archive_id":archived,"counts":dict(Counter(e["status"] for e in entries)),
                 "entries":entries,"notes":plan["report"]["notes"]}
 
 
-def commit_preview(token: str, selected: list[str]) -> dict:
+def commit_preview(user_id: int, token: str, selected: list[str]) -> dict:
     if len(selected) != len(set(selected)):
         raise SyncError("선택 항목이 중복되었습니다.")
     with SessionLocal() as session:
         session.execute(text("BEGIN IMMEDIATE"))
-        preview = session.get(ExcelPreview, token)
+        preview = session.scalar(select(ExcelPreview).where(ExcelPreview.token==token,ExcelPreview.user_id==user_id))
         if preview is None: raise SyncError("비교 결과가 없습니다. 다시 업로드해 주세요.",404)
         if preview.result:
             result = json.loads(preview.result)
@@ -167,7 +169,7 @@ def commit_preview(token: str, selected: list[str]) -> dict:
             return result
         if utc_now() - preview.created_at > TTL: raise SyncError("비교 결과가 만료되었습니다. 다시 업로드해 주세요.",409)
         payload=json.loads(preview.payload)
-        if fingerprint(session) != payload["fingerprint"]:
+        if fingerprint(session, user_id) != payload["fingerprint"]:
             raise SyncError("비교 이후 기록이 변경되었습니다. 최신 기록으로 다시 비교해 주세요.",409)
         entries={e["key"]:e for e in payload["entries"]}
         if any(k not in entries or entries[k]["status"] not in {"new","updated"} for k in selected):
@@ -186,13 +188,13 @@ def commit_preview(token: str, selected: list[str]) -> dict:
             for key,e in entries.items():
                 if key not in selected_set: continue
                 model=MODELS[e["kind"]]
-                record=session.get(model,e["target_id"]) if e["target_id"] is not None else model(source="excel",external_id="xlsx_"+secrets.token_hex(16))
+                record=owned(session,model,user_id,e["target_id"]) if e["target_id"] is not None else model(user_id=user_id,source="excel",external_id="xlsx_"+secrets.token_hex(16))
                 values=dict(e["incoming"])
                 if e["kind"] == "workout_sets":
                     exercise_name=values.pop("exercise")
-                    exercise=session.scalar(select(Exercise).where(Exercise.name==exercise_name))
+                    exercise=session.scalar(select(Exercise).where(Exercise.user_id==user_id,Exercise.name==exercise_name))
                     if exercise is None:
-                        exercise=Exercise(name=exercise_name);session.add(exercise);session.flush()
+                        exercise=Exercise(user_id=user_id,name=exercise_name);session.add(exercise);session.flush()
                     values.update(workout_id=ids[e["parent"]],exercise_id=exercise.id)
                 for name,value in values.items():
                     if value is not None and name == "workout_date": value=date.fromisoformat(value)
@@ -204,10 +206,10 @@ def commit_preview(token: str, selected: list[str]) -> dict:
                 result["inserted" if e["target_id"] is None else "updated"]+=1
                 changes.append({**e,"saved_id":record.id})
             plan=payload["plan"]
-            archive=session.scalar(select(ImportArchive).where(ImportArchive.sha256==plan["sha256"]))
+            archive=session.scalar(select(ImportArchive).where(ImportArchive.user_id==user_id,ImportArchive.sha256==plan["sha256"]))
             if archive is None:
                 report={**plan["report"],"summary":f"Excel 비교 저장: {result['inserted']}건 추가 · {result['updated']}건 수정 · {result['skipped']}건 유지. 원본 전체 보존."}
-                archive=ImportArchive(sha256=plan["sha256"],filename=plan["filename"],original=preview.original,
+                archive=ImportArchive(user_id=user_id,sha256=plan["sha256"],filename=plan["filename"],original=preview.original,
                                       payload=json.dumps(plan["archive"],ensure_ascii=False),report=json.dumps(report,ensure_ascii=False))
                 session.add(archive);session.flush()
             result["archive_id"]=archive.id
@@ -221,14 +223,14 @@ def commit_preview(token: str, selected: list[str]) -> dict:
             raise SyncError("기존 기록과 세트 번호 등이 충돌하여 저장 전체를 취소했습니다. 다시 비교해 주세요.",409) from None
 
 
-def discard_preview(token: str) -> dict:
+def discard_preview(user_id: int, token: str) -> dict:
     with SessionLocal() as session:
-        session.execute(delete(ExcelPreview).where(ExcelPreview.token==token,ExcelPreview.result.is_(None)))
+        session.execute(delete(ExcelPreview).where(ExcelPreview.token==token,ExcelPreview.user_id==user_id,ExcelPreview.result.is_(None)))
         session.commit()
     return {"status":"discarded"}
 
 
-def history() -> list[dict]:
+def history(user_id: int) -> list[dict]:
     with SessionLocal() as session:
         return [{"token":r.token,**json.loads(r.payload),"result":json.loads(r.result)}
-                for r in session.scalars(select(ExcelPreview).where(ExcelPreview.result.is_not(None)).order_by(ExcelPreview.created_at.desc()).limit(10))]
+                for r in session.scalars(select(ExcelPreview).where(ExcelPreview.user_id==user_id,ExcelPreview.result.is_not(None)).order_by(ExcelPreview.created_at.desc()).limit(10))]

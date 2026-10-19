@@ -465,7 +465,7 @@ JSON 키/토큰/Google 원문 예외를 UI/로그로 출력하지 않으며 DB �
 - `app/sync_schemas.py`: 외부 행 계약/컬럼. 표준 데이터 타입과 입력 검증.
 - `app/services/sync_service.py`: 검증, ID 매칭, insert/update/skip, 전체 rollback, 결과와 최근 상태. 독립 함수 `sync_google_sheets()`는 향후 scheduler에서도 재사용할 수 있습니다.
 - `app/api/sync.py`: GET `/api/sync/status`, POST `/api/sync/google`, 원본 자료 목록/조회/다운로드.
-- `app/migrations.py`: 기존 DB 자동 백업 후 명시적 additive migration. 스키마 버전은 SQLite `PRAGMA user_version=2`.
+- `app/migrations.py`: 기존 DB 자동 백업 후 명시적 버전별 migration(v3는 소유자 컬럼을 위해 테이블 재생성). 스키마 버전은 SQLite `PRAGMA user_version=3`(v3: 사용자별 소유 `user_id`).
 - `app/static/settings.html`, `css/settings.css`, `js/settings.js`: 관리 화면.
 - `app/services/legacy_xlsx.py`: 제공된 7개 시트 형식의 공통 Excel 변환기와 초기 이관 CLI. 일반적인 모든 Excel 구조를 자동 추측하지 않습니다.
 
@@ -490,7 +490,7 @@ CSV를 Google Sheets에 올릴 때 이 ID를 유지하면 최초 Google sync도 
 python -m pip install -r requirements-import.txt
 python -m app.services.legacy_xlsx --prepare 'C:\Users\unlim\Desktop\운동_식사_통합기록.xlsx' --output data/imports/legacy-20260926
 # 생성된 report.json / CSV 검토 후, 운영 DB와 동일 컨테이너 환경에서 원자적 반영
-docker compose exec fitlog python -m app.services.legacy_xlsx --apply /app/data/imports/legacy-20260926/plan.json
+docker compose exec fitlog python -m app.services.legacy_xlsx --apply /app/data/imports/legacy-20260926/plan.json --user-email <기록을 받을 사용자 이메일>
 ```
 
 이관 결과: 실제 웨이트 36행 → 7개 세션/97세트, 러닝·걷기 5회, 야외 활동 1회, 식단 40건, 인바디 2건. 일일 메모 한 행은 기존 날짜의 등 운동에 합쳐 중복 세션을 피했습니다. 수면은 원본에 없습니다.
@@ -598,7 +598,7 @@ ChatGPT에 기록을 요청할 때 다음 지침을 함께 전달하면 됩니�
 
 ## GitHub Actions와 NAS 이미지 배포
 
-`.github/workflows/ci.yml`이 PR과 main push의 Python 테스트를 실행합니다. main에서 테스트가 통과하면 Linux amd64 이미지를 만들고, 인증 정보와 기존 DB가 없는 임시 컨테이너로 health/sync 상태를 확인한 뒤 GHCR에 게시합니다. UGREEN DXP4800 Plus는 이 amd64 이미지를 사용합니다.
+`.github/workflows/ci.yml`이 PR과 main push의 Python 테스트를 실행합니다. main에서 테스트가 통과하면 Linux amd64 이미지를 만들고, 인증 정보와 기존 DB가 없는 임시 컨테이너로 health 응답과 비공개 API의 401 응답을 확인한 뒤 GHCR에 게시합니다. UGREEN DXP4800 Plus는 이 amd64 이미지를 사용합니다.
 
 - 이미지: `ghcr.io/ruymin/fitlog:latest`
 - 고정 버전: `ghcr.io/ruymin/fitlog:sha-<전체 40자리 커밋 SHA>`

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import TEMP
+from support import TEMP, fresh_owner
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select, text
 from app.database import Base, SessionLocal, engine
@@ -17,7 +17,7 @@ from app.models import Workout, WorkoutSet, Meal, SleepRecord, SyncState
 from app.sync_schemas import COLUMNS
 from app.services.google_sheets import SheetSnapshot, SyncError, GoogleSettings, GoogleSheetsReader
 from app.services.sync_service import sync_google_sheets, parse_tables, RUN_LOCK
-from app.migrations import migrate, finish_migration
+from app.migrations import TABLES, migrate, finish_migration
 
 STAMP = "2026-09-26T12:00:00+09:00"
 
@@ -45,13 +45,12 @@ class Reader:
 class SyncTests(unittest.TestCase):
     def setUp(self):
         self.client=TestClient(app); self.client.__enter__()
-        with engine.begin() as c:
-            for table in reversed(Base.metadata.sorted_tables): c.execute(table.delete())
+        self.user=fresh_owner()
         self.env=patch.dict(os.environ,{"GOOGLE_SPREADSHEET_ID":"test_sheet_12345","GOOGLE_SERVICE_ACCOUNT_FILE":"missing.json"});self.env.start()
         self.tables=fixture()
     def tearDown(self):
         self.env.stop();self.client.__exit__(None,None,None)
-    def run_sync(self): return sync_google_sheets(Reader(self.tables))
+    def run_sync(self): return sync_google_sheets(self.user.id, Reader(self.tables))
     def counts(self):
         with SessionLocal() as s:
             return {t:s.execute(text("select count(*) from "+t)).scalar() for t in ["workouts","workout_sets","exercises","meals","body_metrics","sleep_records"]}
@@ -83,7 +82,7 @@ class SyncTests(unittest.TestCase):
     def test_local_id_not_overwritten(self):
         with SessionLocal() as s:
             from datetime import date
-            s.add(Workout(workout_date=date(2026,9,25),title="Local",external_id="w1"));s.commit()
+            s.add(Workout(user_id=self.user.id,workout_date=date(2026,9,25),title="Local",external_id="w1"));s.commit()
         self.run_sync();self.assertEqual(self.counts()["workouts"],2)
     def test_bad_reference_rolls_back_everything(self):
         edit(self.tables,"workout_sets","workout_external_id","missing")
@@ -167,16 +166,27 @@ class MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/"fitlog.db"
             with closing(sqlite3.connect(path)) as c:
-                for name in ["workouts","workout_sets","meals","body_metrics","sleep_records"]:
-                    c.execute(f"CREATE TABLE {name}(id INTEGER PRIMARY KEY, memo TEXT)")
-                    c.execute(f"INSERT INTO {name}(id,memo) VALUES(1,'original')")
-                c.commit()
+                # Pre-sync shape (user_version 0): the v2 fixture without what v2 added.
+                c.executescript((Path(__file__).parent/"fixtures"/"schema_v2.sql").read_text(encoding="utf-8"))
+                for t in TABLES:c.execute(f"DROP INDEX uq_{t}_source_external")
+                for t in ["sync_state","import_archives","excel_previews"]:c.execute(f"DROP TABLE {t}")
+                for t,col in [(t,col) for t in TABLES for col in ["external_id","source","source_updated_at"]]+[("workout_sets","rpe"),("workout_sets","rir"),("meals","image_url")]:
+                    c.execute(f"ALTER TABLE {t} DROP COLUMN {col}")
+                c.executescript("""PRAGMA user_version=0;
+                    INSERT INTO exercises VALUES (1,'Squat',NULL,NULL,'2026-09-01 00:00:00');
+                    INSERT INTO workouts VALUES (1,'2026-09-25','Legs',NULL,NULL,NULL,'original','2026-09-25 00:00:00','2026-09-25 00:00:00');
+                    INSERT INTO workout_sets VALUES (1,1,1,1,60,8,1,NULL);
+                    INSERT INTO meals VALUES (1,'2026-09-25 03:00:00','lunch','Meal',NULL,NULL,NULL,NULL,'original',NULL,'2026-09-25 03:00:00');""")
             e=create_engine("sqlite:///"+path.as_posix())
             try:
-                migrate(e,path);finish_migration(e);migrate(e,path);finish_migration(e)
+                with patch.dict(os.environ,{"FITLOG_OWNER_EMAIL":"owner@example.com"}):
+                    for _ in range(2):migrate(e,path);Base.metadata.create_all(e);finish_migration(e)
                 with e.connect() as c:
-                    self.assertEqual(c.exec_driver_sql("SELECT source,memo FROM workouts").one(),("local","original"))
-                    self.assertEqual(c.exec_driver_sql("PRAGMA user_version").scalar(),2)
+                    self.assertEqual(c.exec_driver_sql("SELECT source,memo,user_id FROM workouts").one(),("local","original",1))
+                    self.assertEqual(c.exec_driver_sql("SELECT user_id,rpe FROM workout_sets").one(),(1,None))
+                    self.assertEqual(c.exec_driver_sql("SELECT email,role FROM users").one(),("owner@example.com","admin"))
+                    self.assertEqual(c.exec_driver_sql("PRAGMA user_version").scalar(),3)
+                    self.assertEqual(c.exec_driver_sql("PRAGMA foreign_key_check").all(),[])
                 backups=list((path.parent/"backups").glob("*.db"));self.assertEqual(len(backups),1)
                 with closing(sqlite3.connect(backups[0])) as c:self.assertEqual(c.execute("SELECT memo FROM meals").fetchone()[0],"original")
             finally:e.dispose()

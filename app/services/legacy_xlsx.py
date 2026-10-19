@@ -212,10 +212,10 @@ def prepare(path: Path, directory: Path) -> dict:
     return plan["report"]
 
 
-def apply(plan_path: Path) -> dict:
-    from sqlalchemy import select, text
+def apply(plan_path: Path, user_email: str) -> dict:
+    from sqlalchemy import func, select, text
     from app.database import SessionLocal, initialize_database
-    from app.models import ImportArchive
+    from app.models import ImportArchive, User
     from app.services.sync_service import apply_rows, parse_tables
     plan=json.loads(plan_path.read_text(encoding="utf-8")); original=base64.b64decode(plan["original"],validate=True)
     if hashlib.sha256(original).hexdigest()!=plan["sha256"]: raise ValueError("원본 해시 불일치")
@@ -224,10 +224,12 @@ def apply(plan_path: Path) -> dict:
     with SessionLocal() as session:
         session.execute(text("BEGIN IMMEDIATE"))
         try:
-            existing=session.scalar(select(ImportArchive).where(ImportArchive.sha256==plan["sha256"]))
+            user=session.scalar(select(User).where(func.lower(User.email)==user_email.strip().lower()))
+            if user is None: raise ValueError("--user-email에 해당하는 FitLog 사용자가 없습니다.")
+            existing=session.scalar(select(ImportArchive).where(ImportArchive.user_id==user.id,ImportArchive.sha256==plan["sha256"]))
             if existing: return {"status":"already_imported","archive_id":existing.id}
-            result=apply_rows(session,parsed)
-            archive=ImportArchive(sha256=plan["sha256"],filename=plan["filename"],original=original,
+            result=apply_rows(session,user.id,parsed)
+            archive=ImportArchive(user_id=user.id,sha256=plan["sha256"],filename=plan["filename"],original=original,
                                   payload=json.dumps(plan["archive"],ensure_ascii=False),report=json.dumps(plan["report"],ensure_ascii=False))
             session.add(archive); session.commit()
             return {"status":"ok","archive_id":archive.id,**result}
@@ -240,6 +242,8 @@ if __name__ == "__main__":
     group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--prepare",type=Path); group.add_argument("--apply",type=Path)
     parser.add_argument("--output",type=Path)
+    parser.add_argument("--user-email",help="apply records to this existing FitLog user")
     args=parser.parse_args()
     if args.prepare and not args.output: parser.error("--prepare requires --output")
-    print(json.dumps(prepare(args.prepare,args.output) if args.prepare else apply(args.apply),ensure_ascii=False,indent=2))
+    if args.apply and not args.user_email: parser.error("--apply requires --user-email")
+    print(json.dumps(prepare(args.prepare,args.output) if args.prepare else apply(args.apply,args.user_email),ensure_ascii=False,indent=2))

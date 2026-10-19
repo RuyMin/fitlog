@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from support import TEMP
+from support import TEMP, fresh_owner
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
@@ -15,9 +15,7 @@ class WorkoutAPITests(unittest.TestCase):
     def setUp(self) -> None:
         self.client = TestClient(app)
         self.client.__enter__()
-        with engine.begin() as connection:
-            for table in reversed(Base.metadata.sorted_tables):
-                connection.execute(table.delete())
+        self.user = fresh_owner()
         self.exercise = self.client.post("/api/exercises", json={"name": "Squat", "body_part": "하체"}).json()
         self.workout = self.client.post("/api/workouts", json={"workout_date": "2026-09-25", "title": "하체"}).json()
         self.path = f"/api/workouts/{self.workout['id']}"
