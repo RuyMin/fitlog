@@ -13,6 +13,8 @@ services:
       GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID:?Set GOOGLE_SPREADSHEET_ID in .env}
       FITLOG_PUBLIC_URL: ${FITLOG_PUBLIC_URL:-}
       FITLOG_OWNER_EMAIL: ${FITLOG_OWNER_EMAIL:-}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET_FILE: ${GOOGLE_OAUTH_CLIENT_SECRET_FILE:-/app/config/google-oauth-client-secret}
     volumes:
       - /volume1/docker/fitlog/data:/app/data
       - /volume1/docker/fitlog/config:/app/config:ro

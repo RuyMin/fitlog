@@ -50,6 +50,54 @@ class AuthSession(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime)
 
 
+class Invite(Base):
+    """One-time link that lets a new Google account join. Only the token hash is stored."""
+    __tablename__ = "invites"
+    __table_args__ = (
+        CheckConstraint("expires_at > created_at", name="ck_invite_expiry"),
+        CheckConstraint("(used_at IS NULL) = (used_by IS NULL)", name="ck_invite_use"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    note: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime)
+    used_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+
+
+class OAuthAttempt(Base):
+    """Single-use Google login attempt (state, PKCE verifier, nonce); expires in minutes."""
+    __tablename__ = "oauth_attempts"
+
+    state_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    code_verifier: Mapped[str] = mapped_column(String(128))
+    nonce: Mapped[str] = mapped_column(String(64))
+    invite_id: Mapped[int | None] = mapped_column(ForeignKey("invites.id", ondelete="CASCADE"))
+    next_path: Mapped[str | None] = mapped_column(String(200))
+    consent_service: Mapped[bool] = mapped_column(Boolean(create_constraint=True), default=False)
+    consent_ai: Mapped[bool] = mapped_column(Boolean(create_constraint=True), default=False)
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+
+
+class Consent(Base):
+    """What a user agreed to, which notice version, and when; withdrawal keeps the row."""
+    __tablename__ = "consents"
+    __table_args__ = (
+        CheckConstraint("kind IN ('service', 'ai_transfer')", name="ck_consent_kind"),
+        CheckConstraint("withdrawn_at IS NULL OR withdrawn_at >= granted_at", name="ck_consent_withdrawn"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    version: Mapped[str] = mapped_column(String(20))
+    granted_at: Mapped[datetime] = mapped_column(default=utc_now)
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class Owned:
     """Every user-owned row. Services filter on it and answer 404 for other owners."""
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))

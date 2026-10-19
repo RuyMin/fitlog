@@ -26,14 +26,20 @@ def act_as(user) -> None:
     app.dependency_overrides[current_user] = lambda: user
 
 
-def fresh_owner(email: str = "owner@example.com", role: str = "admin"):
-    """Empty every table, then sign in as a single new user."""
-    from app.database import Base, engine
+def reset_database() -> None:
+    """Empty every table and drop any signed-in override."""
+    from app.database import Base, engine, initialize_database
     from app.main import app
     app.dependency_overrides.clear()
+    initialize_database()  # idempotent; lets a test module run on its own
     with engine.begin() as connection:
         for table in reversed(Base.metadata.sorted_tables):
             connection.execute(table.delete())
+
+
+def fresh_owner(email: str = "owner@example.com", role: str = "admin"):
+    """Empty every table, then sign in as a single new user."""
+    reset_database()
     user = create_user(email, role)
     act_as(user)
     return user
