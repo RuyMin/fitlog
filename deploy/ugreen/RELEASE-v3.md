@@ -8,7 +8,7 @@ DB 스키마 v2 → v3, 그리고 Google 로그인·초대가 처음 들어가�
 
 | 항목 | 값 |
 |---|---|
-| 공개 주소 (`FITLOG_PUBLIC_URL`) | `https://` |
+| 공개 주소 (`FITLOG_PUBLIC_URL`) | `https://fitlog.<tailnet>.ts.net` |
 | 본인 Google 이메일 (`FITLOG_OWNER_EMAIL`) | |
 | OAuth 클라이언트 ID | |
 | 배포 전 이미지 ID | |
@@ -17,10 +17,10 @@ DB 스키마 v2 → v3, 그리고 Google 로그인·초대가 처음 들어가�
 ## 0. 병합 전 준비 (기존 서비스는 그대로)
 
 - [ ] **자동 업데이트 일시 중지.** `sudo crontab -e`에서 `update.sh` 줄 앞에 `#`을 붙이고 `sudo crontab -l`로 확인합니다. NAS 작업 스케줄러를 쓰면 해당 작업을 비활성화합니다.
-- [ ] **HTTPS 주소 준비.** 도메인과 reverse proxy(`https://<도메인>` → NAS `51881`)를 연결하고, 브라우저에서 인증서 경고 없이 열리는지 확인합니다. Google은 IP 주소나 HTTPS가 아닌 redirect 주소를 허용하지 않습니다.
-- [ ] **Google OAuth 클라이언트.** README의 [로그인과 초대](../../README.md#로그인과-초대) 준비 1~3단계를 따릅니다. 승인된 리디렉션 URI는 `https://<도메인>/auth/google/callback`과 **정확히** 같아야 합니다(끝 슬래시 없음).
-  - OAuth 동의 화면이 "테스트" 상태이면 Google 콘솔에 등록한 테스트 사용자만 로그인할 수 있습니다. 지인 계정을 각각 추가하거나, 범위가 `openid email profile`뿐일 때 "프로덕션"으로 게시합니다. 게시할 때 콘솔에 나오는 확인 요구사항을 따르세요.
-- [ ] **51881 포트 노출 점검.** 새 버전부터 `http://NAS_IP:51881`로는 로그인할 수 없습니다(Secure 쿠키, Origin 검사). 가능하면 방화벽에서 51881을 reverse proxy만 접근하도록 제한하세요.
+- [ ] **Tailscale Funnel 준비.** [FUNNEL.md](FUNNEL.md) 1단계(MagicDNS·HTTPS 인증서, 정책의 `tag:fitlog` Funnel 권한, auth key)를 마칩니다. 공개 주소는 `https://fitlog.<tailnet>.ts.net`이 됩니다.
+- [ ] **Google OAuth 클라이언트.** README의 [로그인과 초대](../../README.md#로그인과-초대) 준비 1~3단계를 따릅니다. 승인된 리디렉션 URI는 `https://fitlog.<tailnet>.ts.net/auth/google/callback`과 **정확히** 같아야 합니다(끝 슬래시 없음).
+  - `ts.net`은 도메인 소유 확인이 안 되므로 OAuth 동의 화면을 "테스트" 상태로 두고, 본인과 지인 Google 이메일을 테스트 사용자로 등록합니다(최대 100명, [FUNNEL.md](FUNNEL.md) 4단계).
+- [ ] **접속 주소 변경 안내.** 새 구성에서 FitLog 포트 51881은 NAS의 `127.0.0.1`에만 열립니다. `http://NAS_IP:51881`이나 NAS의 Tailscale IP로는 더 이상 열리지 않고, 본인도 Funnel 주소를 씁니다.
 
 ## 1. 병합과 이미지 게시
 
@@ -33,14 +33,19 @@ DB 스키마 v2 → v3, 그리고 Google 로그인·초대가 처음 들어가�
 cd /volume1/docker/fitlog/automation
 cp compose.yml compose.yml.v2-backup
 cp .env .env.v2-backup
+mkdir -p tailscale
 curl -fSLo compose.yml https://raw.githubusercontent.com/RuyMin/fitlog/main/deploy/ugreen/compose.yml
+curl -fSLo tailscale/serve.json https://raw.githubusercontent.com/RuyMin/fitlog/main/deploy/ugreen/tailscale/serve.json
 curl -fSLo .env.example https://raw.githubusercontent.com/RuyMin/fitlog/main/deploy/ugreen/.env.example
+sudo mkdir -p /volume1/docker/fitlog/tailscale
 ```
 
-`.env`에 다음 세 줄을 추가합니다(`.env.example` 참고).
+`.env`에 다음을 추가합니다(`.env.example` 참고).
 
 ```text
-FITLOG_PUBLIC_URL=https://<도메인>
+TS_AUTHKEY=<FUNNEL.md 1-3단계의 키>
+TS_HOSTNAME=fitlog
+FITLOG_PUBLIC_URL=https://fitlog.<tailnet>.ts.net
 FITLOG_OWNER_EMAIL=<본인 Google 이메일>
 GOOGLE_OAUTH_CLIENT_ID=<클라이언트 ID>
 ```
@@ -54,7 +59,7 @@ sudo chmod 600 /volume1/docker/fitlog/config/google-oauth-client-secret
 sudo vi /volume1/docker/fitlog/config/google-oauth-client-secret
 ```
 
-설정이 컨테이너까지 전달되는지 확인합니다. 출력에 세 값과 `GOOGLE_OAUTH_CLIENT_SECRET_FILE`이 보여야 합니다.
+설정이 컨테이너까지 전달되는지 확인합니다. 출력에 공개 주소·관리자 이메일·OAuth 값과 `GOOGLE_OAUTH_CLIENT_SECRET_FILE`이 보여야 합니다.
 
 ```bash
 sudo docker compose --env-file .env -f compose.yml config --quiet
@@ -90,14 +95,17 @@ sudo docker compose --env-file .env -f compose.yml pull
 sudo docker compose --env-file .env -f compose.yml up -d --wait --wait-timeout 180
 sudo docker compose --env-file .env -f compose.yml logs --tail 50 fitlog
 curl -f http://localhost:51881/api/health
+sudo docker compose --env-file .env -f compose.yml exec tailscale tailscale funnel status
 ```
+
+`funnel status`에 `https://fitlog.<tailnet>.ts.net`과 `(Funnel on)`이 보여야 합니다. Tailscale 쪽 확인 항목은 [FUNNEL.md](FUNNEL.md) 3단계를 따르고, 성공하면 `.env`에서 `TS_AUTHKEY` 값을 지웁니다.
 
 시작에 실패하면 로그의 마지막 오류를 확인합니다. migration은 한 트랜잭션이라 실패하면 DB가 v2 그대로 남습니다.
 
 | 로그 메시지 | 원인과 조치 |
 |---|---|
 | `FITLOG_OWNER_EMAIL is required` | compose.yml을 새로 받지 않았거나 `.env`에 값이 없습니다. 2단계를 다시 확인합니다. |
-| `FITLOG_PUBLIC_URL must be ...` | `https://도메인` 형식이어야 하며 경로·끝 문자열이 없어야 합니다. |
+| `FITLOG_PUBLIC_URL must be ...` | `https://fitlog.<tailnet>.ts.net` 형식이어야 하며 경로·끝 문자열이 없어야 합니다. |
 | `Existing rows violate foreign keys` | 기존 DB에 참조가 끊긴 행이 있습니다. DB는 바뀌지 않았습니다. 되돌린 뒤 해당 행을 확인해야 합니다. |
 
 migration 결과를 확인합니다. 3단계에서 적은 행 수와 같아야 하고, 모든 행이 사용자 1명(관리자)에게 속해야 합니다.
@@ -116,11 +124,11 @@ print('fk', c.execute('PRAGMA foreign_key_check').fetchall())"
 
 ## 5. 동작 확인
 
-- [ ] `https://<도메인>/`을 열면 `/login`으로 이동합니다.
+- [ ] 휴대폰에서 Wi-Fi와 Tailscale을 끈 상태로 `https://fitlog.<tailnet>.ts.net/`을 열면 `/login`으로 이동합니다(공개 DNS 반영에 최대 10분).
 - [ ] 본인 Google 계정으로 로그인하면 기존 기록이 그대로 보입니다. 설정에서 권한이 "관리자"이고 Google Sheets 카드가 보이며 "지금 동기화"가 동작합니다.
 - [ ] `sudo docker compose --env-file .env -f compose.yml exec fitlog python -m app.admin users`에서 본인 계정이 `linked`로 바뀌었습니다.
-- [ ] 시크릿 창에서 `https://<도메인>/api/meals`는 401입니다.
-- [ ] `curl -sI https://<도메인>/ | grep -i -E 'content-security-policy|x-frame-options'`로 보안 헤더가 붙는지 확인합니다(proxy가 지우지 않는지).
+- [ ] 시크릿 창에서 `https://fitlog.<tailnet>.ts.net/api/meals`는 401입니다.
+- [ ] `curl -sI https://fitlog.<tailnet>.ts.net/ | grep -i -E 'content-security-policy|x-frame-options'`로 보안 헤더가 보이는지 확인합니다.
 - [ ] 이미 설치한 PWA가 예전 화면을 보이면 앱을 완전히 닫았다가 다시 엽니다.
 
 ## 6. 지인 초대
@@ -129,9 +137,10 @@ print('fk', c.execute('PRAGMA foreign_key_check').fetchall())"
 sudo docker compose --env-file .env -f compose.yml exec fitlog python -m app.admin invite --note "이름"
 ```
 
+- [ ] 그 지인의 Google 이메일을 Google 콘솔 OAuth 테스트 사용자에 추가합니다. 빠지면 Google 단계에서 로그인이 막힙니다.
 - [ ] 링크를 개인 메시지로만 보냅니다. 1회용이며 7일 후 만료됩니다.
 - [ ] 첫 지인이 가입한 뒤 그 계정에서 기록이 비어 있고(본인 기록이 보이지 않음), 설정 권한이 "멤버"이며 Google Sheets 카드가 없는지 함께 확인합니다.
-- [ ] 로그인 요청 제한(분당 20회)은 클라이언트 IP 기준입니다. reverse proxy 뒤에서는 모든 사용자가 proxy IP 하나로 보이므로 이 한도를 함께 씁니다. 10명 규모에서는 충분합니다.
+- [ ] 로그인 요청 제한(분당 20회)은 클라이언트 IP 기준입니다. Funnel 뒤에서는 모든 요청이 같은 주소로 보이므로 사용자 전체가 이 한도를 함께 씁니다. 10명 규모에서는 충분합니다.
 
 ## 7. 자동 업데이트 재개
 
@@ -148,7 +157,8 @@ cp compose.yml.v2-backup compose.yml
 cp .env.v2-backup .env
 sudo docker image tag fitlog-rollback:v2 ghcr.io/ruymin/fitlog:v2-local
 sed -i 's/^FITLOG_IMAGE_TAG=.*/FITLOG_IMAGE_TAG=v2-local/' .env
-sudo docker compose --env-file .env -f compose.yml up -d --pull never --wait --wait-timeout 120
+# --remove-orphans: v2 compose에는 tailscale 서비스가 없으므로, 51881 포트를 잡고 있는 tailscale 컨테이너를 정리합니다.
+sudo docker compose --env-file .env -f compose.yml up -d --pull never --remove-orphans --wait --wait-timeout 120
 ```
 
 자동 업데이트는 원인을 해결하고 이 체크리스트를 다시 진행할 때까지 꺼 둡니다. 다시 진행할 때 `.env`의 `FITLOG_IMAGE_TAG`를 `latest`로 되돌리세요.
