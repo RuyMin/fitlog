@@ -1,7 +1,9 @@
 """Cookie sessions, the real current_user dependency and the request security policy."""
 import hashlib
+import re
 import unittest
 from datetime import timedelta
+from pathlib import Path
 from unittest.mock import patch
 
 from support import TEMP, create_user, fresh_owner
@@ -13,7 +15,8 @@ from app import config
 from app.api.deps import cookie_name, set_session_cookie
 from app.database import SessionLocal
 from app.main import app
-from app.models import AuthSession, Meal, User, utc_now
+from app.models import AuthSession, Consent, Meal, User, utc_now
+from app.services import accounts
 from app.services.accounts import ABSOLUTE, IDLE, create_session, resolve_session
 
 MEAL = {"name": "점심", "eaten_at": "2026-09-25T12:00:00+09:00", "meal_type": "lunch"}
@@ -137,6 +140,49 @@ class SessionTests(unittest.TestCase):
             set_session_cookie(response, "token")
             self.assertTrue(response.headers["set-cookie"].startswith("fitlog_session=token"))
             self.assertNotIn("Secure", response.headers["set-cookie"])
+
+    def test_consent_status_grant_and_withdraw(self) -> None:
+        member = create_user("member@example.com", "member")
+        with SessionLocal() as session:
+            session.add(Consent(user_id=member.id, kind="service", version=accounts.CONSENT_VERSION))
+            session.add(Consent(user_id=member.id, kind="ai_transfer", version="2025-01-01", granted_at=utc_now() - timedelta(days=1)))
+            session.commit()
+        login(self.client, member)
+        data = self.client.get("/api/me/consents").json()
+        self.assertEqual(data["current_version"], accounts.CONSENT_VERSION)
+        self.assertTrue(data["service"]["active"])
+        self.assertTrue(data["service"]["granted_at"].endswith("+00:00"))
+        # Agreement to an older notice is not consent to the current one.
+        self.assertFalse(data["ai_transfer"]["active"])
+        granted = self.client.post("/api/me/consents/ai_transfer").json()["ai_transfer"]
+        self.assertEqual((granted["version"], granted["active"]), (accounts.CONSENT_VERSION, True))
+        self.client.post("/api/me/consents/ai_transfer")
+        self.assertEqual(self.ai_rows(member.id), 2)
+        withdrawn = self.client.delete("/api/me/consents/ai_transfer").json()["ai_transfer"]
+        self.assertFalse(withdrawn["active"])
+        self.assertIsNotNone(withdrawn["withdrawn_at"])
+        with SessionLocal() as session:
+            self.assertFalse(accounts.has_ai_consent(session, member.id))
+            self.assertEqual(session.scalar(select(func.count()).select_from(Consent).where(
+                Consent.user_id == member.id, Consent.withdrawn_at.is_(None))), 1)  # the service consent
+        # Consents are per user.
+        login(self.client, self.user)
+        self.assertEqual(self.client.get("/api/me/consents").json()["ai_transfer"], None)
+
+    def ai_rows(self, user_id: int) -> int:
+        with SessionLocal() as session:
+            return session.scalar(select(func.count()).select_from(Consent).where(Consent.user_id == user_id, Consent.kind == "ai_transfer"))
+
+    def test_pages_wire_login_redirect_and_admin_only_sync(self) -> None:
+        static = Path(__file__).resolve().parents[1] / "app" / "static"
+        app_js = (static / "js" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('location.replace("/login?next="', app_js)
+        for page in ["index.html", "records.html", "settings.html", "statistics.html", "workouts.html"]:
+            scripts = re.findall(r'<script[^>]*src="([^"]+)"', (static / page).read_text(encoding="utf-8"))
+            self.assertEqual(scripts[0], "/static/js/app.js", page)
+        settings = (static / "settings.html").read_text(encoding="utf-8")
+        self.assertIn('id="sync-card" hidden', settings)
+        self.assertIn(accounts.CONSENT_VERSION, settings)
 
     def test_member_session_cannot_use_admin_routes(self) -> None:
         login(self.client, create_user("member@example.com", "member"))

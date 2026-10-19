@@ -1,6 +1,7 @@
 import hmac
 import time
 from collections import defaultdict, deque
+from datetime import timezone
 from pathlib import Path
 from typing import Annotated
 
@@ -106,6 +107,31 @@ def google_callback(request: Request, db: DB, state: str = "", code: str = "", e
 @router.get("/api/me")
 def me(user: CurrentUser) -> dict:
     return {"id": user.id, "email": user.email, "display_name": user.display_name, "role": user.role}
+
+
+def utc_iso(value):
+    return None if value is None else value.replace(tzinfo=timezone.utc).isoformat()
+
+
+@router.get("/api/me/consents")
+def consents(user: CurrentUser, db: DB) -> dict:
+    status = accounts.consent_status(db, user.id)
+    return {"current_version": accounts.CONSENT_VERSION, **{
+        kind: None if entry is None else {**entry, "granted_at": utc_iso(entry["granted_at"]), "withdrawn_at": utc_iso(entry["withdrawn_at"])}
+        for kind, entry in status.items()
+    }}
+
+
+@router.post("/api/me/consents/ai_transfer")
+def grant_ai(user: CurrentUser, db: DB) -> dict:
+    accounts.grant_ai_consent(db, user.id)
+    return consents(user, db)
+
+
+@router.delete("/api/me/consents/ai_transfer")
+def withdraw_ai(user: CurrentUser, db: DB) -> dict:
+    accounts.withdraw_ai_consent(db, user.id)
+    return consents(user, db)
 
 
 @router.post("/auth/logout")

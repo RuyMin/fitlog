@@ -12,7 +12,20 @@
 <p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p></aside>
 <main id="main">
 <header class="topbar"><span class="eyebrow">MY SETTINGS</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
-<section class="page-heading"><div><p id="today" class="date"></p><h1>설정과 데이터</h1><p class="muted">Google Sheets 기록을 FitLog로 가져옵니다.</p></div></section>
+<section class="page-heading"><div><p id="today" class="date"></p><h1>설정과 데이터</h1><p class="muted">계정과 동의 내역을 확인하고 기존 기록을 가져옵니다.</p></div></section>
+<section class="card account-card" aria-labelledby="account-heading"><h2 id="account-heading">계정</h2>
+<dl class="sync-details"><dt>Google 계정</dt><dd id="account-email">확인 중</dd><dt>권한</dt><dd id="account-role">—</dd>
+<dt>서비스 이용</dt><dd id="consent-service">—</dd><dt>AI 외부 전송</dt><dd id="consent-ai">—</dd></dl>
+<!-- Notice version 2026-10-19: same AI-transfer notice as invite.html and accounts.CONSENT_VERSION. -->
+<details class="consent-notice"><summary>AI 외부 전송 고지 (선택 동의, 버전 2026-10-19)</summary><ul>
+<li><strong>받는 곳:</strong> Anthropic(미국). 국외로 전송됩니다.</li>
+<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장과, 기록 초안을 만드는 데 필요한 최소한의 기록 정보.</li>
+<li><strong>조건:</strong> 본인이 등록한 API 키로 호출하므로 해당 데이터에는 본인과 Anthropic 사이의 약관이 적용됩니다. 보관·학습 정책은 Anthropic의 공식 문서를 확인해 주세요.</li>
+<li><strong>철회:</strong> 언제든 철회할 수 있으며, 철회하면 전송이 즉시 중단됩니다. 동의하지 않아도 기록 기능은 모두 사용할 수 있습니다.</li>
+</ul></details>
+<div class="settings-actions"><button id="consent-ai-toggle" type="button" hidden></button><button id="logout" type="button">로그아웃</button></div>
+<p id="account-message" role="status" aria-live="polite"></p>
+<p class="hint">서비스 이용 동의를 철회하거나 모든 기록을 삭제하려면 운영자에게 요청해 주세요. 삭제 전에 만든 백업 파일에는 백업 보관 기간 동안 남습니다.</p></section>
 <section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
 <p class="muted">기존 운동·식사 통합기록 양식의 .xlsx 파일을 현재 기록과 비교합니다. 비교만으로는 기록을 바꾸지 않습니다.</p>
 <form id="excel-upload"><label for="excel-file">통합기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required><button id="excel-compare" class="primary" type="submit">기존 기록과 비교</button></form>
@@ -22,7 +35,7 @@
 <div id="excel-entries"></div><button id="excel-more" type="button" hidden>100개 더 보기</button>
 <div class="excel-actions"><button id="excel-save" class="primary" type="button">선택한 기록 저장</button><button id="excel-cancel" type="button">비교 취소</button></div><p id="excel-selection" class="hint"></p><p class="hint">선택한 기록과 원본 파일을 함께 저장합니다. 선택이 없으면 원본만 보관합니다. 파일에서 빠진 기존 기록은 삭제하지 않습니다. 비교는 1시간 동안 유효합니다.</p></div>
 <details id="excel-history"><summary>최근 Excel 저장 이력</summary><div id="excel-history-list"></div></details></section>
-<section class="card"><h2>Google Sheets</h2><dl class="sync-details"><dt>연결 상태</dt><dd id="sync-connection">확인 중</dd><dt>Spreadsheet</dt><dd id="sync-sheet">—</dd><dt>마지막 동기화</dt><dd id="sync-last">—</dd></dl>
+<section class="card" id="sync-card" hidden><h2>Google Sheets</h2><dl class="sync-details"><dt>연결 상태</dt><dd id="sync-connection">확인 중</dd><dt>Spreadsheet</dt><dd id="sync-sheet">—</dd><dt>마지막 동기화</dt><dd id="sync-last">—</dd></dl>
 <p id="sync-help" class="muted"></p><div class="settings-actions"><button id="sync-now" class="primary" disabled>지금 동기화</button><button id="sync-refresh" type="button">상태 새로고침</button></div><p id="sync-message" role="status" aria-live="polite"></p><div id="sync-results"></div>
 <p class="hint">한글 시트는 변경된 내용을, 영어 표준 시트는 최신 updated_at을 반영합니다. 시트에서 행을 지워도 FitLog 기록은 삭제되지 않습니다. 동기화한 기록을 앱에서 수정해도 시트에는 전달되지 않습니다.</p></section>
 <section class="card archive-card"><h2>이관한 원본 자료</h2><p class="muted">루틴·러닝 상세·추가 영양정보를 포함한 원본을 확인할 수 있습니다.</p><div id="archive-list"></div><div id="archive-view"></div></section>
