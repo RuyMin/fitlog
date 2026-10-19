@@ -1,5 +1,8 @@
 # UGREEN DXP4800 Plus: 기존 GUI 컨테이너에서 자동 업데이트로 전환
 
+> **이미 자동 업데이트를 쓰고 있다면:** 로그인·사용자별 기록이 들어간 v3 릴리스는 새 설정 파일과 환경변수가 필요합니다.
+> main에 병합되기 **전에** 자동 업데이트를 멈추고 [RELEASE-v3.md](RELEASE-v3.md) 체크리스트대로 한 번 수동 배포하세요.
+
 이 구성은 `/volume1/docker/fitlog/data`, `/volume1/docker/fitlog/config`, NAS/컨테이너 포트 `51881`, 실행 사용자 `10001:10001`을 유지합니다. 기존 GUI의 PUID/UID/USER_ID/GID/GROUP_ID/PGID 환경변수는 이미지가 처리하지 않으므로 복사하지 않습니다. Python/PATH 등 이미지 기본 환경변수도 복사하지 않습니다. 바뀐 내부 포트에 맞춰 상태 검사도 51881을 사용합니다.
 
 ## 1. 파일 배치
@@ -15,12 +18,19 @@ curl -fSLo .env.example https://raw.githubusercontent.com/RuyMin/fitlog/main/dep
 test -f .env || cp .env.example .env
 ```
 
-`.env`에 현재 사용 중인 Spreadsheet ID를 넣습니다. 인증 키는 기존 config/google-service-account.json을 그대로 사용합니다.
+`.env`에 현재 사용 중인 Spreadsheet ID와 로그인 설정을 넣습니다. Sheets 인증 키는 기존 config/google-service-account.json을 그대로 사용합니다.
 
 ```text
 GOOGLE_SPREADSHEET_ID=현재_문서_ID
 FITLOG_IMAGE_TAG=latest
+FITLOG_PUBLIC_URL=https://<도메인>
+FITLOG_OWNER_EMAIL=<본인 Google 이메일>
+GOOGLE_OAUTH_CLIENT_ID=<OAuth 클라이언트 ID>
 ```
+
+로그인에는 HTTPS 도메인(reverse proxy → NAS 51881)과 Google OAuth 클라이언트가 필요합니다. 만드는 방법은 [README의 로그인과 초대](../../README.md#로그인과-초대)를 따릅니다.
+OAuth 클라이언트 보안 비밀번호는 `/volume1/docker/fitlog/config/google-oauth-client-secret` 파일에 한 줄로 저장하고 `10001:10001` 소유, `600` 권한으로 둡니다([RELEASE-v3.md](RELEASE-v3.md) 2단계 명령 참고).
+`FITLOG_OWNER_EMAIL`은 기존 기록을 넘겨받을 관리자 계정입니다. 기존 DB가 있는데 이 값이 없으면 앱이 시작을 거부하고 DB는 바꾸지 않습니다.
 
 먼저 Compose 지원 여부와 설정을 확인하고 이미지를 받습니다. 이 단계는 기존 컨테이너를 중단하지 않습니다.
 
@@ -51,7 +61,8 @@ curl -f http://localhost:51881/api/health
 sudo bash /volume1/docker/fitlog/automation/update.sh
 ```
 
-마지막 명령이 `Image unchanged; container left running.`이면 정상입니다. 웹에서 기록과 Google 연결 상태도 확인하세요. 실패 시 예약 실행을 등록하지 말고 `sudo docker compose --env-file .env -f compose.yml logs --tail 100 fitlog`로 원인을 확인하세요. 새 버전이 DB 스키마를 바꿨을 수 있으므로 이전 컨테이너를 무조건 다시 시작하지 마세요.
+마지막 명령이 `Image unchanged; container left running.`이면 정상입니다. `https://<도메인>`에서 본인 Google 계정으로 로그인해 기록과 Google 연결 상태도 확인하세요.
+지인 초대와 계정 관리는 `sudo docker compose --env-file .env -f compose.yml exec fitlog python -m app.admin invite --note "이름"`처럼 실행합니다. 실패 시 예약 실행을 등록하지 말고 `sudo docker compose --env-file .env -f compose.yml logs --tail 100 fitlog`로 원인을 확인하세요. 새 버전이 DB 스키마를 바꿨을 수 있으므로 이전 컨테이너를 무조건 다시 시작하지 마세요.
 
 ## 3. 15분마다 확인
 
@@ -84,3 +95,4 @@ sudo crontab -e
 - 로그·백업·이전 이미지의 자동 삭제는 하지 않습니다. 디스크 용량을 확인하고 보관 기간을 정해 수동 정리하세요.
 - 백업 이후 컨테이너 교체까지 입력된 기록은 현재 DB에는 유지되지만 그 백업에는 없을 수 있습니다. 복원 전 현재 DB도 별도로 보존하세요.
 - `.env`나 Compose 파일만 수정했을 때는 스크립트 대신 Compose `up -d --wait`로 직접 반영하세요. 예약 스크립트는 이미지 변경만 확인합니다.
+- 예약 스크립트는 NAS의 `compose.yml`과 `.env`를 갱신하지 않습니다. 새 릴리스가 환경변수나 Compose 변경을 요구하면 릴리스 문서(예: [RELEASE-v3.md](RELEASE-v3.md))를 따라 먼저 자동 업데이트를 멈추고 수동으로 반영하세요.

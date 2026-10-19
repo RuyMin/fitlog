@@ -56,7 +56,7 @@ def parse_tables(tables: dict[str, list[list]]) -> dict[str, list]:
 
 
 def apply_rows(session: Session, user_id: int, rows: dict[str, list]) -> dict:
-    """Caller owns the transaction. Used by Google sync and the local archive importer."""
+    """Caller owns the transaction. Used by Google sync and the legacy_xlsx CLI."""
     counts = {key: {"inserted": 0, "updated": 0, "skipped": 0} for key in MODELS}
     for key, model in MODELS.items():
         for number, row in enumerate(rows[key], 2):

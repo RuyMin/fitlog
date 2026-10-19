@@ -1,6 +1,7 @@
 # Phase 6 — 인증과 사용자별 데이터 격리 (1단계 설계안)
 
-> 상태: 설계 초안 (구현 전). 기준 커밋: `ff6bea0`, 스키마 `user_version=2`.
+> 상태: **구현됨** (`feat/multi-user-auth`, 1~6단계). 기준 커밋: `ff6bea0`, 스키마 `user_version=2` → `3`.
+> 배포는 [deploy/ugreen/RELEASE-v3.md](../../deploy/ugreen/RELEASE-v3.md) 체크리스트를 따릅니다. 구현하면서 달라진 점은 문서 끝의 "구현 메모"에 있습니다.
 > 목표: AI 기능 없이도 지인 약 10명이 **외부 인터넷(HTTPS reverse proxy)** 으로 각자의 기록만 보고 쓸 수 있는 상태.
 
 ## 0. 확정된 결정
@@ -329,3 +330,13 @@ SQLite는 기존 컬럼에 NOT NULL FK나 UNIQUE 변경을 `ALTER` 로 걸 수 �
 - 공개 도메인과 reverse proxy 구성(UGREEN 기본 proxy / Caddy / Cloudflare Tunnel 등) — OAuth redirect URI에 필요.
 - 백업 파일 보관 기간·개수.
 - 고지문 문안 확정(§6.2 항목 기준).
+
+## 구현 메모 (설계와 달라진 점)
+
+- `auth_sessions`, `invites`, `oauth_attempts`, `consents`는 기존 sync 테이블처럼 `create_all`로 만듭니다. v3 migration은 `users` 생성과 기존 테이블의 재구성만 담당합니다. 테이블 정의 동등성은 `tests/test_migration_v3.py`가 검사합니다.
+- OAuth `state`를 브라우저에 묶는 짧은 수명의 `__Host-fitlog_oauth` 쿠키를 추가했습니다(로그인 CSRF 방지). 콜백 URL만 가진 다른 브라우저는 로그인할 수 없습니다.
+- 토큰 교환은 google-auth의 requests transport를 사용합니다. httpx는 런타임 의존성으로 옮기지 않았습니다.
+- CSRF 검사는 `cross-site`뿐 아니라 `same-site` 요청도 거부합니다(같은 상위 도메인의 다른 서브도메인 차단).
+- 새 설치에서는 시작 시 `FITLOG_OWNER_EMAIL`로 미연결 관리자 행을 만듭니다(`accounts.ensure_owner`).
+- 설정 화면의 AI 외부 전송 동의는 초대 화면과 같은 고지 버전으로 다시 동의하거나 철회할 수 있습니다. 이전 버전에 대한 동의는 현재 동의로 보지 않습니다(`accounts.has_ai_consent`).
+- 사용하지 않던 `app/services/importer.py`(설명만 있던 파일)를 삭제했습니다.

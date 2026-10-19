@@ -4,9 +4,9 @@
 FastAPI가 REST API와 HTML/CSS/JavaScript를 함께 제공하고 SQLAlchemy로 SQLite에 접근합니다.
 프론트엔드 프레임워크 없이 **단일 컨테이너 + SQLite**로 운영합니다.
 
-현재 **Phase 5**: 기록·통계·차트와 Google Sheets 수동 동기화, 기존 Excel 기록 이관을 제공합니다.
-통계는 기존 SQLite 데이터를 읽어 계산하며 별도 집계 DB를 만들지 않습니다.
-설정 화면, 사진 업로드, importer는 이후 단계입니다.
+현재 **Phase 6**: 기록·통계·차트, Google Sheets 수동 동기화, Excel 업로드 비교·선택 저장과 원본 보존에 더해
+초대받은 지인 여러 명이 Google 계정으로 로그인해 **각자의 기록만** 사용합니다([로그인과 초대](#로그인과-초대)).
+통계는 기존 SQLite 데이터를 읽어 계산하며 별도 집계 DB를 만들지 않습니다. 사진 업로드와 앱 안의 AI 기능은 아직 없습니다.
 
 ## 통계 사용 방법
 
@@ -77,7 +77,7 @@ docker compose ps
 docker compose logs -f fitlog
 ```
 
-- 초기 화면: http://localhost:51881 (다른 기기는 http://NAS_IP:51881)
+- 초기 화면: http://localhost:51881 (다른 기기는 `FITLOG_PUBLIC_URL`의 HTTPS 주소. 로그인 쿠키가 Secure이므로 `http://NAS_IP:51881`로는 로그인할 수 없습니다)
 - 헬스 체크: http://localhost:51881/api/health
 - OpenAPI: http://localhost:51881/docs
 
@@ -106,25 +106,30 @@ fitlog/
 ├── requirements-dev.txt
 ├── README.md
 ├── app/
-│   ├── main.py                 # 앱 수명주기, 정적 파일 제공
+│   ├── main.py                 # 앱 수명주기, 보안 헤더·CSRF 정책, 정적 파일 제공
 │   ├── database.py             # SQLite 초기화와 세션
-│   ├── models.py               # 기록 6개 + sync/원본 보존 테이블
+│   ├── migrations.py           # 버전별 명시적 migration(v3: 사용자별 소유)
+│   ├── models.py               # 사용자·세션·초대·동의 + 사용자별 기록/sync/원본 보존 테이블
 │   ├── schemas.py              # 입력 검증 및 API 응답 스키마
 │   ├── statistics_schemas.py   # 통계 응답 스키마
-│   ├── config.py               # 단백질 목표 환경 설정
-│   ├── api/                   # health.py, workouts.py, records.py, statistics.py
-│   ├── services/              # 운동·생활 기록·대시보드·통계 및 importer 경계
+│   ├── config.py               # 단백질 목표, 공개 주소, 쿠키 설정
+│   ├── admin.py                # 운영자 CLI: 초대·계정 관리
+│   ├── auth/google.py          # Google 로그인(OIDC+PKCE), DB 접근 없음
+│   ├── api/                   # auth, deps(current_user), records, workouts, statistics, sync, excel, health
+│   ├── services/              # 계정·기록·대시보드·통계, Sheets/Excel 가져오기 (모두 user_id 범위)
 │   └── static/
 │       ├── index.html
+│       ├── login.html, invite.html
 │       ├── workouts.html
 │       ├── records.html
 │       ├── statistics.html
+│       ├── settings.html
 │       ├── css/                # 공통·운동·생활 기록·통계 스타일
 │       ├── js/                 # 화면 로직 및 charts.js SVG 렌더러
 │       ├── icons/              # SVG 및 192/512 PNG
 │       ├── manifest.json
 │       └── service-worker.js
-├── tests/                     # Phase 1~4 통합 테스트
+├── tests/                     # 통합 테스트(사용자 격리·인증·migration 포함), fixtures/schema_v2.sql
 └── data/
     ├── fitlog.db               # 실행 시 생성, Git 제외
     └── uploads/               # 파일 영속 저장, Git 제외
@@ -188,8 +193,13 @@ $env:FITLOG_DATA_DIR = "$env:LOCALAPPDATA\FitLog\data"
 ```
 
 API 라우트는 `app/api/`, 스키마는 `app/schemas.py`, 비즈니스 로직은 `app/services/`에 추가합니다.
-향후 CSV/XLSX/Google Sheets adapter는 데이터를 입력 스키마로 정규화하고,
-REST API와 동일한 서비스를 호출합니다. 현재 importer 파일은 이 경계만 문서화합니다.
+비공개 라우트는 `CurrentUser`(관리자 전용은 `AdminUser`)를 받고, 서비스에는 `user.id`를 첫 인자로 넘깁니다.
+서비스는 모든 조회에 `user_id` 조건을 걸고 다른 사용자의 행은 404로 처리합니다(`persistence.owned`).
+새 라우터에 인증을 빠뜨리면 `tests/test_isolation.py`의 가드 테스트가 실패합니다.
+
+가져오기 경로는 모두 같은 원칙으로 구현되어 있습니다. 원본 행을 검증 스키마로 정규화한 뒤 한 트랜잭션에서 사용자 범위로 반영합니다.
+`sync_service.py`(영어 표준 Google Sheets), `korean_sheets.py`(한글 통합기록 Sheets), `excel_import.py`(웹 업로드 비교·선택 저장),
+`legacy_xlsx.py`(CLI 일괄 이관, `--user-email` 필수)입니다.
 
 ### 테스트
 
@@ -211,7 +221,7 @@ service worker는 정적 UI만 캐시하며 `/api/*`는 캐시하지 않습니�
 업데이트 후 이전 화면이 보이면 열려 있는 FitLog 탭/PWA를 모두 닫고 다시 실행하세요.
 
 **PWA 설치와 service worker에는 HTTPS 또는 localhost가 필요합니다.**
-`http://NAS_IP:51881`에서는 일반 웹페이지로 사용할 수 있지만 PWA 설치는 제한됩니다.
+`http://NAS_IP:51881`에서는 로그인할 수 없습니다(Secure 쿠키, Origin 검사). 51881 포트는 reverse proxy만 접근하도록 제한하는 것을 권장합니다.
 모바일 설치는 NAS reverse proxy에서 HTTPS 설정 후 브라우저의 홈 화면 추가 기능을 사용합니다.
 설치 UI는 OS와 브라우저에 따라 다릅니다. 앱은 인증서를 관리하지 않습니다.
 
@@ -259,8 +269,9 @@ docker compose exec fitlog python -m app.admin delete-user friend@example.com --
 - **Phase 2 (완료)**: 운동·종목·세트 CRUD, 입력 검증·서비스 계층, 운동 목록/상세 UI.
 - **Phase 3 (완료)**: 식단·체중·수면 CRUD/UI, 수면 시간 계산, 실제 홈 요약과 환경변수 기반 단백질 목표.
 - **Phase 4 (완료)**: 운동 횟수·세트 수·최고 중량·볼륨, 체중·수면 추이와 차트.
-- **Phase 5 (현재, 완료)**: Google Sheets 단방향 수동 import, 중복 방지, 상태 UI, 원본 Excel 이관/보존.
-- 필요 시: 인증/API token, 업로드 검증, 마이그레이션과 백업 자동화.
+- **Phase 5 (완료)**: Google Sheets 단방향 수동 import, 중복 방지, 상태 UI, 원본 Excel 이관/보존.
+- **Phase 6 (현재)**: Google 로그인·초대 링크, 사용자별 데이터 격리(schema v3), 세션·CSRF·CSP, 동의 기록. 설계: [docs/design/phase6-auth-isolation.md](docs/design/phase6-auth-isolation.md).
+- 다음 후보: 사용자별 Google Sheets 연결, 자연어 기록 입력(미리보기 확정 방식, 본인 API 키, AI 전송 동의 필요), 질의응답·리포트.
 
 ## Phase 2 REST API
 
@@ -361,7 +372,7 @@ API 상세 스키마는 `/docs`에서 확인할 수 있습니다.
 
 수면은 시작·종료 간격이 겹치는 기록을 거부합니다. 앞 기록의 종료와 다음 기록의 시작이 같은 것은 허용합니다.
 동시 요청의 중복 검사를 위해 수면 저장 서비스는 새 전용 세션에서 SQLite BEGIN IMMEDIATE를 사용합니다.
-향후 importer에서도 수면 저장은 새 세션으로 호출하고 클라이언트가 계산한 duration은 전달하지 마세요.
+가져오기 코드에서도 수면 저장은 새 세션으로 호출하고 클라이언트가 계산한 duration은 전달하지 마세요.
 
 ### 홈 요약 기준
 
@@ -543,8 +554,9 @@ python -m unittest discover -s tests -v
 테스트는 임시 SQLite와 모의 Google transport를 사용합니다. 미설정 실행, 잘못된 ID/권한/timeout, 정상 insert, 반복 skip, 최신 update, 오래된 버전 무시, 원자적 rollback, 중복 ID, 시간대/수면 충돌, 로컬 데이터 보존, migration 백업을 검증합니다.
 실제 Google 인증/공유 권한의 최종 연결 검증은 사용자 JSON 키와 실제 Spreadsheet 설정 후 해야 합니다. 모의 테스트를 실계정 연결 성공으로 간주하지 않습니다.
 
-Phase 1–5 기본 구현 완료. 이번 범위에는 Google export, 자동 주기 sync, OAuth, Drive 파일 탐색, 여러 Spreadsheet·사용자가 없습니다.
-후속 작업 후보는 인증/API token, 로컬 편집 충돌 정책, 양방향 export, 자동 sync, 러닝 및 확장 영양정보 전용 모델/통계입니다.
+Google Sheets 동기화는 서버 전체에 Spreadsheet 하나만 연결하므로 관리자만 실행하며, 가져온 기록은 관리자 계정에 저장됩니다.
+Google export, 자동 주기 sync, Drive 파일 탐색, 사용자별 Spreadsheet는 아직 없습니다.
+후속 작업 후보는 사용자별 Spreadsheet 연결, 로컬 편집 충돌 정책, 양방향 export, 자동 sync, 러닝 및 확장 영양정보 전용 모델/통계입니다.
 
 
 ## Excel 업로드 → 비교 → 선택 저장 (v0.6)
@@ -667,7 +679,7 @@ docker compose -f compose.nas.yml ps
 curl -f http://localhost:51881/api/health
 ```
 
-`http://NAS_IP:51881`로 접속한 뒤 설정 → 지금 동기화를 실행합니다. 최초 DB는 `/app/data/fitlog.db`에 자동 생성되며 실제 저장 위치는 NAS 배포 폴더의 `data/fitlog.db`입니다. 앱 업데이트와 무관하게 같은 data/config mount를 유지하세요. PWA 사용은 HTTPS reverse proxy 주소를 사용하세요.
+`FITLOG_PUBLIC_URL`의 HTTPS 주소에서 관리자 계정으로 로그인한 뒤 설정 → 지금 동기화를 실행합니다. 최초 DB는 `/app/data/fitlog.db`에 자동 생성되며 실제 저장 위치는 NAS 배포 폴더의 `data/fitlog.db`입니다. 앱 업데이트와 무관하게 같은 data/config mount를 유지하세요.
 
 ### 업데이트와 이전 이미지 선택
 
