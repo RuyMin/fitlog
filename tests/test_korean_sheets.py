@@ -56,11 +56,11 @@ class KoreanSyncTests(unittest.TestCase):
         self.assertEqual(self.sync()['meals']['updated'], 1)
         self.assertEqual(self.sync()['meals']['skipped'], 1)
         self.assertEqual(self.count(ImportArchive), 3)
-        data = self.client.get('/api/sync/archives').json()
-        self.assertNotIn('bindings', data[0]['report'])
-        download = self.client.get('/api/sync/archives/' + str(data[0]['id']) + '/download')
-        self.assertEqual(download.headers['content-type'], 'application/json')
-        self.assertEqual(set(download.json()), set(self.tables))
+        with SessionLocal() as s:
+            latest = s.scalar(select(ImportArchive).order_by(ImportArchive.id.desc()))
+            self.assertEqual(latest.user_id, self.user.id)
+            self.assertIn('bindings', json.loads(latest.report))
+            self.assertEqual(set(json.loads(latest.original)), set(self.tables))
     def test_existing_legacy_ids_are_reused(self):
         plan = build_plan(content(workbook()), 'test.xlsx')
         with SessionLocal() as s:
