@@ -27,8 +27,12 @@ def cell_value(value):
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
-def build_plan(original: bytes, filename: str) -> dict:
-    """Read a bounded, untrusted XLSX without evaluating formulas or external links."""
+def guard_and_open(original: bytes):
+    """ZIP/XML-bounded, formula-free open of an untrusted XLSX. The caller must close the book.
+
+    Shared by the fixed-format converter and the AI import reader so both apply the same
+    size limits and never evaluate formulas or external links.
+    """
     import openpyxl
     if not original or len(original) > MAX_UPLOAD_BYTES:
         raise ValueError("Excel 파일은 5MB 이하이어야 합니다.")
@@ -63,14 +67,38 @@ def build_plan(original: bytes, filename: str) -> dict:
     for sheet in book:
         if sheet.max_row is None or sheet.max_column is None:
             sheet.calculate_dimension(force=True)
-    if len(book.sheetnames) != 7 or any(s.max_row is None or s.max_column is None or s.max_row > 5000 or s.max_column > 50 for s in book):
+    if any(s.max_row is None or s.max_column is None or s.max_row > 5000 or s.max_column > 50 for s in book):
         book.close()
-        raise ValueError("지원 범위는 7개 시트, 시트당 5,000행·50열입니다.")
+        raise ValueError("지원 범위는 시트당 5,000행·50열입니다.")
     if sum(s.max_row * s.max_column for s in book) > 200000:
         book.close()
         raise ValueError("Excel 셀 수가 너무 많습니다.")
+    return book
+
+
+def load_cells(original: bytes, max_sheets: int = 30) -> dict[str, list[list]]:
+    """Read an arbitrary workbook into {sheet title: nonempty rows of cell values}.
+
+    No fixed structure is required; the AI maps the cells to records. Formulas are read as
+    their stored text, never evaluated. Datetimes become ISO strings via cell_value.
+    """
+    book = guard_and_open(original)
+    try:
+        if len(book.sheetnames) > max_sheets:
+            raise ValueError(f"시트가 너무 많습니다. 최대 {max_sheets}개까지 지원합니다.")
+        return {sheet.title: [[cell_value(v) for v in row]
+                              for row in sheet.iter_rows(values_only=True) if any(v is not None for v in row)]
+                for sheet in book}
+    finally:
+        book.close()
+
+
+def build_plan(original: bytes, filename: str) -> dict:
+    """Read the fixed 7-sheet Korean workbook without evaluating formulas or external links."""
+    book = guard_and_open(original)
     expected = {"12주 루틴", "러닝 기록", "웨이트 기록", "인바디 기록", "대시보드", "식사 기록", "일일 운동 기록"}
-    if set(book.sheetnames) != expected:
+    if len(book.sheetnames) != 7 or set(book.sheetnames) != expected:
+        book.close()
         raise ValueError("예상한 7개 시트와 다릅니다. 원본 구조를 검토한 후 변환기를 조정하세요.")
     archive = {s.title: [{"row": i, "values": [cell_value(v) for v in row]}
                for i, row in enumerate(s.values, 1) if any(v is not None for v in row)] for s in book}

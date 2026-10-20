@@ -7,11 +7,12 @@ from app.services import excel_import
 from app.services.sync_service import SyncError
 from app.services.legacy_xlsx import MAX_UPLOAD_BYTES
 
-router=APIRouter(prefix="/api/sync/excel",tags=["excel import"])
+router=APIRouter(prefix="/api/import",tags=["excel import"])
 
 
 @router.post("/preview")
-async def preview(request: Request, user: CurrentUser, filename: Annotated[str,Query(min_length=1,max_length=200)]):
+async def preview(request: Request, user: CurrentUser, filename: Annotated[str,Query(min_length=1,max_length=200)],
+                  timezone: Annotated[str,Query(min_length=1,max_length=64)]="Asia/Seoul"):
     if not filename.lower().endswith(".xlsx") or "/" in filename or "\\" in filename:
         raise HTTPException(422,".xlsx 파일 이름을 지정해 주세요.")
     if request.headers.get("content-type", "").split(";")[0] != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
@@ -22,7 +23,7 @@ async def preview(request: Request, user: CurrentUser, filename: Annotated[str,Q
         if size>MAX_UPLOAD_BYTES: raise HTTPException(413,"파일은 5MB 이하이어야 합니다.")
         chunks.append(chunk)
     try:
-        return await run_in_threadpool(excel_import.create_preview,user.id,b"".join(chunks),filename)
+        return await run_in_threadpool(excel_import.create_ai_preview,user.id,b"".join(chunks),filename,timezone)
     except SyncError as exc:
         raise HTTPException(exc.code,exc.message) from None
 

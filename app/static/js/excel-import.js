@@ -14,12 +14,12 @@
   let draft=null,busy=false,visible=100,chosen=new Set();
   const message=text=>{$("excel-message").textContent=text;};
   async function request(path, options={}) {
-    const r=await fetch("/api/sync/excel"+path,{cache:"no-store",signal:AbortSignal.timeout(60000),...options});
+    const r=await fetch("/api/import"+path,{cache:"no-store",signal:AbortSignal.timeout(180000),...options});
     const data=await r.json();
     if(!r.ok)throw new Error(typeof data.detail==="string"?data.detail:"입력 값을 확인해 주세요.");
     return data;
   }
-  function setBusy(value){busy=value;for(const id of ["excel-file","excel-compare","excel-save","excel-cancel","excel-select-all","excel-select-none"])$(id).disabled=value;$("excel-entries").querySelectorAll("input").forEach(n=>n.disabled=value);}
+  function setBusy(value){busy=value;for(const id of ["excel-file","excel-timezone","excel-compare","excel-save","excel-cancel","excel-select-all","excel-select-none"])$(id).disabled=value;$("excel-entries").querySelectorAll("input").forEach(n=>n.disabled=value);}
   function showError(error){message(error.name==="TimeoutError"?"응답 대기 시간이 지났습니다. 저장을 요청했다면 같은 저장 버튼으로 결과를 확인할 수 있습니다.":error.message==="Failed to fetch"?"서버에 연결하지 못했습니다. 연결을 확인해 주세요.":error.message);}
   function summary(){ $("excel-selection").textContent=`${chosen.size}개 선택 · 선택하지 않은 기록은 유지합니다.`;$("excel-save").textContent=chosen.size?`선택한 ${chosen.size}개 기록 저장`:"원본 파일만 보관"; }
   function changeSelection(entry,checked){
@@ -64,11 +64,14 @@
   $("excel-upload").addEventListener("submit",async event=>{
     event.preventDefault();if(busy)return;const file=$("excel-file").files[0];if(!file)return;
     if(!file.name.toLowerCase().endsWith(".xlsx")||file.size>5*1024*1024){message("5MB 이하의 .xlsx 파일을 선택해 주세요.");return;}
-    setBusy(true);await discard();message("원본과 현재 기록을 비교하는 중…");
+    setBusy(true);await discard();message("AI가 파일을 분석하고 현재 기록과 비교하는 중… 잠시 걸릴 수 있습니다.");
     try{
-      draft=await request("/preview?filename="+encodeURIComponent(file.name),{method:"POST",headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},body:file});chosen.clear();visible=100;
+      const zone=encodeURIComponent($("excel-timezone").value);
+      draft=await request("/preview?filename="+encodeURIComponent(file.name)+"&timezone="+zone,{method:"POST",headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},body:file});chosen.clear();visible=100;
       $("excel-counts").textContent=Object.entries(labels).map(([k,v])=>`${v} ${draft.counts[k]||0}개`).join(" · ");
-      $("excel-review").hidden=false;render();message("비교 완료. 저장할 항목을 확인하고 선택해 주세요.");
+      const notes=$("excel-notes");notes.replaceChildren();for(const n of draft.notes||[])notes.append(node("li",n));
+      const unparsed=draft.unparsed||[];$("excel-unparsed-box").hidden=!unparsed.length;const ul=$("excel-unparsed");ul.replaceChildren();for(const u of unparsed)ul.append(node("li",u));
+      $("excel-review").hidden=false;render();message("AI 분석 완료. 저장할 항목을 확인하고 선택해 주세요.");
     }catch(error){showError(error);}finally{setBusy(false);}
   });
   $("excel-filter").addEventListener("change",()=>{visible=100;render();});
