@@ -137,14 +137,56 @@ class AssistantApiTests(unittest.TestCase):
         with patch.dict(os.environ, {"FITLOG_SECRET_KEY": "t" * 48}):
             self.assertEqual(self.draft().json()["detail"], {"code": "key_unreadable"})
 
-    def test_keys_and_consent_are_per_user(self):
-        self.consent()
+    def test_members_use_the_shared_admin_key(self):
         self.register()
-        other = create_user("friend@example.com", "member")
-        act_as(other)
+        member = create_user("friend@example.com", "member")
+        act_as(member)
         status = self.client.get("/api/assistant/status").json()
-        self.assertEqual((status["key_hint"], status["consent"]), (None, False))
+        # Members see that a key exists, never its hint, and cannot change it.
+        self.assertEqual((status["key_configured"], status["key_hint"], status["can_manage_key"], status["consent"]), (True, None, False, False))
+        with patch.object(claude_records, "verify_key") as verify:
+            self.assertEqual(self.client.put("/api/assistant/key", json={"api_key": KEY}).status_code, 403)
+            verify.assert_not_called()
+        self.assertEqual(self.client.delete("/api/assistant/key").status_code, 403)
         self.assertEqual(self.draft().json()["detail"], {"code": "no_consent"})
+        self.consent(member)
+        self.assertEqual(self.draft().status_code, 200)
+        self.assertEqual(self.extract.call_args.args[0], KEY)
+        # Quota is per person: the member's call does not use the admin's allowance.
+        with SessionLocal() as s:
+            used = dict(s.execute(select(AiUsage.user_id, AiUsage.count)).all())
+        self.assertEqual(used, {member.id: 1})
+        self.assertEqual(count(AiCredential), 1)
+
+    def test_consent_to_the_old_ai_notice_must_be_renewed(self):
+        self.register()
+        with SessionLocal() as s:
+            s.add_all([Consent(user_id=self.user.id, kind="service", version="2026-10-19"),
+                       Consent(user_id=self.user.id, kind="ai_transfer", version="2026-10-19")])
+            s.commit()
+        consents = self.client.get("/api/me/consents").json()
+        self.assertEqual((consents["service"]["active"], consents["ai_transfer"]["active"]), (True, False))
+        self.assertEqual(self.draft().json()["detail"], {"code": "no_consent"})
+        self.consent()
+        self.assertEqual(self.draft().status_code, 200)
+
+    def test_new_key_replaces_old_and_inactive_admin_key_is_ignored(self):
+        self.register()
+        second = "sk-ant-api03-" + "z" * 40
+        with patch.object(claude_records, "verify_key"):
+            self.client.put("/api/assistant/key", json={"api_key": second})
+        self.assertEqual(count(AiCredential), 1)
+        self.consent()
+        self.draft()
+        self.assertEqual(self.extract.call_args.args[0], second)
+        with SessionLocal() as s:
+            from app.models import User
+            s.get(User, self.user.id).status = "disabled"
+            s.commit()
+        member = create_user("friend@example.com", "member")
+        self.consent(member)
+        act_as(member)
+        self.assertEqual(self.draft().json()["detail"], {"code": "no_key"})
 
     def commit(self, body):
         return self.client.post("/api/assistant/commit", json=body)

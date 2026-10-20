@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from app.api.deps import CurrentUser
+from app.api.deps import AdminUser, CurrentUser
 from app.assistant_schemas import CommitRequest, DraftRequest, KeyInput, StatusResponse
 from app.database import get_session
 from app.services import assistant
@@ -21,11 +21,11 @@ def fail(error: AssistantError) -> HTTPException:
 
 @router.get("/status", response_model=StatusResponse)
 def status(user: CurrentUser, db: DB) -> dict:
-    return assistant.status(db, user.id)
+    return assistant.status(db, user)
 
 
 @router.put("/key")
-async def save_key(data: KeyInput, user: CurrentUser, db: DB) -> dict:
+async def save_key(data: KeyInput, user: AdminUser, db: DB) -> dict:
     try:
         hint = await run_in_threadpool(assistant.save_key, db, user.id, data.api_key)
     except AssistantError as error:
@@ -34,8 +34,8 @@ async def save_key(data: KeyInput, user: CurrentUser, db: DB) -> dict:
 
 
 @router.delete("/key")
-def delete_key(user: CurrentUser, db: DB) -> dict:
-    assistant.delete_key(db, user.id)
+def delete_key(user: AdminUser, db: DB) -> dict:
+    assistant.delete_key(db)
     return {"status": "deleted"}
 
 

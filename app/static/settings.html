@@ -16,22 +16,24 @@
 <section class="card account-card" aria-labelledby="account-heading"><h2 id="account-heading">계정</h2>
 <dl class="sync-details"><dt>Google 계정</dt><dd id="account-email">확인 중</dd><dt>권한</dt><dd id="account-role">—</dd>
 <dt>서비스 이용</dt><dd id="consent-service">—</dd><dt>AI 외부 전송</dt><dd id="consent-ai">—</dd></dl>
-<!-- Notice version 2026-10-19: same AI-transfer notice as invite.html and accounts.CONSENT_VERSION. -->
-<details class="consent-notice"><summary>AI 외부 전송 고지 (선택 동의, 버전 2026-10-19)</summary><ul>
+<!-- AI-transfer notice version 2026-10-20: same text as invite.html and accounts.CONSENT_VERSIONS["ai_transfer"]. -->
+<details class="consent-notice"><summary>AI 외부 전송 고지 (선택 동의, 버전 2026-10-20)</summary><ul>
 <li><strong>받는 곳:</strong> Anthropic(미국). 국외로 전송됩니다.</li>
-<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장과, 기록 초안을 만드는 데 필요한 최소한의 기록 정보.</li>
-<li><strong>조건:</strong> 본인이 등록한 API 키로 호출하므로 해당 데이터에는 본인과 Anthropic 사이의 약관이 적용됩니다. 보관·학습 정책은 Anthropic의 공식 문서를 확인해 주세요.</li>
+<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장, 현재 시각·시간대, 본인의 운동 종목 이름. 기록 초안을 만드는 데에만 씁니다.</li>
+<li><strong>조건:</strong> 운영자의 Anthropic API 계정(공용 키)으로 호출하며 비용은 운영자가 부담합니다. 해당 데이터에는 운영자와 Anthropic 사이의 API 약관이 적용되고, 운영자는 키 계정의 사용량 기록에서 호출 횟수·사용량을 볼 수 있습니다. 보관·학습 정책은 Anthropic의 공식 문서를 확인해 주세요. 사람마다 하루 사용 횟수에 제한이 있습니다.</li>
 <li><strong>철회:</strong> 언제든 철회할 수 있으며, 철회하면 전송이 즉시 중단됩니다. 동의하지 않아도 기록 기능은 모두 사용할 수 있습니다.</li>
 </ul></details>
 <div class="settings-actions"><button id="consent-ai-toggle" type="button" hidden></button><button id="logout" type="button">로그아웃</button></div>
 <p id="account-message" role="status" aria-live="polite"></p>
 <p class="hint">서비스 이용 동의를 철회하거나 모든 기록을 삭제하려면 운영자에게 요청해 주세요. 삭제 전에 만든 백업 파일에는 백업 보관 기간 동안 남습니다.</p></section>
 <section class="card" id="ai-card" aria-labelledby="ai-heading"><h2 id="ai-heading">AI 기록 도우미</h2>
-<p class="muted">홈 화면의 "문장으로 기록하기"는 <strong>본인 Anthropic API 키</strong>로 동작합니다. 사용 요금은 그 키의 계정에 청구됩니다. 키는 서버에 암호화해 저장하며 다시 화면에 보여 주지 않습니다.</p>
-<dl class="sync-details"><dt>등록한 키</dt><dd id="ai-key-hint">확인 중</dd><dt>AI 전송 동의</dt><dd id="ai-consent">—</dd><dt>오늘 사용</dt><dd id="ai-usage">—</dd></dl>
-<form id="ai-key-form"><label for="ai-key">Anthropic API 키 (sk-ant-로 시작)</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sk-ant-..."><div class="settings-actions"><button class="primary" type="submit" id="ai-key-save">키 확인 후 저장</button><button type="button" id="ai-key-delete" hidden>등록한 키 삭제</button></div></form>
-<p id="ai-message" role="status" aria-live="polite"></p>
-<p class="hint">키는 Anthropic 콘솔(console.anthropic.com)의 API Keys 메뉴에서 만들 수 있고, 결제(크레딧) 등록이 필요합니다. 저장할 때 키가 동작하는지만 확인하며, 이때 기록 데이터는 보내지 않습니다. 실제 사용 전에 위 "AI 외부 전송"에 동의해야 합니다.</p></section>
+<p class="muted">홈 화면의 "문장으로 기록하기"는 <strong>운영자가 등록한 공용 Anthropic API 키</strong>로 동작하며, 비용은 운영자가 부담합니다. 사람마다 하루 사용 횟수에 제한이 있습니다. 사용하려면 위 계정 카드에서 "AI 외부 전송"에 동의해 주세요.</p>
+<dl class="sync-details"><dt>공용 키</dt><dd id="ai-key-hint">확인 중</dd><dt>AI 전송 동의</dt><dd id="ai-consent">—</dd><dt>오늘 사용</dt><dd id="ai-usage">—</dd></dl>
+<div id="ai-admin" hidden>
+<form id="ai-key-form"><label for="ai-key">공용 Anthropic API 키 (관리자, sk-ant-로 시작)</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sk-ant-..."><div class="settings-actions"><button class="primary" type="submit" id="ai-key-save">키 확인 후 저장</button><button type="button" id="ai-key-delete" hidden>등록한 키 삭제</button></div></form>
+<p class="hint">모든 사용자의 요청이 이 키로 호출되고, 요금은 이 키의 Anthropic 계정에 청구됩니다. 키는 서버에 암호화해 저장하며 다시 화면에 보여 주지 않습니다. 저장할 때 키가 동작하는지만 확인하며, 이때 기록 데이터는 보내지 않습니다. 새 키를 저장하면 기존 키를 대체합니다. 키는 Anthropic 콘솔(console.anthropic.com)의 API Keys 메뉴에서 만들고, 크레딧(결제) 등록이 필요합니다.</p>
+</div>
+<p id="ai-message" role="status" aria-live="polite"></p></section>
 <section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
 <p class="muted">기존 운동·식사 통합기록 양식의 .xlsx 파일을 현재 기록과 비교합니다. 비교만으로는 기록을 바꾸지 않습니다.</p>
 <form id="excel-upload"><label for="excel-file">통합기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required><button id="excel-compare" class="primary" type="submit">기존 기록과 비교</button></form>

@@ -38,7 +38,9 @@ class CommitRequest(InputModel):
 class StatusResponse(BaseModel):
     server_ready: bool
     consent: bool
+    key_configured: bool
     key_hint: str | None
+    can_manage_key: bool
     model: str
     daily_limit: int
     used_today: int

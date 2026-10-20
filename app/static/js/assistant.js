@@ -9,13 +9,14 @@
     return n;
   };
   const ERRORS = {
-    no_key: "설정에서 본인 Anthropic API 키를 먼저 등록해 주세요.",
+    no_key: "AI 키가 아직 등록되지 않았습니다. 관리자에게 문의해 주세요.",
+    no_key_admin: "설정에서 공용 Anthropic API 키를 먼저 등록해 주세요.",
     no_consent: "설정에서 'AI 외부 전송'에 동의해야 사용할 수 있어요.",
-    key_unreadable: "저장된 키를 읽을 수 없습니다. 설정에서 키를 다시 등록해 주세요.",
-    invalid_key: "API 키가 올바르지 않습니다. 설정에서 키를 확인해 주세요.",
-    key_forbidden: "이 API 키로는 사용할 수 없습니다. Anthropic 콘솔에서 키 권한을 확인해 주세요.",
+    key_unreadable: "AI 키를 읽을 수 없습니다. 관리자에게 알려 주세요.",
+    invalid_key: "AI 키가 더 이상 유효하지 않습니다. 관리자에게 알려 주세요.",
+    key_forbidden: "AI 키 권한 문제로 사용할 수 없습니다. 관리자에게 알려 주세요.",
     model_unavailable: "이 키로 사용할 수 없는 모델입니다. 관리자에게 문의해 주세요.",
-    request_rejected: "Anthropic이 요청을 거절했습니다. 콘솔에서 크레딧·결제 상태를 확인해 주세요.",
+    request_rejected: "AI 요청이 거절되었습니다(크레딧 부족 등). 관리자에게 알려 주세요.",
     rate_limited: "Anthropic 사용량 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요.",
     daily_limit: "오늘 사용할 수 있는 횟수를 모두 썼습니다. 내일 다시 이용해 주세요.",
     refused: "이 내용으로는 초안을 만들 수 없습니다. 표현을 바꿔 다시 시도해 주세요.",
@@ -61,10 +62,12 @@
       const r = await fetch("/api/assistant/status", {cache: "no-store", signal: AbortSignal.timeout(10000)});
       if (!r.ok) return;
       const s = await r.json();
-      const setup = !s.server_ready ? ERRORS.server_not_configured : !s.key_hint ? ERRORS.no_key : !s.consent ? ERRORS.no_consent : "";
+      const noKey = s.can_manage_key ? ERRORS.no_key_admin : ERRORS.no_key;
+      const setup = !s.server_ready ? ERRORS.server_not_configured : !s.key_configured ? noKey : !s.consent ? ERRORS.no_consent : "";
       $("assistant-setup").hidden = !setup;
       $("assistant-setup").replaceChildren(node("span", setup + " "));
-      if (setup && s.server_ready) { const link = node("a", "설정으로 이동 →"); link.href = "/settings"; $("assistant-setup").append(link); }
+      // Members can fix consent in settings; only an admin can fix a missing key.
+      if (setup && s.server_ready && (s.key_configured || s.can_manage_key)) { const link = node("a", "설정으로 이동 →"); link.href = "/settings"; $("assistant-setup").append(link); }
       $("assistant-form").hidden = Boolean(setup);
       $("assistant-usage").textContent = `오늘 ${s.used_today}/${s.daily_limit}회 사용`;
     } catch { /* the rest of the home page still works without the assistant */ }

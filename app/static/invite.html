@@ -7,10 +7,10 @@
 </head><body class="auth-page">
 <main id="main" class="auth-main">
 <p class="auth-brand"><span class="brand-mark">F<span>·</span></span> FitLog</p>
-<!-- Notice version 2026-10-19: keep in sync with accounts.CONSENT_VERSION; raise both when this text changes. -->
+<!-- Notice versions: service 2026-10-19, ai_transfer 2026-10-20. Keep in sync with accounts.CONSENT_VERSIONS and settings.html; raise the one whose text changes. -->
 <section class="card auth-card" aria-labelledby="invite-heading">
 <h1 id="invite-heading">FitLog에 초대되었습니다</h1>
-<p class="muted">가입 전에 아래 내용을 확인해 주세요. 고지 버전 2026-10-19</p>
+<p class="muted">가입 전에 아래 내용을 확인해 주세요. 고지 버전: 서비스 2026-10-19 · AI 전송 2026-10-20</p>
 <form id="invite-form" action="/auth/google/start" method="get">
 <input type="hidden" name="invite" id="invite-token">
 <fieldset class="consent"><legend>[필수] 서비스 이용과 건강 기록 저장</legend>
@@ -25,8 +25,8 @@
 <fieldset class="consent"><legend>[선택] AI 기능을 위한 외부 전송</legend>
 <ul>
 <li><strong>받는 곳:</strong> Anthropic(미국). 국외로 전송됩니다.</li>
-<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장과, 기록 초안을 만드는 데 필요한 최소한의 기록 정보.</li>
-<li><strong>조건:</strong> 본인이 등록한 API 키로 호출하므로 해당 데이터에는 본인과 Anthropic 사이의 약관이 적용됩니다. 보관·학습 정책은 Anthropic의 공식 문서를 확인해 주세요.</li>
+<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장, 현재 시각·시간대, 본인의 운동 종목 이름. 기록 초안을 만드는 데에만 씁니다.</li>
+<li><strong>조건:</strong> 운영자의 Anthropic API 계정(공용 키)으로 호출하며 비용은 운영자가 부담합니다. 해당 데이터에는 운영자와 Anthropic 사이의 API 약관이 적용되고, 운영자는 키 계정의 사용량 기록에서 호출 횟수·사용량을 볼 수 있습니다. 보관·학습 정책은 Anthropic의 공식 문서를 확인해 주세요. 사람마다 하루 사용 횟수에 제한이 있습니다.</li>
 <li><strong>철회:</strong> 동의하지 않아도 가입과 기록 기능은 모두 사용할 수 있습니다. 설정에서 언제든 철회할 수 있으며, 철회하면 전송이 즉시 중단됩니다.</li>
 </ul>
 <label class="check"><input type="checkbox" name="consent_ai" value="true"> AI 기능 사용 시 외부 전송에 동의합니다.</label>

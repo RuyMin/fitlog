@@ -116,7 +116,7 @@ def utc_iso(value):
 @router.get("/api/me/consents")
 def consents(user: CurrentUser, db: DB) -> dict:
     status = accounts.consent_status(db, user.id)
-    return {"current_version": accounts.CONSENT_VERSION, **{
+    return {"current_versions": accounts.CONSENT_VERSIONS, **{
         kind: None if entry is None else {**entry, "granted_at": utc_iso(entry["granted_at"]), "withdrawn_at": utc_iso(entry["withdrawn_at"])}
         for kind, entry in status.items()
     }}

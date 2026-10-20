@@ -1,4 +1,4 @@
-"""Natural-language record assistant: per-user keys, daily limits, drafts and the confirmed save.
+"""Natural-language record assistant: one shared operator key, per-user daily limits, drafts and the confirmed save.
 
 The model only proposes drafts. Nothing is stored until the person confirms, and the
 confirmed records pass the same input validation as manual entries.
@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.assistant_schemas import CommitRequest, WorkoutDraft
-from app.models import AiCredential, AiUsage, BodyMetric, Exercise, Meal, SleepRecord, Workout, WorkoutSet, utc_now
+from app.models import AiCredential, AiUsage, BodyMetric, Exercise, Meal, SleepRecord, User, Workout, WorkoutSet, utc_now
 from app.schemas import BodyMetricInput, MealInput, SleepInput
 from app.services import accounts, claude_records
 from app.services.claude_records import AssistantError
@@ -41,38 +41,46 @@ def today() -> date:
     return datetime.now(timezone.utc).date()
 
 
-def status(session: Session, user_id: int) -> dict:
-    credential = session.get(AiCredential, user_id)
-    usage = session.get(AiUsage, (user_id, today()))
-    return {"server_ready": server_ready(), "consent": accounts.has_ai_consent(session, user_id),
-            "key_hint": credential.hint if credential else None, "model": config.AI_MODEL,
+def shared_credential(session: Session) -> AiCredential | None:
+    """The operator's key, registered by an active admin; every user's drafts use it."""
+    return session.scalar(select(AiCredential).join(User, User.id == AiCredential.user_id).where(
+        User.role == "admin", User.status == "active").order_by(AiCredential.created_at.desc()).limit(1))
+
+
+def status(session: Session, user: User) -> dict:
+    credential = shared_credential(session)
+    usage = session.get(AiUsage, (user.id, today()))
+    admin = user.role == "admin"
+    return {"server_ready": server_ready(), "consent": accounts.has_ai_consent(session, user.id),
+            "key_configured": credential is not None, "key_hint": credential.hint if credential and admin else None,
+            "can_manage_key": admin, "model": config.AI_MODEL,
             "daily_limit": config.AI_DAILY_LIMIT, "used_today": usage.count if usage else 0}
 
 
-def save_key(session: Session, user_id: int, api_key: str) -> str:
+def save_key(session: Session, admin_id: int, api_key: str) -> str:
+    """Replace the shared key. Callers must be admins (enforced by the route)."""
     sealed = cipher().encrypt(api_key.encode())
     claude_records.verify_key(api_key, config.AI_MODEL)
     hint = f"{api_key[:10]}…{api_key[-4:]}"
-    credential = session.get(AiCredential, user_id) or AiCredential(user_id=user_id)
-    credential.ciphertext, credential.hint, credential.created_at = sealed, hint, utc_now()
-    session.add(credential)
+    session.execute(delete(AiCredential))
+    session.add(AiCredential(user_id=admin_id, ciphertext=sealed, hint=hint, created_at=utc_now()))
     session.commit()
     return hint
 
 
-def delete_key(session: Session, user_id: int) -> None:
-    session.execute(delete(AiCredential).where(AiCredential.user_id == user_id))
+def delete_key(session: Session) -> None:
+    session.execute(delete(AiCredential))
     session.commit()
 
 
-def stored_key(session: Session, user_id: int) -> str:
-    credential = session.get(AiCredential, user_id)
+def stored_key(session: Session) -> str:
+    credential = shared_credential(session)
     if credential is None:
         raise AssistantError("no_key", 400)
     try:
         return cipher().decrypt(credential.ciphertext).decode()
     except InvalidToken:
-        # The server secret changed; the person has to register the key again.
+        # The server secret changed; the admin has to register the key again.
         raise AssistantError("key_unreadable", 400) from None
 
 
@@ -95,7 +103,7 @@ def draft(session: Session, user_id: int, journal: str, zone_name: str) -> dict:
         raise AssistantError("bad_timezone", 422) from None
     if not accounts.has_ai_consent(session, user_id):
         raise AssistantError("no_consent", 403)
-    api_key = stored_key(session, user_id)
+    api_key = stored_key(session)
     exercises = list(session.scalars(select(Exercise.name).where(Exercise.user_id == user_id).order_by(Exercise.name)))
     take_quota(session, user_id)
     raw = claude_records.extract(api_key, config.AI_MODEL, journal, datetime.now(zone), zone.key, exercises)
