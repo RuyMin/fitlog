@@ -36,7 +36,7 @@
 
 - **Authorization Code + PKCE(S256)**, `state`, `nonce` 사용. scope는 `openid email profile` 만. Google API 접근 토큰은 저장하지 않음(로그인 확인 후 폐기).
 - 사용자 식별은 **`sub`(불변 ID)** 기준. 이메일은 표시·초대 힌트 용도이며 `email_verified=true` 일 때만 받음.
-- ID token 검증: `google-auth`(gspread 의존성으로 이미 설치됨)의 `google.oauth2.id_token.verify_oauth2_token` 으로 서명·`aud`·`iss`·만료 확인 + `nonce` 비교. 토큰 교환은 `httpx`(현재 dev 의존성 → 런타임 의존성으로 이동) 또는 `google-auth`의 `requests` transport. **신규 라이브러리 추가 없이** 구현 가능 — Authlib 등 도입은 불필요.
+- ID token 검증: `google-auth`의 `google.oauth2.id_token.verify_oauth2_token` 으로 서명·`aud`·`iss`·만료 확인 + `nonce` 비교. 토큰 교환은 `google-auth`의 `requests` transport. (당시 `google-auth`는 gspread 의존성으로 설치돼 있었고, Google Sheets 연동 제거 후에는 로그인용으로 `google-auth`·`requests`를 직접 의존성에 둡니다.)
 - redirect URI는 요청 헤더로 만들지 않고 `FITLOG_PUBLIC_URL` 환경변수로 고정(`{PUBLIC_URL}/auth/google/callback`). Host 헤더 조작에 의한 오픈 리다이렉트 방지.
 - 로그인 후 이동 경로(`next`)는 같은 origin의 상대 경로만 허용.
 
@@ -73,7 +73,7 @@
 | `/api/health`, `/login`, `/invite/*`, `/auth/*`, `/static/*`, `/manifest.json`, `/service-worker.js` | 공개 |
 | HTML 셸(`/`, `/workouts`, …) | 공개 유지(데이터 없음). JS가 `/api/me` 401을 받으면 `/login` 으로 이동 |
 | 기록·통계·Excel·원본 보관 API | 로그인 필수, **자기 데이터만** |
-| `POST /api/sync/google`, `GET /api/sync/status` | 1단계에서는 **admin 전용** (서비스 계정·Spreadsheet가 본인 것이므로. 2단계에서 사용자별로 개방) |
+| ~~`POST /api/sync/google`, `GET /api/sync/status`~~ | admin 전용이었으나 Google Sheets 연동 제거로 삭제됨 |
 | 타인 리소스 ID 접근 | **404** (존재 여부를 노출하지 않음) |
 
 ---
@@ -223,7 +223,7 @@ SQLite는 기존 컬럼에 NOT NULL FK나 UNIQUE 변경을 `ALTER` 로 걸 수 �
 
 ### 4.4 CI 영향
 
-`.github/workflows/ci.yml` 의 스모크 테스트가 `/api/sync/status` 를 인증 없이 호출해 `configured=false` 를 확인함 → v3에서는 **401** 이 됨. 스모크 검사를 "`/api/health` 200 + `/api/sync/status` 401" 로 변경.
+`.github/workflows/ci.yml` 의 스모크 검사는 "`/api/health` 200 + 비공개 API 401"을 확인합니다. (초기에는 `/api/sync/status`를 썼으나 Google Sheets 연동 제거 후 `/api/me`로 변경.)
 
 ---
 

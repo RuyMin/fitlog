@@ -15,7 +15,7 @@ class NasUpdaterTests(unittest.TestCase):
         self.root=Path(self.temp.name)
         source=Path(__file__).resolve().parents[1]/'deploy/ugreen/update.sh'
         shutil.copyfile(source,self.root/'update.sh')
-        (self.root/'.env').write_text('GOOGLE_SPREADSHEET_ID=test\n')
+        (self.root/'.env').write_text('FITLOG_PUBLIC_URL=test\n')
         (self.root/'compose.yml').write_text('services: {}\n')
         fake=self.root/'docker'
         fake.write_text('''#!/usr/bin/env python3

@@ -11,8 +11,22 @@ from app.database import SessionLocal
 from app.main import app
 from app.models import Meal, Workout
 from app.services.sync_service import apply_rows, parse_tables
+from app.sync_schemas import COLUMNS
 from test_excel_import import MIME, content, workbook
-from test_phase5 import fixture
+
+STAMP = "2026-09-26T12:00:00+09:00"
+
+
+def fixture():
+    data = {
+      "workouts": [{"external_id":"w1","workout_date":"2026-09-25","title":"Legs"}],
+      "workout_sets": [{"external_id":"s1","workout_external_id":"w1","exercise":"Squat","set_number":1,"weight":60,"reps":8,"completed":"true","rpe":8,"rir":2}],
+      "meals": [{"external_id":"m1","eaten_at":"2026-09-25T12:00:00+09:00","meal_type":"lunch","name":"Meal","protein":30,"image_url":"https://example.com/photo.jpg"}],
+      "body_metrics": [{"external_id":"b1","measured_at":"2026-09-25T08:00:00+09:00","weight":70}],
+      "sleep": [{"external_id":"z1","sleep_start":"2026-09-24T23:00:00+09:00","sleep_end":"2026-09-25T06:00:00+09:00","sleep_type":"main","duration_minutes":420}],
+    }
+    return {key:[cols]+[[{**row,"updated_at":STAMP}.get(c) for c in cols] for row in data[key]] for key,cols in COLUMNS.items()}
+
 
 DAY = "2026-09-25"
 MEAL = {"name": "점심", "eaten_at": "2026-09-25T12:00:00+09:00", "meal_type": "lunch", "protein": 30}
@@ -146,11 +160,6 @@ class IsolationTests(unittest.TestCase):
             owners = session.scalars(select(ImportArchive.user_id).order_by(ImportArchive.id)).all()
             self.assertEqual(sorted(owners), sorted([self.owner.id, self.member.id]))
             self.assertEqual(session.get(ImportArchive, archive).user_id, self.owner.id)
-
-    def test_google_sync_is_admin_only(self) -> None:
-        act_as(self.member)
-        self.assertEqual(self.client.get("/api/sync/status").status_code, 403)
-        self.assertEqual(self.client.post("/api/sync/google", json={}).status_code, 403)
 
     def test_every_private_route_requires_a_user(self) -> None:
         """Guard: a new router without the user dependency fails here."""

@@ -4,9 +4,9 @@
 FastAPI가 REST API와 HTML/CSS/JavaScript를 함께 제공하고 SQLAlchemy로 SQLite에 접근합니다.
 프론트엔드 프레임워크 없이 **단일 컨테이너 + SQLite**로 운영합니다.
 
-현재 **Phase 6**: 기록·통계·차트, Google Sheets 수동 동기화, Excel 업로드 비교·선택 저장과 원본 보존에 더해
+현재 **Phase 6**: 기록·통계·차트, Excel 업로드 비교·선택 저장과 원본 보존, AI 기록 도우미(문장·사진으로 기록 초안 생성)에 더해
 초대받은 지인 여러 명이 Google 계정으로 로그인해 **각자의 기록만** 사용합니다([로그인과 초대](#로그인과-초대)).
-통계는 기존 SQLite 데이터를 읽어 계산하며 별도 집계 DB를 만들지 않습니다. 사진 업로드와 앱 안의 AI 기능은 아직 없습니다.
+통계는 기존 SQLite 데이터를 읽어 계산하며 별도 집계 DB를 만들지 않습니다.
 
 ## 통계 사용 방법
 
@@ -198,7 +198,7 @@ API 라우트는 `app/api/`, 스키마는 `app/schemas.py`, 비즈니스 로직�
 새 라우터에 인증을 빠뜨리면 `tests/test_isolation.py`의 가드 테스트가 실패합니다.
 
 가져오기 경로는 모두 같은 원칙으로 구현되어 있습니다. 원본 행을 검증 스키마로 정규화한 뒤 한 트랜잭션에서 사용자 범위로 반영합니다.
-`sync_service.py`(영어 표준 Google Sheets), `korean_sheets.py`(한글 통합기록 Sheets), `excel_import.py`(웹 업로드 비교·선택 저장),
+`sync_service.py`(전송-중립 행 검증·반영), `excel_import.py`(웹 업로드 비교·선택 저장),
 `legacy_xlsx.py`(CLI 일괄 이관, `--user-email` 필수)입니다.
 
 ### 테스트
@@ -226,7 +226,7 @@ service worker는 정적 UI만 캐시하며 `/api/*`는 캐시하지 않습니�
 설치 UI는 OS와 브라우저에 따라 다릅니다. 앱은 인증서를 관리하지 않습니다.
 
 개인 API는 로그인 세션이 필요합니다(`app/api/deps.py`의 `current_user`). 설계: [docs/design/phase6-auth-isolation.md](docs/design/phase6-auth-isolation.md).
-화면에서는 `app.js`가 모든 페이지의 API 응답을 확인하여 401이면 `/login?next=<현재 경로>`로 보내고, 로그인 후 원래 화면으로 돌아옵니다. 설정 화면에서 계정·로그아웃·동의 내역을 확인하고 AI 외부 전송 동의를 철회하거나 다시 할 수 있습니다(`/api/me/consents`). Google Sheets 동기화 영역은 관리자에게만 보입니다.
+화면에서는 `app.js`가 모든 페이지의 API 응답을 확인하여 401이면 `/login?next=<현재 경로>`로 보내고, 로그인 후 원래 화면으로 돌아옵니다. 설정 화면에서 계정·로그아웃·동의 내역을 확인하고 AI 외부 전송 동의를 철회하거나 다시 할 수 있습니다(`/api/me/consents`).
 세션은 서버 측 `auth_sessions`에 토큰 해시만 저장하고, 쿠키는 `__Host-fitlog_session`(HttpOnly·Secure·SameSite=Lax)입니다. 유휴 30일, 최대 90일 후 만료됩니다.
 다른 Origin·사이트에서 보낸 POST/PUT/DELETE는 403으로 거부하고, 모든 응답에 CSP·nosniff·frame 차단 헤더를 붙입니다. 개인 API 응답은 캐시하지 않습니다.
 CSP는 인라인 script/style과 외부 리소스를 허용하지 않으므로 화면 코드는 CSS 클래스와 로컬 파일만 사용하세요.
@@ -284,9 +284,9 @@ docker compose exec fitlog python -m app.admin delete-user friend@example.com --
 - **Phase 2 (완료)**: 운동·종목·세트 CRUD, 입력 검증·서비스 계층, 운동 목록/상세 UI.
 - **Phase 3 (완료)**: 식단·체중·수면 CRUD/UI, 수면 시간 계산, 실제 홈 요약과 환경변수 기반 단백질 목표.
 - **Phase 4 (완료)**: 운동 횟수·세트 수·최고 중량·볼륨, 체중·수면 추이와 차트.
-- **Phase 5 (완료)**: Google Sheets 단방향 수동 import, 중복 방지, 상태 UI, 원본 Excel 이관/보존.
-- **Phase 6 (현재)**: Google 로그인·초대 링크, 사용자별 데이터 격리(schema v3), 세션·CSRF·CSP, 동의 기록. 설계: [docs/design/phase6-auth-isolation.md](docs/design/phase6-auth-isolation.md).
-- 다음 후보: 사용자별 Google Sheets 연결, 자연어 기록 입력(미리보기 확정 방식, 본인 API 키, AI 전송 동의 필요), 질의응답·리포트.
+- **Phase 5 (완료)**: Excel 업로드 비교·선택 저장, 중복 방지, 상태 UI, 원본 Excel 이관/보존. (초기 Google Sheets 수동 동기화는 AI 도입 후 제거)
+- **Phase 6 (현재)**: Google 로그인·초대 링크, 사용자별 데이터 격리(schema v3), 세션·CSRF·CSP, 동의 기록, AI 기록 도우미(문장·사진). 설계: [docs/design/phase6-auth-isolation.md](docs/design/phase6-auth-isolation.md).
+- 다음 후보: 임의 양식 Excel을 AI로 매핑해 가져오기, 질의응답·리포트.
 
 ## Phase 2 REST API
 
@@ -459,80 +459,22 @@ Phase 3도 기존 6개 테이블을 그대로 사용하며 컬럼 변경·마이
 통계 서비스는 읽기 전용이며 스키마 변경·마이그레이션 없이 기존 DB에 적용됩니다.
 
 
-## Phase 5 — Google Sheets 수동 동기화
+## 데이터 스키마와 이관
 
-기록 조회의 기준은 계속 SQLite입니다. Google은 수동 동기화 시에만 호출합니다.
-`/settings`에서 연결 상태, 최근 성공/실패, 종류별 추가/수정/유지 건수를 확인하고 **지금 동기화**를 실행합니다.
+기록 조회의 기준은 SQLite입니다. 기존 기록은 설정 화면의 Excel 업로드(아래)와 초기 이관 CLI로 가져옵니다.
 
-### 인증과 라이브러리
+### 코드와 SQLite 구조
 
-서비스 계정 JSON 키를 사용합니다. 브라우저 OAuth 로그인은 없습니다.
-`gspread==6.2.1`을 선택했습니다. Spreadsheet ID로 열기와 여러 탭 일괄 읽기를 간결하게 구현할 수 있고 Google SDK 전체가 필요하지 않습니다.
-google-auth는 gspread의 의존성입니다. 인증 갱신과 API 요청에는 타임아웃을 적용하며 자동 무한 재시도는 없습니다.
-현재 권한(scope)은 `spreadsheets.readonly` 하나입니다. Drive 목록 탐색이나 Google 쓰기는 하지 않습니다.
-서비스 계정을 대상 문서에 공유해야 합니다. 현재 import에는 **뷰어**로 충분하며, 향후 export용으로 **편집자**를 부여해도 이번 앱은 읽기만 합니다.
-
-공식 문서: [gspread 서비스 계정 인증](https://docs.gspread.org/en/latest/oauth2.html), [Google 서비스 계정 생성](https://cloud.google.com/iam/docs/service-accounts-create), [JSON 키 생성](https://cloud.google.com/iam/docs/keys-create-delete).
-
-### Google Cloud부터 연결까지
-
-1. Google Cloud Console에서 프로젝트를 만들거나 선택합니다.
-2. API 및 서비스 → 라이브러리에서 **Google Sheets API**를 활성화합니다. 현재 기능에는 Google Drive API 활성화가 필요하지 않습니다.
-3. IAM 및 관리자 → 서비스 계정 → 서비스 계정 만들기. 이름 예: fitlog-sync. 프로젝트 관리자 같은 광범위한 IAM 역할은 필요하지 않습니다.
-4. 생성한 계정 → 키 → 키 추가 → 새 키 만들기 → JSON. 조직 정책이 키 생성을 막으면 관리자의 정책 절차를 따릅니다.
-5. 받은 JSON을 NAS/PC 프로젝트의 `config/google-service-account.json`에 저장합니다. JSON 내용은 코드/채팅/로그에 붙여 넣지 않습니다. 컨테이너 UID가 읽을 수 있게 호스트 파일 권한을 설정합니다.
-6. Google Sheets에서 Spreadsheet 하나를 만들고 [템플릿 가이드](docs/google-sheets-template.md)의 5개 탭을 준비합니다. 첨부 기록을 이어 쓰려면 `data/imports/legacy-20260926/`의 CSV 5개를 사용하세요. 예제 CSV와 혼합하지 않습니다.
-7. Spreadsheet의 **공유** 버튼 → JSON의 `client_email`에 해당하는 서비스 계정 이메일(예: fitlog-sync@PROJECT_ID.iam.gserviceaccount.com)을 추가합니다. 보기 권한 또는 요청하신 편집 권한을 부여합니다. 일반 공개 링크로 바꿀 필요는 없습니다.
-8. URL `https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit`의 `{SPREADSHEET_ID}` 부분만 복사합니다.
-9. `.env.example`을 `.env`로 복사하고 `GOOGLE_SPREADSHEET_ID`를 입력합니다. credential 경로는 **컨테이너 안 경로**입니다.
-10. 프로젝트 폴더에서 `docker compose up -d --build`를 실행합니다. 환경변수 변경은 단순 restart 대신 compose up으로 컨테이너를 재생성합니다.
-11. [설정](http://localhost:51881/settings)에서 지금 동기화를 실행하거나 아래 API를 호출합니다.
-
-```powershell
-cd F:\Projects\fitlog
-Copy-Item .env.example .env  # 처음 한 번만; 기존 .env를 덮어쓰지 마세요
-# .env 편집 및 JSON 파일 배치 후
-docker compose up -d --build
-Invoke-RestMethod http://localhost:51881/api/sync/status
-Invoke-RestMethod -Method Post -ContentType 'application/json' -Body '{}' http://localhost:51881/api/sync/google
-```
-
-```bash
-curl -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:51881/api/sync/google
-```
-
-### 환경변수
-
-| 변수 | 기본값 |
-|---|---|
-| GOOGLE_SERVICE_ACCOUNT_FILE | /app/config/google-service-account.json |
-| GOOGLE_SPREADSHEET_ID | 빈 값 |
-| GOOGLE_WORKSHEET_WORKOUTS | workouts |
-| GOOGLE_WORKSHEET_WORKOUT_SETS | workout_sets |
-| GOOGLE_WORKSHEET_MEALS | meals |
-| GOOGLE_WORKSHEET_BODY_METRICS | body_metrics |
-| GOOGLE_WORKSHEET_SLEEP | sleep |
-
-Compose는 `./config:/app/config:ro`로 디렉터리를 읽기 전용 마운트합니다. 파일 자체를 필수 bind하지 않으므로 JSON이 없어도 앱은 정상 시작하며 Sync만 Not configured입니다.
-Docker secret을 쓰면 secret 마운트를 추가하고 GOOGLE_SERVICE_ACCOUNT_FILE을 `/run/secrets/google-service-account.json`으로 설정해도 됩니다.
-`.env`, credential JSON, `*.key.json`은 Git 제외, config 전체와 환경 파일은 Docker 빌드 컨텍스트에서도 제외합니다. 키는 이미지에 포함하지 않습니다.
-Google Sheets 동기화 실행과 상태 조회는 관리자 계정만 사용할 수 있습니다. 서비스 계정과 Spreadsheet가 서버 전체에 하나뿐이기 때문입니다.
-JSON 키/토큰/Google 원문 예외를 UI/로그로 출력하지 않으며 DB 오류도 안전한 메시지로 치환합니다.
-
-### 코드와 SQLite 변경
-
-- `app/services/google_sheets.py`: 서비스 계정 인증, 타임아웃, 5개 탭 일괄 읽기, 안전한 Google 오류 변환. DB 접근 없음.
-- `app/sync_schemas.py`: 외부 행 계약/컬럼. 표준 데이터 타입과 입력 검증.
-- `app/services/sync_service.py`: 검증, ID 매칭, insert/update/skip, 전체 rollback, 결과와 최근 상태. 독립 함수 `sync_google_sheets()`는 향후 scheduler에서도 재사용할 수 있습니다.
-- `app/api/sync.py`: GET `/api/sync/status`, POST `/api/sync/google` (관리자 전용).
+- `app/sync_schemas.py`: 가져오기 공통 행 계약/컬럼. 표준 데이터 타입과 입력 검증.
+- `app/services/sync_service.py`: 검증, ID 매칭, insert/update/skip, 전체 rollback. 전송-중립 로직으로 Excel 비교 저장과 CLI 이관이 함께 씁니다.
 - `app/migrations.py`: 기존 DB 자동 백업 후 명시적 버전별 migration(v3는 소유자 컬럼을 위해 테이블 재생성). 스키마 버전은 SQLite `PRAGMA user_version=3`(v3: 사용자별 소유 `user_id`).
-- `app/static/settings.html`, `css/settings.css`, `js/settings.js`: 관리 화면.
+- `app/static/settings.html`, `css/settings.css`, `js/settings.js`: 설정·가져오기 화면.
 - `app/services/legacy_xlsx.py`: 제공된 7개 시트 형식의 공통 Excel 변환기와 초기 이관 CLI. 일반적인 모든 Excel 구조를 자동 추측하지 않습니다.
 
 workouts/workout_sets/meals/body_metrics/sleep_records에 nullable `external_id`, `source_updated_at`, 기본 local인 `source`를 추가합니다.
 각 테이블에 `(source, external_id)` 고유 인덱스를 만들며 외부 ID 없는 기존 로컬 기록은 보존합니다.
 workout_sets에는 nullable rpe/rir, meals에는 별도 image_url을 추가합니다. 기존 image_path는 그대로 유지합니다.
-`sync_state`는 연결 문서와 최근 결과/오류, `import_archives`는 원본 파일 바이트·셀 데이터·이관 보고서를 저장합니다.
+`import_archives`는 원본 파일 바이트·셀 데이터·이관 보고서를 저장합니다.
 시간은 기존 방식인 UTC-naive DB 저장, API 출력 시 UTC offset, UI에서 로컬 시간으로 표시합니다. Excel의 시각 없는 측정 날짜는 메모에 가정한 정렬 시각을 명시합니다.
 
 기존 DB는 스키마 버전을 올리기 전마다 `data/backups/before-v{대상 버전}-*.db`로 SQLite backup API를 이용해 백업합니다. 파일 복사로 WAL을 누락하지 않습니다.
@@ -543,7 +485,6 @@ workout_sets에는 nullable rpe/rir, meals에는 별도 image_url을 추가합�
 
 원본은 수정하지 않습니다. 준비 단계는 운영 DB에 쓰지 않고 5개 CSV와 plan/report를 생성합니다.
 기존 로컬 기록은 유지하며, 첨부 기록에는 고정 외부 ID를 부여합니다. 동일 원본 SHA-256 재이관은 건너뜁니다.
-CSV를 Google Sheets에 올릴 때 이 ID를 유지하면 최초 Google sync도 중복 insert하지 않습니다.
 
 ```powershell
 # Excel 변환 의존성(openpyxl)은 웹 업로드 지원을 위해 서버에도 포함
@@ -558,20 +499,6 @@ docker compose exec fitlog python -m app.services.legacy_xlsx --apply /app/data/
 루틴/대시보드/입력 예시는 실제 기록 집계에서 제외합니다. 2개 드롭세트와 자세 교정 1개, 중량 미상 코어/맨몸 4세트는 단일 kg×회 값을 만들지 않아 볼륨 집계에서 제외되지만 원문은 보존합니다.
 당류/포화지방/나트륨/콜레스테롤/섭취량, 인바디 추가 수치, 러닝 심박/페이스/거리/시간, RIR 범위는 메모와 원본에서 확인할 수 있습니다. 별도 통계 지표로 구조화하지는 않았습니다.
 이 파일과 변환 결과는 개인 건강 데이터이므로 `data/` 아래에만 두고 Git에는 넣지 않습니다.
-
-### 검증 및 다음 단계
-
-```bash
-python -m pip install -r requirements-dev.txt
-python -m unittest discover -s tests -v
-```
-
-테스트는 임시 SQLite와 모의 Google transport를 사용합니다. 미설정 실행, 잘못된 ID/권한/timeout, 정상 insert, 반복 skip, 최신 update, 오래된 버전 무시, 원자적 rollback, 중복 ID, 시간대/수면 충돌, 로컬 데이터 보존, migration 백업을 검증합니다.
-실제 Google 인증/공유 권한의 최종 연결 검증은 사용자 JSON 키와 실제 Spreadsheet 설정 후 해야 합니다. 모의 테스트를 실계정 연결 성공으로 간주하지 않습니다.
-
-Google Sheets 동기화는 서버 전체에 Spreadsheet 하나만 연결하므로 관리자만 실행하며, 가져온 기록은 관리자 계정에 저장됩니다.
-Google export, 자동 주기 sync, Drive 파일 탐색, 사용자별 Spreadsheet는 아직 없습니다.
-후속 작업 후보는 사용자별 Spreadsheet 연결, 로컬 편집 충돌 정책, 양방향 export, 자동 sync, 러닝 및 확장 영양정보 전용 모델/통계입니다.
 
 
 ## Excel 업로드 → 비교 → 선택 저장 (v0.6)
@@ -596,7 +523,6 @@ Google export, 자동 주기 sync, Drive 파일 탐색, 사용자별 Spreadsheet
 - 식별 기준이 같은 파일 행이나 DB 후보가 여러 개면 **확인 필요**로 표시하고 해당 항목은 저장할 수 없습니다. 연결된 운동이 모호하면 그 세트도 제외합니다. 원본 중복을 수정하거나 기존 기록을 정리한 뒤 다시 비교하세요.
 - 날짜·시각·이름 자체를 바꾸면 새 기록으로 인식될 수 있습니다. 같은 날 후보를 함께 표시하지만 자동으로 합치지 않습니다. 이 경우 해당 신규 항목을 선택하지 말고 기존 기록을 앱에서 수정한 뒤 다시 비교하거나, 별도 기록임을 확인한 경우에만 신규 저장하세요.
 - 새 운동의 세트를 선택하면 해당 운동도 함께 선택됩니다. 서버에서도 부모 운동 선택 여부를 검사합니다.
-- 기존 Google Sheets에서 가져온 기록과 일치하면 그 DB 행과 외부 ID/source를 유지하여 수정합니다. Google Sheets로 내보내지는 않습니다. 이후 더 최신 Google 행이 다시 덮어쓸 수 있으므로 두 입력 경로의 기준 데이터를 일치시켜 주세요.
 - 현재는 기존 통합기록 양식만 지원합니다. 임의의 Excel 컬럼, 매크로, 암호화 파일, 기록 시트의 수식은 지원하지 않습니다. 수식은 계산하지 않으므로 값으로 붙여 넣어 업로드하세요.
 
 ### 저장·업로드 안전성
@@ -620,42 +546,7 @@ Google export, 자동 주기 sync, Drive 파일 탐색, 사용자별 Spreadsheet
 - `GET /api/sync/excel/history`: 최근 10개 저장 이력과 변경 전/후 값.
 
 `app/services/excel_import.py`가 비교·선택 저장·동시 변경 검사, `app/api/excel.py`가 업로드 제한/API, `app/static/js/excel-import.js`가 검토 UI를 담당합니다.
-배포는 `docker compose up -d --build`. Google 인증 설정 없이도 Excel 기능을 사용할 수 있습니다.
-
-## 기존 한글 Google Sheets 사용
-
-영어 템플릿으로 바꾸지 않아도 기존 통합기록을 읽습니다. Google Sheets 문서에 다음 7개 탭을 유지하세요.
-
-`12주 루틴`, `러닝 기록`, `웨이트 기록`, `인바디 기록`, `대시보드`, `식사 기록`, `일일 운동 기록`
-
-- 서비스 계정에 **뷰어**로 공유하면 됩니다. FitLog는 Google 문서를 수정하지 않습니다.
-- 설정에서 **지금 동기화**를 누르면 탭 구성을 자동 감지합니다. 기존 영어 표준 형식도 계속 지원합니다.
-- 한글 양식에는 `external_id`나 `updated_at` 컬럼을 추가하지 않습니다. 원본 스냅샷과 내용을 비교하여 변경을 감지합니다.
-- 헤더는 현재 이름·순서를 유지하세요. 일일 운동 기록은 1행, 나머지 기록 탭은 3행이 헤더입니다.
-- 날짜는 `2026-10-03`, 식사 일시는 `2026-10-03 07:25`처럼 입력하세요. 시간대 없는 시각은 Asia/Seoul로 처리합니다.
-- 웨이트는 기존 세트1~4 열을 사용하세요. `60kg×8`, `맨몸×15` 등 기존 표기를 읽습니다. 확정할 수 없는 복합 세트는 원문을 남기고 임의의 중량·횟수를 만들지 않습니다.
-- **새 운동 기록은 '입력 예시' 행 위에 추가**하세요. 예시는 운동 통계에서 제외됩니다.
-- 시트당 최대 5,000행·50열, 전체 200,000셀·원본 JSON 10MB를 지원합니다.
-
-### 중복과 수정 처리
-
-운동은 날짜+제목, 세트는 운동+종목+세트 번호, 식사는 일시+음식명, 신체 기록은 측정 일시로 매칭합니다. 기존 Excel로 가져온 기록도 같은 조건이면 재사용하며 행 정렬이나 빈 행 추가는 중복을 만들지 않습니다. 동일 식별 조건이 여러 건이면 전체 동기화를 취소합니다.
-
-같은 날짜의 일일 요약은 제목이 일치하는 상세 운동에 연결합니다. 러닝 요약은 해당 날짜의 러닝 상세가 하나일 때 연결합니다. 날짜만으로 서로 다른 운동을 합치지 않습니다. 확실히 연결할 수 없는 일일 기록은 별도 운동으로 남깁니다.
-
-중량·반복·영양소·메모 수정은 다음 동기화에 반영됩니다. 시트에서 바뀌지 않은 필드는 FitLog의 로컬 수정을 덮어쓰지 않습니다. 같은 필드가 양쪽에서 다르게 수정되면 전체 취소 후 충돌 메시지를 표시합니다. 최초 연결 시에는 시트의 값을 기준으로 기존 일치 기록을 반영합니다.
-
-**날짜·음식명·운동 제목·종목 등 식별값은 기록 후 유지**하세요. 이전 식별값이 사라지고 새로운 식별값이 함께 생기면 수정인지 삭제+추가인지 구분할 수 없어 안전하게 중단합니다. 기존 식별값을 복원하고 정정 내용은 메모에 남기세요. 같은 날짜의 별개 세션은 처음부터 구분되는 제목을 사용하세요. 삭제는 SQLite에 전파하지 않습니다.
-
-### 원본 보존과 범위
-
-매번 변경된 스냅샷을 SQLite `import_archives`에 JSON으로 보관합니다. 이 스냅샷은 다음 동기화의 비교 기준(식별값 연결)으로 쓰며, 앱 화면에서 열람·다운로드하지 않습니다. 원본 내용은 Google 시트에서 직접 확인하세요. JSON은 셀 값 보관이며 Google 문서의 서식·수식 자체·이미지 첨부를 백업하지는 않습니다.
-
-추가 영양소, 인바디 상세, 러닝 거리·페이스·심박·시간은 메모와 원본에 남깁니다. 러닝의 `46:19:00`처럼 해석이 모호한 시간은 원문으로 보존하며 지속 시간 통계로 임의 변환하지 않습니다. `12주 루틴`과 `대시보드`는 원본에만 보존합니다. 수면 시작·종료 시트가 없으므로 수면 기록은 만들지 않습니다. 러닝의 수면(시간) 값은 메모에 남습니다.
-
-ChatGPT에 기록을 요청할 때 다음 지침을 함께 전달하면 됩니다.
-
-> 기존 한글 탭 이름과 헤더 위치·컬럼 순서를 유지해 주세요. 기록은 한 행씩 추가하고, 웨이트는 입력 예시 위에 작성해 주세요. 날짜는 YYYY-MM-DD, 식사 일시는 YYYY-MM-DD HH:mm으로 기록해 주세요. 이미 기록한 날짜·운동 제목·종목·식사 일시·음식명은 식별값이므로 유지하고, 정정 설명은 메모에 남겨 주세요. 영양 정보를 모르면 빈칸으로 남기고 추정치는 메모에 추정임을 표시해 주세요.
+배포는 `docker compose up -d --build`로 합니다.
 
 ## GitHub Actions와 NAS 이미지 배포
 
@@ -685,7 +576,7 @@ id -g
 
 출력된 NAS 사용자 UID/GID를 `.env`의 `FITLOG_UID`, `FITLOG_GID`에 입력하세요. `data/`는 해당 사용자가 쓰기 가능하고 `config/`의 키는 읽기 가능해야 합니다. NAS의 파일 권한 관리 또는 해당 사용자로 폴더 생성하여 맞추세요. `FITLOG_PORT` 기본값은 51881입니다.
 
-서비스 계정 JSON은 별도로 `config/google-service-account.json`에 저장하고 `.env`에 `GOOGLE_SPREADSHEET_ID`를 입력하세요. 키 파일은 해당 사용자만 읽을 수 있도록 관리하세요. 비워 두어도 앱은 실행되며 Google 동기화만 미설정 상태가 됩니다.
+Google 로그인용 OAuth 클라이언트 보안 비밀번호는 `config/google-oauth-client-secret` 파일에 한 줄로 저장하고 `.env`에 `GOOGLE_OAUTH_CLIENT_ID`를 입력하세요. 키 파일은 해당 사용자만 읽을 수 있도록 관리하세요.
 
 ```bash
 docker compose -f compose.nas.yml pull
@@ -694,7 +585,7 @@ docker compose -f compose.nas.yml ps
 curl -f http://localhost:51881/api/health
 ```
 
-`FITLOG_PUBLIC_URL`의 HTTPS 주소에서 관리자 계정으로 로그인한 뒤 설정 → 지금 동기화를 실행합니다. 최초 DB는 `/app/data/fitlog.db`에 자동 생성되며 실제 저장 위치는 NAS 배포 폴더의 `data/fitlog.db`입니다. 앱 업데이트와 무관하게 같은 data/config mount를 유지하세요.
+`FITLOG_PUBLIC_URL`의 HTTPS 주소에서 관리자 계정으로 로그인합니다. 최초 DB는 `/app/data/fitlog.db`에 자동 생성되며 실제 저장 위치는 NAS 배포 폴더의 `data/fitlog.db`입니다. 앱 업데이트와 무관하게 같은 data/config mount를 유지하세요.
 
 ### 업데이트와 이전 이미지 선택
 

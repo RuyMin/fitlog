@@ -13,7 +13,6 @@ from app import config
 from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
-from app.api.sync import router as sync_router
 from app.api.health import router as health_router
 from app.api.workouts import router as workouts_router
 from app.api.records import router as records_router
@@ -41,7 +40,6 @@ app = FastAPI(title="FitLog", version="0.6.0", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(assistant_router)
 app.include_router(excel_router)
-app.include_router(sync_router)
 app.include_router(health_router)
 app.include_router(workouts_router)
 app.include_router(records_router)

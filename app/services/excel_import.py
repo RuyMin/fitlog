@@ -13,8 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import ExcelPreview, ImportArchive, Exercise, Workout, WorkoutSet, utc_now
 from app.services.legacy_xlsx import build_plan
-from app.services.sync_service import MODELS, parse_tables
-from app.services.google_sheets import SyncError
+from app.services.sync_service import MODELS, parse_tables, SyncError
 from app.services.persistence import owned
 
 TTL = timedelta(hours=1)

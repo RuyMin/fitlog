@@ -173,7 +173,7 @@ class SessionTests(unittest.TestCase):
         with SessionLocal() as session:
             return session.scalar(select(func.count()).select_from(Consent).where(Consent.user_id == user_id, Consent.kind == "ai_transfer"))
 
-    def test_pages_wire_login_redirect_and_admin_only_sync(self) -> None:
+    def test_pages_wire_login_redirect(self) -> None:
         static = Path(__file__).resolve().parents[1] / "app" / "static"
         app_js = (static / "js" / "app.js").read_text(encoding="utf-8")
         self.assertIn('location.replace("/login?next="', app_js)
@@ -181,13 +181,12 @@ class SessionTests(unittest.TestCase):
             scripts = re.findall(r'<script[^>]*src="([^"]+)"', (static / page).read_text(encoding="utf-8"))
             self.assertEqual(scripts[0].split("?")[0], "/static/js/app.js", page)
         settings = (static / "settings.html").read_text(encoding="utf-8")
-        self.assertIn('id="sync-card" hidden', settings)
         self.assertIn(accounts.CONSENT_VERSIONS["ai_transfer"], settings)
 
     def test_member_session_cannot_use_admin_routes(self) -> None:
         login(self.client, create_user("member@example.com", "member"))
         self.assertEqual(self.client.get("/api/me").json()["role"], "member")
-        self.assertEqual(self.client.get("/api/sync/status").status_code, 403)
+        self.assertEqual(self.client.delete("/api/assistant/key").status_code, 403)
 
 
 class SecurityPolicyTests(unittest.TestCase):
