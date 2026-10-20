@@ -93,6 +93,10 @@ async def security_policy(request: Request, call_next: RequestResponseEndpoint) 
         response = await call_next(request)
     if request.url.path.startswith(("/api/", "/auth/")):
         response.headers["Cache-Control"] = "no-store"
+    elif request.url.path.startswith("/static/"):
+        # Revalidate every time (cheap 304 via ETag). Without this, browsers reuse
+        # a stale script heuristically after an update, while the page is new.
+        response.headers["Cache-Control"] = "no-cache"
     response.headers.update(SECURITY_HEADERS)
     return response
 

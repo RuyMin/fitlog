@@ -179,7 +179,7 @@ class SessionTests(unittest.TestCase):
         self.assertIn('location.replace("/login?next="', app_js)
         for page in ["index.html", "records.html", "settings.html", "statistics.html", "workouts.html"]:
             scripts = re.findall(r'<script[^>]*src="([^"]+)"', (static / page).read_text(encoding="utf-8"))
-            self.assertEqual(scripts[0], "/static/js/app.js", page)
+            self.assertEqual(scripts[0].split("?")[0], "/static/js/app.js", page)
         settings = (static / "settings.html").read_text(encoding="utf-8")
         self.assertIn('id="sync-card" hidden', settings)
         self.assertIn(accounts.CONSENT_VERSIONS["ai_transfer"], settings)
@@ -237,6 +237,20 @@ class SecurityPolicyTests(unittest.TestCase):
                 self.assertEqual(headers["x-content-type-options"], "nosniff")
                 self.assertEqual(headers["referrer-policy"], "same-origin")
         self.assertEqual(self.client.get("/api/health").headers["cache-control"], "no-store")
+
+    def test_static_assets_are_revalidated_and_pages_load_current_ones(self) -> None:
+        """A stale settings.js under a new settings page left the AI card stuck at '확인 중'."""
+        import re
+        from pathlib import Path
+        for path in ["/static/js/settings.js", "/static/css/app.css", "/static/js/app.js?v=anything"]:
+            self.assertEqual(self.client.get(path).headers["cache-control"], "no-cache", path)
+        static = Path(__file__).resolve().parents[1] / "app" / "static"
+        for page in static.glob("*.html"):
+            refs = re.findall(r'(?:src|href)="(/static/(?:js|css)/[^"]+)"', page.read_text(encoding="utf-8"))
+            self.assertTrue(refs, page.name)
+            for ref in refs:
+                self.assertIn("?v=", ref, f"{page.name}: {ref}")
+                self.assertEqual(self.client.get(ref).status_code, 200, ref)
 
     def test_invite_form_may_continue_to_google_only(self) -> None:
         """The invite form's submit redirects to Google; form-action must allow exactly that host."""
