@@ -96,7 +96,7 @@ def take_quota(session: Session, user_id: int) -> None:
     session.commit()
 
 
-def draft(session: Session, user_id: int, journal: str, zone_name: str) -> dict:
+def draft(session: Session, user_id: int, journal: str, zone_name: str, images: list[tuple[str, str]] = ()) -> dict:
     try:
         zone = ZoneInfo(zone_name)
     except (ZoneInfoNotFoundError, ValueError):
@@ -106,7 +106,7 @@ def draft(session: Session, user_id: int, journal: str, zone_name: str) -> dict:
     api_key = stored_key(session)
     exercises = list(session.scalars(select(Exercise.name).where(Exercise.user_id == user_id).order_by(Exercise.name)))
     take_quota(session, user_id)
-    raw = claude_records.extract(api_key, config.AI_MODEL, journal, datetime.now(zone), zone.key, exercises)
+    raw = claude_records.extract(api_key, config.AI_MODEL, journal, datetime.now(zone), zone.key, exercises, list(images))
     result = {"unparsed": [str(item)[:500] for item in raw.get("unparsed") or []][:20]}
     for kind, model in DRAFT_TYPES.items():
         items = raw.get(kind) if isinstance(raw.get(kind), list) else []

@@ -99,6 +99,42 @@ class AssistantApiTests(unittest.TestCase):
         self.extract.assert_not_called()
         self.assertEqual(count(AiUsage), 0)
 
+    def test_photos_are_checked_and_passed_through(self):
+        import base64
+        self.consent()
+        self.register()
+        jpeg = base64.b64encode(b"\xff\xd8\xff\xe0" + b"0" * 200).decode()
+        png = base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"0" * 200).decode()
+        webp = base64.b64encode(b"RIFF\x00\x00\x00\x00WEBP" + b"0" * 200).decode()
+
+        def post(body):
+            with patch.object(claude_records, "extract", return_value=json.loads(json.dumps(DRAFT))) as extract:
+                r = self.client.post("/api/assistant/draft", json={"timezone": "Asia/Seoul", **body})
+            return r, extract
+
+        # A photo alone is enough; text and images reach the model call.
+        r, extract = post({"images": [{"media_type": "image/jpeg", "data": jpeg}]})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual((extract.call_args.args[2], extract.call_args.args[6]), ("", [("image/jpeg", jpeg)]))
+        r, extract = post({"text": "점심", "images": [{"media_type": "image/png", "data": png}, {"media_type": "image/webp", "data": webp}]})
+        self.assertEqual(len(extract.call_args.args[6]), 2)
+        bad = [
+            {},                                                                               # nothing at all
+            {"text": "   "},                                                                  # whitespace only
+            {"images": [{"media_type": "image/png", "data": jpeg}]},                          # header does not match type
+            {"images": [{"media_type": "image/gif", "data": jpeg}]},                          # unsupported type
+            {"images": [{"media_type": "image/jpeg", "data": "not base64!!" * 4}]},           # not base64
+            {"images": [{"media_type": "image/webp", "data": base64.b64encode(b"RIFF" + b"0" * 200).decode()}]},
+            {"images": [{"media_type": "image/jpeg", "data": jpeg}] * 4},                     # more than 3
+            {"images": [{"media_type": "image/jpeg", "data": base64.b64encode(b"\xff\xd8\xff" + b"0" * (5 * 1024 * 1024)).decode()}]},
+        ]
+        for body in bad:
+            with self.subTest(body=str(body)[:60]):
+                r, extract = post(body)
+                self.assertEqual(r.status_code, 422)
+                extract.assert_not_called()
+        self.assertEqual(self.client.get("/api/assistant/status").json()["used_today"], 2)
+
     def test_estimated_meal_nutrition_is_labelled(self):
         self.consent()
         self.register()
@@ -128,8 +164,8 @@ class AssistantApiTests(unittest.TestCase):
             s.commit()
         r = self.draft()
         self.assertEqual(r.status_code, 200, r.text)
-        key, model, text, now, zone, exercises = self.extract.call_args.args
-        self.assertEqual((key, model, text, zone, exercises), (KEY, config.AI_MODEL, "오늘 점심 제육덮밥", "Asia/Seoul", ["스쿼트"]))
+        key, model, text, now, zone, exercises, images = self.extract.call_args.args
+        self.assertEqual((key, model, text, zone, exercises, images), (KEY, config.AI_MODEL, "오늘 점심 제육덮밥", "Asia/Seoul", ["스쿼트"], []))
         self.assertEqual(now.utcoffset().total_seconds(), 9 * 3600)
         data = r.json()
         self.assertEqual([m["errors"] for m in data["meals"]][0], [])
@@ -261,7 +297,7 @@ def fake_response(stop_reason="end_turn", text=None):
 
 
 class ClaudeCallTests(unittest.TestCase):
-    def run_extract(self, response=None, error=None, model="claude-opus-5-5"):
+    def run_extract(self, response=None, error=None, model="claude-opus-5-5", images=(), text="점심 제육"):
         calls = {}
 
         class Messages:
@@ -275,7 +311,7 @@ class ClaudeCallTests(unittest.TestCase):
         from datetime import datetime
         from zoneinfo import ZoneInfo
         with patch.object(claude_records, "client_for", return_value=fake) as client_for:
-            result = claude_records.extract(KEY, model, "점심 제육", datetime(2026, 10, 20, 9, 0, tzinfo=ZoneInfo("Asia/Seoul")), "Asia/Seoul", ["스쿼트"])
+            result = claude_records.extract(KEY, model, text, datetime(2026, 10, 20, 9, 0, tzinfo=ZoneInfo("Asia/Seoul")), "Asia/Seoul", ["스쿼트"], list(images))
         client_for.assert_called_once_with(KEY)
         return result, calls
 
@@ -291,6 +327,14 @@ class ClaudeCallTests(unittest.TestCase):
         self.assertIn("2026-10-20T09:00+09:00", content)
         self.assertIn("스쿼트", content)
         self.assertNotIn(KEY, json.dumps(calls, default=str))
+
+    def test_photos_go_first_as_image_blocks(self):
+        _, calls = self.run_extract(images=[("image/jpeg", "AAAA"), ("image/png", "BBBB")], text="")
+        content = calls["messages"][0]["content"]
+        self.assertEqual([block["type"] for block in content], ["image", "image", "text"])
+        self.assertEqual(content[0], {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "AAAA"}})
+        self.assertIn("첨부 사진: 2장", content[2]["text"])
+        self.assertIn("(설명 없이 사진만 첨부)", content[2]["text"])
 
     def test_haiku_has_no_fallback(self):
         _, calls = self.run_extract(model="claude-haiku-5-5")
@@ -340,6 +384,9 @@ class AssistantPageTests(unittest.TestCase):
         home = client.get("/").text
         self.assertIn('id="assistant-form"', home)
         self.assertIn("/static/js/assistant.js", home)
+        self.assertIn('id="assistant-photo-input" type="file" accept="image/*"', home)
+        # .assistant-actions uses display:flex; without this the hidden save row was always visible.
+        self.assertIn(".assistant-card [hidden]{display:none!important}", client.get("/static/css/assistant.css").text)
         settings = client.get("/settings").text
         self.assertIn('id="ai-key"', settings)
         self.assertIn('type="password"', settings)

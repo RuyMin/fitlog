@@ -1,7 +1,9 @@
 """Request and response shapes for the natural-language record assistant."""
-from typing import Annotated
+import base64
+import binascii
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas import BodyMetricInput, InputModel, MealInput, Name, SleepInput, WorkoutInput
 
@@ -10,9 +12,38 @@ class KeyInput(InputModel):
     api_key: Annotated[str, Field(min_length=20, max_length=300, pattern=r"^sk-ant-\S+$")]
 
 
+MAX_IMAGE_BYTES = 5 * 1024 * 1024  # Anthropic's per-image limit
+SIGNATURES = {"image/jpeg": (b"\xff\xd8\xff",), "image/png": (b"\x89PNG\r\n\x1a\n",), "image/webp": (b"RIFF",)}
+
+
+class ImageInput(InputModel):
+    """A photo for drafting only: sent to the model, never stored."""
+    media_type: Literal["image/jpeg", "image/png", "image/webp"]
+    data: Annotated[str, Field(min_length=16, max_length=7_200_000)]
+
+    @model_validator(mode="after")
+    def check_bytes(self) -> Self:
+        try:
+            raw = base64.b64decode(self.data, validate=True)
+        except (binascii.Error, ValueError):
+            raise ValueError("사진 데이터를 읽을 수 없습니다.") from None
+        if len(raw) > MAX_IMAGE_BYTES:
+            raise ValueError("사진은 5MB 이하여야 합니다.")
+        if not raw.startswith(SIGNATURES[self.media_type]) or (self.media_type == "image/webp" and raw[8:12] != b"WEBP"):
+            raise ValueError("사진 형식이 올바르지 않습니다.")
+        return self
+
+
 class DraftRequest(InputModel):
-    text: Annotated[str, Field(min_length=1, max_length=4000)]
+    text: Annotated[str, Field(max_length=4000)] = ""
+    images: Annotated[list[ImageInput], Field(max_length=3)] = []
     timezone: Annotated[str, Field(max_length=64)] = "Asia/Seoul"
+
+    @model_validator(mode="after")
+    def require_content(self) -> Self:
+        if not self.text and not self.images:
+            raise ValueError("문장이나 사진을 하나 이상 입력해 주세요.")
+        return self
 
 
 class SetDraft(InputModel):

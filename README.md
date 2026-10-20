@@ -270,7 +270,8 @@ docker compose exec fitlog python -m app.admin delete-user friend@example.com --
 
 - **공용 운영자 키:** 관리자가 설정 → AI 기록 도우미에 Anthropic API 키 하나를 등록하면 모든 사용자가 그 키로 사용합니다. 요금은 운영자 계정에 청구됩니다. 멤버는 키 등록·삭제를 할 수 없고 키 일부도 볼 수 없습니다. 키는 `FITLOG_SECRET_KEY`로 암호화해 `ai_credentials`에 한 행만 저장하고(새 키가 기존 키를 대체), 화면·API로 다시 내보내지 않습니다. 저장할 때 모델 조회로 키만 확인하며 기록 데이터는 보내지 않습니다. 키를 등록한 관리자가 비활성화되면 키도 쓰지 않습니다.
 - **동의:** 설정에서 "AI 외부 전송"에 동의한 사용자만 쓸 수 있습니다(`accounts.has_ai_consent`). 고지 버전은 종류별(`accounts.CONSENT_VERSIONS`)이라, AI 고지(2026-10-20, 공용 키로 변경)가 바뀌어도 서비스 이용 동의는 유지되고 AI 동의만 다시 받습니다.
-- **보내는 데이터:** 입력한 문장, 현재 시각·시간대, 본인 운동 종목 이름 목록뿐입니다.
+- **사진:** 음식이나 영양성분표 사진을 최대 3장 함께 보낼 수 있습니다(사진만 보내도 됨). AI가 음식 종류·양을 보고 영양을 추정하거나 성분표 값을 읽습니다. 사진은 휴대폰에서 긴 변 1568px JPEG로 다시 인코딩해(위치 등 EXIF 제거) 보내며, 서버는 형식(JPEG/PNG/WebP 헤더)과 크기(장당 5MB)만 확인하고 **저장하지 않습니다**.
+- **보내는 데이터:** 입력한 문장과 첨부한 사진, 현재 시각·시간대, 본인 운동 종목 이름 목록뿐입니다.
 - **한도:** 사용자별 하루 `FITLOG_AI_DAILY_LIMIT`회(기본 50). 실패한 시도도 셉니다. 운영자가 비용을 부담하므로 사용 인원에 맞게 조정하세요.
 - **모델:** `FITLOG_AI_MODEL`(기본 `claude-opus-5-5`, effort `low`, 구조화 출력). 정책상 거절되면 서버 측 대체 모델로 다시 시도합니다(`fallbacks: "default"`). 더 저렴하게 쓰려면 `claude-haiku-5-5`로 바꿀 수 있습니다.
 - **코드:** `app/services/claude_records.py`(Claude 호출, DB 접근 없음), `app/services/assistant.py`(키·한도·초안 검증·저장), `app/api/assistant.py`, `app/static/js/assistant.js`.

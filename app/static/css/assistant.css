@@ -28,3 +28,12 @@
 .assistant-card .assistant-sets button{min-height:36px;padding:0 10px}
 .assistant-sets td:nth-child(2){width:64px}
 .assistant-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:999px;background:var(--soft);color:var(--accent)}
+.assistant-photos{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 0}
+.assistant-card label.assistant-photo-button{display:inline-flex;align-items:center;min-height:44px;margin:0;padding:0 14px;border:1px dashed var(--line);border-radius:8px;cursor:pointer;font-weight:500}
+.assistant-photo-list{display:flex;gap:8px;flex-wrap:wrap}
+.assistant-photo{position:relative;width:72px;height:72px}
+.assistant-photo img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.assistant-card .assistant-photo button{position:absolute;top:-8px;right:-8px;min-height:24px;width:24px;padding:0;border-radius:999px;font-size:12px;line-height:1}
+.assistant-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+/* .assistant-actions sets display:flex, which would otherwise override the hidden attribute. */
+.assistant-card [hidden]{display:none!important}

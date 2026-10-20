@@ -3,8 +3,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#183f35"><title>FitLog · 설정</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-<link rel="stylesheet" href="/static/css/app.css?v=20261021"><link rel="stylesheet" href="/static/css/workouts.css?v=20261021"><link rel="stylesheet" href="/static/css/settings.css?v=20261021">
-<script src="/static/js/app.js?v=20261021" defer></script><script src="/static/js/settings.js?v=20261021" defer></script><script src="/static/js/excel-import.js?v=20261021" defer></script>
+<link rel="stylesheet" href="/static/css/app.css?v=20261022"><link rel="stylesheet" href="/static/css/workouts.css?v=20261022"><link rel="stylesheet" href="/static/css/settings.css?v=20261022">
+<script src="/static/js/app.js?v=20261022" defer></script><script src="/static/js/settings.js?v=20261022" defer></script><script src="/static/js/excel-import.js?v=20261022" defer></script>
 </head><body class="settings-page">
 <a class="skip" href="#main">본문으로 이동</a>
 <aside class="sidebar"><a class="brand" href="/"><span class="brand-mark">F<span>·</span></span> FitLog</a><p class="brand-caption">나를 알아가는 작은 기록</p>
@@ -16,10 +16,10 @@
 <section class="card account-card" aria-labelledby="account-heading"><h2 id="account-heading">계정</h2>
 <dl class="sync-details"><dt>Google 계정</dt><dd id="account-email">확인 중</dd><dt>권한</dt><dd id="account-role">—</dd>
 <dt>서비스 이용</dt><dd id="consent-service">—</dd><dt>AI 외부 전송</dt><dd id="consent-ai">—</dd></dl>
-<!-- AI-transfer notice version 2026-10-20: same text as invite.html and accounts.CONSENT_VERSIONS["ai_transfer"]. -->
-<details class="consent-notice"><summary>AI 외부 전송 고지 (선택 동의, 버전 2026-10-20)</summary><ul>
+<!-- AI-transfer notice version 2026-10-21: same text as invite.html and accounts.CONSENT_VERSIONS["ai_transfer"]. -->
+<details class="consent-notice"><summary>AI 외부 전송 고지 (선택 동의, 버전 2026-10-21)</summary><ul>
 <li><strong>받는 곳:</strong> Anthropic(미국). 국외로 전송됩니다.</li>
-<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장, 현재 시각·시간대, 본인의 운동 종목 이름. 기록 초안을 만드는 데에만 씁니다.</li>
+<li><strong>전송 항목:</strong> AI 기능을 사용할 때 입력한 문장과 첨부한 사진(음식·영양성분표 등), 현재 시각·시간대, 본인의 운동 종목 이름. 기록 초안을 만드는 데에만 씁니다. 사진은 FitLog에 저장하지 않으며, 보내기 전에 휴대폰에서 위치 정보 등 사진 정보를 지웁니다.</li>
 <li><strong>조건:</strong> 운영자의 Anthropic API 계정(공용 키)으로 호출하며 비용은 운영자가 부담합니다. 해당 데이터에는 운영자와 Anthropic 사이의 API 약관이 적용되고, 운영자는 키 계정의 사용량 기록에서 호출 횟수·사용량을 볼 수 있습니다. 보관·학습 정책은 Anthropic의 공식 문서를 확인해 주세요. 사람마다 하루 사용 횟수에 제한이 있습니다.</li>
 <li><strong>철회:</strong> 언제든 철회할 수 있으며, 철회하면 전송이 즉시 중단됩니다. 동의하지 않아도 기록 기능은 모두 사용할 수 있습니다.</li>
 </ul></details>
