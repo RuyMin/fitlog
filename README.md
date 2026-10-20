@@ -263,6 +263,20 @@ docker compose exec fitlog python -m app.admin delete-user friend@example.com --
 
 로그인 오류는 `/login?error=<코드>`로만 표시하며 Google 원문 응답·토큰은 화면이나 로그에 남기지 않습니다. 로그인 요청은 IP별 분당 20회로 제한합니다.
 
+## 문장으로 기록하기 (AI)
+
+홈 화면에 하루 일을 자유롭게 적으면 AI가 식단·체중·수면·운동 **초안**을 만들고, 확인·수정한 뒤 **저장을 눌러야만** 기록됩니다.
+문장에 없는 값은 지어내지 않고 빈칸으로 둡니다. 저장은 선택한 초안 전체를 한 트랜잭션으로 처리하며, 하나라도 검증에 실패하면 아무것도 저장하지 않습니다.
+
+- **각자 본인 키:** 설정 → AI 기록 도우미에 본인 Anthropic API 키를 등록합니다. 요금은 그 키의 계정에 청구됩니다. 키는 `FITLOG_SECRET_KEY`로 암호화해 `ai_credentials`에 저장하고, 화면·API로 다시 내보내지 않습니다. 저장할 때 모델 조회로 키만 확인하며 기록 데이터는 보내지 않습니다.
+- **동의:** 설정에서 "AI 외부 전송"에 동의한 사용자만 쓸 수 있습니다(`accounts.has_ai_consent`).
+- **보내는 데이터:** 입력한 문장, 현재 시각·시간대, 본인 운동 종목 이름 목록뿐입니다.
+- **한도:** 사용자별 하루 `FITLOG_AI_DAILY_LIMIT`회(기본 50). 실패한 시도도 셉니다.
+- **모델:** `FITLOG_AI_MODEL`(기본 `claude-opus-5-5`, effort `low`, 구조화 출력). 정책상 거절되면 서버 측 대체 모델로 다시 시도합니다(`fallbacks: "default"`). 더 저렴하게 쓰려면 `claude-haiku-5-5`로 바꿀 수 있습니다.
+- **코드:** `app/services/claude_records.py`(Claude 호출, DB 접근 없음), `app/services/assistant.py`(키·한도·초안 검증·저장), `app/api/assistant.py`, `app/static/js/assistant.js`.
+
+서버 설정: `.env`에 `FITLOG_SECRET_KEY`(32자 이상)를 넣습니다. 없으면 기능만 비활성화되고 나머지는 그대로 동작합니다. 이 값을 바꾸면 저장된 키를 읽을 수 없어 각자 다시 등록해야 합니다.
+
 ## 향후 로드맵
 
 - **Phase 1 (완료)**: 단일 컨테이너, SQLite 기반, 헬스 체크, 초기 대시보드, PWA shell.

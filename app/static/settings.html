@@ -26,6 +26,12 @@
 <div class="settings-actions"><button id="consent-ai-toggle" type="button" hidden></button><button id="logout" type="button">로그아웃</button></div>
 <p id="account-message" role="status" aria-live="polite"></p>
 <p class="hint">서비스 이용 동의를 철회하거나 모든 기록을 삭제하려면 운영자에게 요청해 주세요. 삭제 전에 만든 백업 파일에는 백업 보관 기간 동안 남습니다.</p></section>
+<section class="card" id="ai-card" aria-labelledby="ai-heading"><h2 id="ai-heading">AI 기록 도우미</h2>
+<p class="muted">홈 화면의 "문장으로 기록하기"는 <strong>본인 Anthropic API 키</strong>로 동작합니다. 사용 요금은 그 키의 계정에 청구됩니다. 키는 서버에 암호화해 저장하며 다시 화면에 보여 주지 않습니다.</p>
+<dl class="sync-details"><dt>등록한 키</dt><dd id="ai-key-hint">확인 중</dd><dt>AI 전송 동의</dt><dd id="ai-consent">—</dd><dt>오늘 사용</dt><dd id="ai-usage">—</dd></dl>
+<form id="ai-key-form"><label for="ai-key">Anthropic API 키 (sk-ant-로 시작)</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sk-ant-..."><div class="settings-actions"><button class="primary" type="submit" id="ai-key-save">키 확인 후 저장</button><button type="button" id="ai-key-delete" hidden>등록한 키 삭제</button></div></form>
+<p id="ai-message" role="status" aria-live="polite"></p>
+<p class="hint">키는 Anthropic 콘솔(console.anthropic.com)의 API Keys 메뉴에서 만들 수 있고, 결제(크레딧) 등록이 필요합니다. 저장할 때 키가 동작하는지만 확인하며, 이때 기록 데이터는 보내지 않습니다. 실제 사용 전에 위 "AI 외부 전송"에 동의해야 합니다.</p></section>
 <section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
 <p class="muted">기존 운동·식사 통합기록 양식의 .xlsx 파일을 현재 기록과 비교합니다. 비교만으로는 기록을 바꾸지 않습니다.</p>
 <form id="excel-upload"><label for="excel-file">통합기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required><button id="excel-compare" class="primary" type="submit">기존 기록과 비교</button></form>

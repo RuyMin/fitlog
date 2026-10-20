@@ -1,0 +1,29 @@
+.assistant-card{margin:0 0 24px;padding:22px}
+.assistant-card label{display:block;font-size:13px;font-weight:600;margin:14px 0 8px}
+.assistant-card textarea,.assistant-card input,.assistant-card select{width:100%;box-sizing:border-box;font:inherit;font-size:14px;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.assistant-card textarea{resize:vertical;min-height:96px;line-height:1.5}
+.assistant-card button{min-height:44px;padding:0 16px;font:inherit;font-size:14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer}
+.assistant-card button.assistant-primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:650}
+.assistant-card button:disabled{opacity:.55;cursor:default}
+.assistant-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:14px 0 0}
+.assistant-setup{font-size:13px;padding:12px 14px;border-radius:8px;background:var(--soft);margin:12px 0 0}
+.assistant-message{font-size:13px;white-space:pre-wrap;margin:12px 0 0}
+.assistant-message.error{color:#b44b38}
+.assistant-draft{border:1px solid var(--line);border-radius:10px;padding:14px;margin:14px 0 0}
+.assistant-draft.excluded{opacity:.5}
+.assistant-draft-head{display:flex;align-items:center;gap:10px;font-weight:650}
+.assistant-draft-head input{width:auto}
+.assistant-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px 12px}
+.assistant-fields label{margin:10px 0 4px;font-weight:500;color:var(--muted)}
+.assistant-errors{color:#b44b38;font-size:12px;margin:10px 0 0;padding-left:18px}
+.assistant-sets{width:100%;border-collapse:collapse;margin:12px 0 0;font-size:13px}
+.assistant-sets th{text-align:left;font-weight:500;color:var(--muted);padding:4px}
+.assistant-sets td{padding:4px}
+.assistant-sets td:first-child{min-width:120px}
+.assistant-sets input[type=checkbox]{width:auto}
+.assistant-unparsed{font-size:13px;margin:14px 0 0}
+.assistant-unparsed ul{margin:6px 0 0 18px}
+@media(max-width:520px){.assistant-sets{display:block;overflow-x:auto}.assistant-wide{grid-column:1/-1}}
+.assistant-sets th,.assistant-sets button{white-space:nowrap}
+.assistant-card .assistant-sets button{min-height:36px;padding:0 10px}
+.assistant-sets td:nth-child(2){width:64px}

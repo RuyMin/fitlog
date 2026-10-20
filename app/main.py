@@ -10,6 +10,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from app import config
+from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
 from app.api.sync import router as sync_router
@@ -38,6 +39,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="FitLog", version="0.6.0", lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(assistant_router)
 app.include_router(excel_router)
 app.include_router(sync_router)
 app.include_router(health_router)
