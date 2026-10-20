@@ -21,7 +21,7 @@ INVITE_TTL = timedelta(days=7)
 ATTEMPT_TTL = timedelta(minutes=10)
 # Notice version per consent kind (invite.html, settings.html). Raise one when its
 # text changes; only that consent is asked again.
-CONSENT_VERSIONS = {"service": "2026-10-19", "ai_transfer": "2026-10-20"}
+CONSENT_VERSIONS = {"service": "2026-10-19", "ai_transfer": "2026-10-21"}
 
 
 class AccountError(Exception):

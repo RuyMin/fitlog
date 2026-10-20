@@ -42,7 +42,8 @@ def delete_key(user: AdminUser, db: DB) -> dict:
 @router.post("/draft")
 async def draft(data: DraftRequest, user: CurrentUser, db: DB) -> dict:
     try:
-        return await run_in_threadpool(assistant.draft, db, user.id, data.text, data.timezone)
+        images = [(image.media_type, image.data) for image in data.images]
+        return await run_in_threadpool(assistant.draft, db, user.id, data.text, data.timezone, images)
     except AssistantError as error:
         raise fail(error) from None
 

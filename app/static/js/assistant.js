@@ -40,6 +40,44 @@
       ["workout_date", "운동일", "date"], ["title", "제목", "text"], ["body_part", "부위", "text"], ["memo", "메모", "text"]]},
   };
   let drafts = [];
+  let photos = [];  // [{media_type, data, preview}] - sent with the next draft, never stored
+  const MAX_PHOTOS = 3, MAX_EDGE = 1568;
+
+  async function decode(file) {
+    try { return await createImageBitmap(file, {imageOrientation: "from-image"}); } catch { /* fall back below */ }
+    const url = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); });
+    return await new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = url; });
+  }
+  // Re-encoding through a canvas shrinks the upload and drops EXIF (including location).
+  async function compress(file) {
+    const source = await decode(file);
+    const scale = Math.min(1, MAX_EDGE / Math.max(source.width, source.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(source.width * scale); canvas.height = Math.round(source.height * scale);
+    canvas.getContext("2d").drawImage(source, 0, 0, canvas.width, canvas.height);
+    const url = canvas.toDataURL("image/jpeg", 0.85);
+    return {media_type: "image/jpeg", data: url.slice(url.indexOf(",") + 1), preview: url};
+  }
+  function renderPhotos() {
+    const list = $("assistant-photo-list"); list.replaceChildren();
+    photos.forEach((photo, index) => {
+      const item = node("div", null, "assistant-photo"), img = node("img"), remove = node("button", "✕");
+      img.src = photo.preview; img.alt = `첨부 사진 ${index + 1}`;
+      remove.type = "button"; remove.setAttribute("aria-label", `사진 ${index + 1} 빼기`);
+      remove.addEventListener("click", () => { photos.splice(index, 1); renderPhotos(); });
+      item.append(img, remove); list.append(item);
+    });
+  }
+  $("assistant-photo-input").addEventListener("change", async (event) => {
+    const files = [...event.target.files]; event.target.value = "";
+    const room = MAX_PHOTOS - photos.length;
+    if (files.length > room) message(`사진은 최대 ${MAX_PHOTOS}장까지 올릴 수 있어요.`, true);
+    for (const file of files.slice(0, Math.max(room, 0))) {
+      try { photos.push(await compress(file)); } catch { message("이 사진은 읽을 수 없어요. JPG나 PNG로 다시 시도해 주세요.", true); }
+    }
+    renderPhotos();
+  });
+  function clearPhotos() { photos = []; renderPhotos(); }
 
   function message(text, error = false) { $("assistant-message").textContent = text; $("assistant-message").className = "assistant-message" + (error ? " error" : ""); }
   function errorText(data, fallback) {
@@ -176,11 +214,13 @@
 
   $("assistant-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (!$("assistant-text").value.trim() && !photos.length) { message("문장이나 사진을 하나 이상 입력해 주세요.", true); return; }
     const button = $("assistant-submit");
-    button.disabled = true; message("초안을 만드는 중이에요… (최대 1분)");
+    button.disabled = true; message(photos.length ? "사진과 내용을 보고 초안을 만드는 중이에요… (최대 1분)" : "초안을 만드는 중이에요… (최대 1분)");
     try {
       const r = await fetch("/api/assistant/draft", {method: "POST", cache: "no-store", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({text: $("assistant-text").value, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul"}),
+        body: JSON.stringify({text: $("assistant-text").value, images: photos.map(({media_type, data}) => ({media_type, data})),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul"}),
         signal: AbortSignal.timeout(120000)});
       const data = await r.json();
       if (!r.ok) throw new Error(errorText(data, "초안을 만들지 못했습니다."));
@@ -198,7 +238,7 @@
       const data = await r.json();
       if (!r.ok) throw new Error(errorText(data, "저장하지 못했습니다."));
       const parts = [["meals", "식단"], ["body_metrics", "체중·신체"], ["sleep", "수면"], ["workouts", "운동"]].filter(([k]) => data[k]).map(([k, l]) => `${l} ${data[k]}건`);
-      $("assistant-drafts").replaceChildren(); drafts = []; $("assistant-save-row").hidden = true; $("assistant-text").value = "";
+      $("assistant-drafts").replaceChildren(); drafts = []; $("assistant-save-row").hidden = true; $("assistant-text").value = ""; clearPhotos();
       message(`저장 완료 · ${parts.join(" · ")}${data.sets ? ` (세트 ${data.sets}개)` : ""}`);
       if (typeof loadSummary === "function") loadSummary();
       if (typeof loadRecent === "function") loadRecent();
@@ -207,7 +247,7 @@
   });
 
   $("assistant-discard").addEventListener("click", () => {
-    $("assistant-drafts").replaceChildren(); drafts = []; $("assistant-save-row").hidden = true; message("");
+    $("assistant-drafts").replaceChildren(); drafts = []; $("assistant-save-row").hidden = true; message(""); clearPhotos();
   });
 
   loadStatus();
