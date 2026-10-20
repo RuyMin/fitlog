@@ -62,6 +62,8 @@ FITLOG_PUBLIC_URL=https://fitlog.<tailnet 이름>.ts.net
 v3 첫 배포라면 이 단계는 [RELEASE-v3.md](RELEASE-v3.md) 4단계에서 함께 실행합니다.
 
 ```bash
+# 이전 구성(51881을 모든 주소에 공개)에서 넘어올 때는 기존 컨테이너를 먼저 멈춥니다. 포트 충돌을 막기 위해서입니다.
+sudo docker compose --env-file .env -f compose.yml stop fitlog
 sudo docker compose --env-file .env -f compose.yml up -d --wait --wait-timeout 180
 sudo docker compose --env-file .env -f compose.yml logs --tail 30 tailscale
 sudo docker compose --env-file .env -f compose.yml exec tailscale tailscale funnel status
