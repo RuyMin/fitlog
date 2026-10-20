@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "fitlog-shell-v14";
+const CACHE = "fitlog-shell-v15";
 const ASSETS = [
   "/settings", "/static/css/settings.css", "/static/js/settings.js", "/static/js/excel-import.js",
   "/statistics", "/static/css/statistics.css", "/static/js/statistics.js", "/static/js/charts.js",

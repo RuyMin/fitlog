@@ -19,8 +19,9 @@ ABSOLUTE = timedelta(days=90)
 TOUCH = timedelta(days=1)
 INVITE_TTL = timedelta(days=7)
 ATTEMPT_TTL = timedelta(minutes=10)
-# Raise when the notice text in invite.html changes; users are asked again.
-CONSENT_VERSION = "2026-10-19"
+# Notice version per consent kind (invite.html, settings.html). Raise one when its
+# text changes; only that consent is asked again.
+CONSENT_VERSIONS = {"service": "2026-10-19", "ai_transfer": "2026-10-20"}
 
 
 class AccountError(Exception):
@@ -120,9 +121,9 @@ def sign_in(session: Session, identity: Identity, attempt: Attempt) -> User:
             session.add(user)
             session.flush()
             invite.used_at, invite.used_by = now, user.id
-            session.add(Consent(user_id=user.id, kind="service", version=CONSENT_VERSION, granted_at=now))
+            session.add(Consent(user_id=user.id, kind="service", version=CONSENT_VERSIONS["service"], granted_at=now))
             if attempt.consent_ai:
-                session.add(Consent(user_id=user.id, kind="ai_transfer", version=CONSENT_VERSION, granted_at=now))
+                session.add(Consent(user_id=user.id, kind="ai_transfer", version=CONSENT_VERSIONS["ai_transfer"], granted_at=now))
         if user.status != "active":
             raise AccountError("disabled")
         user.email, user.last_login_at = identity.email, now
@@ -175,7 +176,7 @@ def consent_status(session: Session, user_id: int) -> dict:
                                 .order_by(Consent.granted_at.desc(), Consent.id.desc()).limit(1))
         result[kind] = None if record is None else {
             "version": record.version, "granted_at": record.granted_at, "withdrawn_at": record.withdrawn_at,
-            "active": record.withdrawn_at is None and record.version == CONSENT_VERSION,
+            "active": record.withdrawn_at is None and record.version == CONSENT_VERSIONS[kind],
         }
     return result
 
@@ -188,7 +189,7 @@ def has_ai_consent(session: Session, user_id: int) -> bool:
 
 def grant_ai_consent(session: Session, user_id: int) -> None:
     if not has_ai_consent(session, user_id):
-        session.add(Consent(user_id=user_id, kind="ai_transfer", version=CONSENT_VERSION))
+        session.add(Consent(user_id=user_id, kind="ai_transfer", version=CONSENT_VERSIONS["ai_transfer"]))
         session.commit()
 
 

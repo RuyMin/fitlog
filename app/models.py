@@ -99,7 +99,7 @@ class Consent(Base):
 
 
 class AiCredential(Base):
-    """A user's own Anthropic API key, encrypted with the server secret; never returned."""
+    """The operator's shared Anthropic API key (one row, saved by an admin), encrypted with the server secret; never returned."""
     __tablename__ = "ai_credentials"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)

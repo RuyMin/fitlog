@@ -90,10 +90,11 @@
       const r = await fetch("/api/assistant/status", {cache: "no-store", signal: AbortSignal.timeout(10000)});
       if (!r.ok) throw new Error();
       const s = await r.json();
-      $("ai-key-hint").textContent = s.key_hint || "없음";
+      $("ai-key-hint").textContent = !s.key_configured ? "아직 등록되지 않음" : s.key_hint || "등록됨";
+      $("ai-admin").hidden = !s.can_manage_key;
       $("ai-consent").textContent = s.consent ? "동의함" : "동의 필요 (위 계정 카드에서 동의)";
       $("ai-usage").textContent = `${s.used_today} / ${s.daily_limit}회 (모델 ${s.model})`;
-      $("ai-key-delete").hidden = !s.key_hint;
+      $("ai-key-delete").hidden = !s.key_configured;
       $("ai-key-save").disabled = !s.server_ready;
       if (!s.server_ready) $("ai-message").textContent = AI_ERRORS.server_not_configured;
     } catch { $("ai-key-hint").textContent = "상태를 확인하지 못했습니다."; }
@@ -111,7 +112,7 @@
     finally { await aiStatus(); }
   });
   $("ai-key-delete").addEventListener("click", async () => {
-    if (!confirm("등록한 API 키를 삭제할까요? 삭제하면 문장으로 기록하기를 쓸 수 없습니다.")) return;
+    if (!confirm("공용 API 키를 삭제할까요? 삭제하면 모든 사용자가 문장으로 기록하기를 쓸 수 없습니다.")) return;
     const r = await fetch("/api/assistant/key", {method: "DELETE", cache: "no-store", signal: AbortSignal.timeout(10000)});
     $("ai-message").textContent = r.ok ? "키를 삭제했습니다." : "키를 삭제하지 못했습니다.";
     await aiStatus();

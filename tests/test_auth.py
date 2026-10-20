@@ -144,18 +144,18 @@ class SessionTests(unittest.TestCase):
     def test_consent_status_grant_and_withdraw(self) -> None:
         member = create_user("member@example.com", "member")
         with SessionLocal() as session:
-            session.add(Consent(user_id=member.id, kind="service", version=accounts.CONSENT_VERSION))
+            session.add(Consent(user_id=member.id, kind="service", version=accounts.CONSENT_VERSIONS["service"]))
             session.add(Consent(user_id=member.id, kind="ai_transfer", version="2025-01-01", granted_at=utc_now() - timedelta(days=1)))
             session.commit()
         login(self.client, member)
         data = self.client.get("/api/me/consents").json()
-        self.assertEqual(data["current_version"], accounts.CONSENT_VERSION)
+        self.assertEqual(data["current_versions"], accounts.CONSENT_VERSIONS)
         self.assertTrue(data["service"]["active"])
         self.assertTrue(data["service"]["granted_at"].endswith("+00:00"))
         # Agreement to an older notice is not consent to the current one.
         self.assertFalse(data["ai_transfer"]["active"])
         granted = self.client.post("/api/me/consents/ai_transfer").json()["ai_transfer"]
-        self.assertEqual((granted["version"], granted["active"]), (accounts.CONSENT_VERSION, True))
+        self.assertEqual((granted["version"], granted["active"]), (accounts.CONSENT_VERSIONS["ai_transfer"], True))
         self.client.post("/api/me/consents/ai_transfer")
         self.assertEqual(self.ai_rows(member.id), 2)
         withdrawn = self.client.delete("/api/me/consents/ai_transfer").json()["ai_transfer"]
@@ -182,7 +182,7 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(scripts[0], "/static/js/app.js", page)
         settings = (static / "settings.html").read_text(encoding="utf-8")
         self.assertIn('id="sync-card" hidden', settings)
-        self.assertIn(accounts.CONSENT_VERSION, settings)
+        self.assertIn(accounts.CONSENT_VERSIONS["ai_transfer"], settings)
 
     def test_member_session_cannot_use_admin_routes(self) -> None:
         login(self.client, create_user("member@example.com", "member"))

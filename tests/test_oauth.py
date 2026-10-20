@@ -145,7 +145,7 @@ class OAuthFlowTests(unittest.TestCase):
         with SessionLocal() as session:
             consents = session.execute(select(Consent.kind, Consent.version, Consent.withdrawn_at).where(Consent.user_id == me["id"])).all()
             invite = session.scalar(select(Invite))
-        self.assertCountEqual(consents, [("service", accounts.CONSENT_VERSION, None), ("ai_transfer", accounts.CONSENT_VERSION, None)])
+        self.assertCountEqual(consents, [("service", accounts.CONSENT_VERSIONS["service"], None), ("ai_transfer", accounts.CONSENT_VERSIONS["ai_transfer"], None)])
         self.assertEqual(invite.used_by, me["id"])
         self.assertIsNotNone(invite.used_at)
         second = self.invite()
@@ -254,7 +254,8 @@ class OAuthFlowTests(unittest.TestCase):
             self.assertEqual(response.headers["cache-control"], "no-store")
             self.assertIn("default-src 'self'", response.headers["content-security-policy"])
         page = self.client.get("/invite/x").text
-        self.assertIn(accounts.CONSENT_VERSION, page)
+        for version in accounts.CONSENT_VERSIONS.values():
+            self.assertIn(version, page)
         self.assertIn('name="consent_service" value="true" required', page)
         self.assertNotIn("consent_ai\" value=\"true\" required", page)
 
