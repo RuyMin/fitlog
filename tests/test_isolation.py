@@ -112,6 +112,7 @@ class IsolationTests(unittest.TestCase):
         self.assertEqual(counts, {self.owner.id: 1, self.member.id: 1})
 
     def test_excel_previews_and_archives_are_private(self) -> None:
+        from app.models import ImportArchive
         original = content(workbook())
 
         def upload() -> dict:
@@ -138,12 +139,13 @@ class IsolationTests(unittest.TestCase):
         archive = saved.json()["archive_id"]
         self.assertEqual(len(self.client.get("/api/sync/excel/history").json()), 1)
         act_as(self.member)
-        self.assertNotIn(archive, [a["id"] for a in self.client.get("/api/sync/archives").json()])
-        self.assertEqual(self.client.get(f"/api/sync/archives/{archive}").status_code, 404)
-        self.assertEqual(self.client.get(f"/api/sync/archives/{archive}/download").status_code, 404)
         self.assertEqual(len(self.client.get("/api/sync/excel/history").json()), 1)
         with SessionLocal() as session:
             self.assertEqual(session.scalar(select(func.count()).select_from(Meal)), 2)
+            # The same file is archived once per user, each owned by its uploader.
+            owners = session.scalars(select(ImportArchive.user_id).order_by(ImportArchive.id)).all()
+            self.assertEqual(sorted(owners), sorted([self.owner.id, self.member.id]))
+            self.assertEqual(session.get(ImportArchive, archive).user_id, self.owner.id)
 
     def test_google_sync_is_admin_only(self) -> None:
         act_as(self.member)

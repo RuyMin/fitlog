@@ -133,7 +133,8 @@ class SyncTests(unittest.TestCase):
         engine.dispose();r=self.client.get("/api/sync/status")
         self.assertEqual(r.json()["last_sync_status"],"ok");self.assertEqual(r.headers["cache-control"],"no-store")
         for path in ["/settings","/statistics","/static/js/settings.js","/static/css/settings.css"]:self.assertEqual(self.client.get(path).status_code,200)
-        self.assertEqual(self.client.get("/api/sync/archives/123").status_code,404)
+        for path in ["/api/sync/archives","/api/sync/archives/1","/api/sync/archives/1/download"]:self.assertEqual(self.client.get(path).status_code,404)
+        self.assertNotIn("archive",self.client.get("/settings").text)
     def test_google_invalid_id(self):
         with tempfile.NamedTemporaryFile() as f:
             cfg=GoogleSettings(f.name,"bad url",{k:k for k in COLUMNS})

@@ -81,7 +81,7 @@
     try{
       const result=await request("/"+draft.token+"/commit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({selected:[...chosen]})});
       message(`저장 완료 · ${result.inserted}개 추가 · ${result.updated}개 수정 · ${result.skipped}개 유지. 원본 파일을 보관했습니다.`);
-      draft=null;chosen.clear();$("excel-review").hidden=true;await history();window.dispatchEvent(new Event("fitlog-imported"));
+      draft=null;chosen.clear();$("excel-review").hidden=true;await history();
     }catch(error){showError(error);}finally{setBusy(false);}
   });
   async function history(){

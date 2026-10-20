@@ -32,43 +32,11 @@
   $("sync-now").addEventListener("click", async () => {
     if (busy) return; busy = true; $("sync-now").disabled = true;
     $("sync-message").textContent = "동기화 중…"; $("sync-results").replaceChildren();
-    try { const data = await api("google", true); result(data); $("sync-message").textContent = "동기화 완료"; await archives(); }
+    try { const data = await api("google", true); result(data); $("sync-message").textContent = "동기화 완료"; }
     catch (error) { $("sync-message").textContent = error.name === "TimeoutError" ? "응답 대기 시간이 지났습니다. 상태 새로고침으로 결과를 확인해 주세요." : error.message === "Failed to fetch" ? "서버에 연결하지 못했습니다. 연결 후 상태를 새로고침해 주세요." : error.message; }
     finally { busy = false; await status(); }
   });
   $("sync-refresh").addEventListener("click", status);
-  async function showArchive(id) {
-    const view = $("archive-view"); view.textContent = "자료를 불러오는 중…";
-    try {
-      const data = await api("archives/" + id); view.replaceChildren(node("h3", data.filename));
-      for (const [name, rows] of Object.entries(data.sheets)) {
-        const detail = node("details"), scroll = node("div"), table = node("table"); scroll.className = "archive-scroll";
-        detail.append(node("summary", name + " · " + rows.length + "개 비어 있지 않은 행"));
-        for (const entry of rows) {
-          const tr = node("tr"); tr.append(node("th", entry.row + "행"));
-          for (const cell of entry.values) tr.append(node("td", cell == null ? "" : String(cell)));
-          table.append(tr);
-        }
-        scroll.append(table); detail.append(scroll); view.append(detail);
-      }
-    } catch { view.textContent = "원본 자료를 불러오지 못했습니다."; }
-  }
-  async function archives() {
-    try {
-      const data = await api("archives"); const list = $("archive-list"); list.replaceChildren();
-      if (!data.length) { list.textContent = "아직 이관한 원본 자료가 없습니다."; return; }
-      for (const item of data) {
-        const box = node("div"); box.className = "archive-entry"; box.append(node("h3", item.filename));
-        const r = item.report; box.append(node("p", r.summary || "원본 보존됨"));
-        const notes = node("details"); notes.append(node("summary", "이관 기준과 보존 항목"));
-        for (const warning of r.notes || []) notes.append(node("p", warning));
-        box.append(notes);
-        const button = node("button", "전체 원본 내용 보기"); button.addEventListener("click", () => showArchive(item.id)); box.append(button);
-        const link = node("a", item.filename.endsWith(".json") ? "원본 시트 JSON 다운로드" : "원본 Excel 다운로드"); link.href = "/api/sync/archives/" + item.id + "/download"; box.append(link); list.append(box);
-      }
-    } catch { $("archive-list").textContent = "원본 자료 목록을 불러오지 못했습니다."; }
-  }
-  window.addEventListener("fitlog-imported", archives);
 
   const when = (value) => new Date(value).toLocaleString("ko-KR");
   function consentText(entry, isAdmin) {
@@ -107,7 +75,6 @@
     location.replace("/login");
   });
 
-  archives();
   window.fitlogMe.then((me) => {
     if (!me) return;
     $("account-email").textContent = me.display_name ? `${me.display_name} (${me.email})` : me.email;
