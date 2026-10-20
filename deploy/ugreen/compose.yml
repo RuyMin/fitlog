@@ -41,6 +41,9 @@ services:
       FITLOG_OWNER_EMAIL: ${FITLOG_OWNER_EMAIL:-}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET_FILE: ${GOOGLE_OAUTH_CLIENT_SECRET_FILE:-/app/config/google-oauth-client-secret}
+      FITLOG_SECRET_KEY: ${FITLOG_SECRET_KEY:-}
+      FITLOG_AI_MODEL: ${FITLOG_AI_MODEL:-claude-opus-5-5}
+      FITLOG_AI_DAILY_LIMIT: ${FITLOG_AI_DAILY_LIMIT:-50}
     volumes:
       - /volume1/docker/fitlog/data:/app/data
       - /volume1/docker/fitlog/config:/app/config:ro

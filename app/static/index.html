@@ -10,8 +10,10 @@
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <link rel="stylesheet" href="/static/css/app.css">
   <link rel="stylesheet" href="/static/css/records.css">
+  <link rel="stylesheet" href="/static/css/assistant.css">
   <script src="/static/js/app.js" defer></script>
   <script src="/static/js/home.js" defer></script>
+  <script src="/static/js/assistant.js" defer></script>
   <title>FitLog · 오늘의 기록</title>
 </head>
 <body>
@@ -32,6 +34,18 @@
     <header class="topbar"><span class="eyebrow">MY DAILY LOG</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
     <section class="page-heading"><div><p id="today" class="date">오늘의 기록</p><h1>오늘, 나의 컨디션</h1><p class="muted">작은 기록이 모여 나의 변화를 만듭니다.</p></div><span class="phase-tag">PHASE 05</span></section>
     <nav class="quick-records" aria-label="빠른 기록"><a href="/workouts">운동 기록</a><a href="/meals">식단 기록</a><a href="/body-metrics">체중·신체 기록</a><a href="/sleep">수면 기록</a></nav>
+    <section class="card assistant-card" aria-labelledby="assistant-title">
+      <div class="section-heading"><h2 id="assistant-title">문장으로 기록하기</h2><span>AI가 초안을 만들고, 저장은 확인한 뒤에</span></div>
+      <p id="assistant-setup" class="assistant-setup" hidden></p>
+      <form id="assistant-form" hidden>
+        <label for="assistant-text">오늘 한 일을 자유롭게 적어 주세요</label>
+        <textarea id="assistant-text" rows="4" maxlength="4000" required placeholder="예) 아침 체중 72.4. 점심 제육덮밥, 저녁은 닭가슴살이랑 고구마. 하체 운동: 스쿼트 60kg 8회 4세트, 레그프레스 100kg 12회 3세트. 어제 12시 반에 자서 7시에 일어남"></textarea>
+        <div class="assistant-actions"><button type="submit" class="assistant-primary" id="assistant-submit">초안 만들기</button><span id="assistant-usage" class="muted"></span></div>
+      </form>
+      <p id="assistant-message" class="assistant-message" role="status" aria-live="polite"></p>
+      <div id="assistant-drafts"></div>
+      <div class="assistant-actions" id="assistant-save-row" hidden><button type="button" class="assistant-primary" id="assistant-save">선택한 기록 저장</button><button type="button" id="assistant-discard">초안 버리기</button></div>
+    </section>
     <section class="welcome" aria-labelledby="welcome-title">
       <div><span class="eyebrow">YOUR OWN PACE</span><h2 id="welcome-title">건강한 일상,<br>기록에서 시작해요.</h2><p>운동, 식단, 체중 그리고 수면.<br>FitLog에 나만의 건강 기록을 차곡차곡 쌓아보세요.</p><a class="welcome-note" href="/workouts">오늘의 운동 기록하기 →</a></div>
       <div class="welcome-art" aria-hidden="true"><div class="orbit"><span>day by day</span><strong>F<span>·</span></strong><span>나를 위한 시간</span></div></div>

@@ -98,6 +98,26 @@ class Consent(Base):
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class AiCredential(Base):
+    """A user's own Anthropic API key, encrypted with the server secret; never returned."""
+    __tablename__ = "ai_credentials"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    ciphertext: Mapped[bytes] = mapped_column(LargeBinary)
+    hint: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+
+
+class AiUsage(Base):
+    """Assistant requests per user per UTC day, counted before each call."""
+    __tablename__ = "ai_usage"
+    __table_args__ = (CheckConstraint("count >= 0", name="ck_ai_usage_count"),)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Owned:
     """Every user-owned row. Services filter on it and answer 404 for other owners."""
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))

@@ -52,6 +52,19 @@ def save_body_metric(session: Session, user_id: int, data: BodyMetricInput, reco
     return save_record(session, record, data)
 
 
+SLEEP_OVERLAP = "기존 수면 기록과 시간이 겹칩니다. 기존 기록을 수정하거나 시간을 확인해 주세요."
+
+
+def sleep_overlaps(session: Session, user_id: int, start: datetime, end: datetime, exclude_id: int | None = None) -> bool:
+    """UTC-naive interval against this user's sleep; caller holds the write lock."""
+    overlap = select(SleepRecord.id).where(
+        SleepRecord.user_id == user_id, SleepRecord.sleep_start < end, SleepRecord.sleep_end > start
+    )
+    if exclude_id is not None:
+        overlap = overlap.where(SleepRecord.id != exclude_id)
+    return session.scalar(overlap.limit(1)) is not None
+
+
 def save_sleep(session: Session, user_id: int, data: SleepInput, record_id: int | None = None) -> SleepRecord:
     # Reserve the SQLite writer before reading overlaps, so concurrent requests
     # cannot both pass the overlap check. Call with a fresh, dedicated session.
@@ -59,13 +72,8 @@ def save_sleep(session: Session, user_id: int, data: SleepInput, record_id: int 
     try:
         record = get_record(session, user_id, SleepRecord, record_id) if record_id is not None else SleepRecord(user_id=user_id)
         start, end = utc_naive(data.sleep_start), utc_naive(data.sleep_end)
-        overlap = select(SleepRecord.id).where(
-            SleepRecord.user_id == user_id, SleepRecord.sleep_start < end, SleepRecord.sleep_end > start
-        )
-        if record_id is not None:
-            overlap = overlap.where(SleepRecord.id != record_id)
-        if session.scalar(overlap.limit(1)) is not None:
-            raise RecordConflict("기존 수면 기록과 시간이 겹칩니다. 기존 기록을 수정하거나 시간을 확인해 주세요.")
+        if sleep_overlaps(session, user_id, start, end, record_id):
+            raise RecordConflict(SLEEP_OVERLAP)
         record.duration_minutes = int((end - start).total_seconds() // 60)
         return save_record(session, record, data)
     except Exception:
