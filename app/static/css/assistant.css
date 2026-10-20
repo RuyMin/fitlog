@@ -27,3 +27,4 @@
 .assistant-sets th,.assistant-sets button{white-space:nowrap}
 .assistant-card .assistant-sets button{min-height:36px;padding:0 10px}
 .assistant-sets td:nth-child(2){width:64px}
+.assistant-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:999px;background:var(--soft);color:var(--accent)}

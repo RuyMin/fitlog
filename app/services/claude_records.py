@@ -35,6 +35,7 @@ SCHEMA = obj({
         "name": {"type": "string"},
         "calories": nullable("number"), "protein": nullable("number"),
         "carbohydrates": nullable("number"), "fat": nullable("number"),
+        "nutrition_estimated": {"type": "boolean"},
         "memo": nullable("string"),
     })},
     "body_metrics": {"type": "array", "items": obj({
@@ -65,9 +66,10 @@ SCHEMA = obj({
 
 SYSTEM = """You turn a person's free-form fitness and health journal (usually Korean) into record drafts for the FitLog app. The person reviews every draft before anything is saved.
 
-- Record only what the text states. Never invent or estimate values: unstated calories, protein, carbohydrates, fat, weight, reps or times are null.
+- Body weight, body composition, sleep times, sets, weights and reps come only from the text; when not stated they are null. Never invent them.
 - Resolve relative dates and times (오늘, 어제, 아침, 점심, 밤 11시) against the given current local date-time and timezone, and write every date-time with that timezone's offset. When a meal gives only a period, use 08:00 for breakfast, 12:30 for lunch, 19:00 for dinner or 15:00 for a snack on that date and note "시간 추정" in memo.
 - meal_type is breakfast, lunch, dinner, snack or other. Use the dish names as written.
+- Meal nutrition: use calories (kcal), protein, carbohydrates and fat (grams) given in the text. For any that are missing, estimate them for the food as written: a typical Korean single serving, scaled by any stated amount (2개, 반 공기, 200g, 곱빼기), summing the parts of a combined meal, and for packaged products the usual label values. Set nutrition_estimated true when any value is estimated, false when all come from the text. Leave values null only when the food is too vague to estimate (간식, 이것저것).
 - Body metrics: weight and skeletal_muscle in kg, body_fat in percent.
 - Sleep: a night's sleep that ends this morning started the previous evening. A daytime nap is sleep_type "nap".
 - Workouts: one workout per session with its date and a short title (the routine or body part as written). Expand "60kg 8회 3세트" into sets 1 to 3 with weight 60 and reps 8. Number sets per exercise from 1 in the order stated. completed is true unless the text says a set was not done. If an exercise is one of the person's existing exercises, use that exact name.

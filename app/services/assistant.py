@@ -110,8 +110,21 @@ def draft(session: Session, user_id: int, journal: str, zone_name: str) -> dict:
     result = {"unparsed": [str(item)[:500] for item in raw.get("unparsed") or []][:20]}
     for kind, model in DRAFT_TYPES.items():
         items = raw.get(kind) if isinstance(raw.get(kind), list) else []
-        result[kind] = [checked(model, item) for item in items[:50] if isinstance(item, dict)]
+        result[kind] = [checked(model, item) for item in (marked(kind, i) for i in items[:50] if isinstance(i, dict))]
     return result
+
+
+ESTIMATE_NOTE = "열량·영양소 AI 추정"
+
+
+def marked(kind: str, item: dict) -> dict:
+    """Meal nutrition may be estimated; say so in the memo that gets saved, not only on screen."""
+    estimated = bool(item.pop("nutrition_estimated", False)) if kind == "meals" else False
+    if estimated:
+        memo = (item.get("memo") or "").strip()
+        item["memo"] = f"{memo} · {ESTIMATE_NOTE}" if memo else ESTIMATE_NOTE
+    item["__estimated"] = estimated
+    return item
 
 
 LABELS = {
@@ -152,12 +165,13 @@ def problem(issue: dict) -> str:
 
 def checked(model, item: dict) -> dict:
     """Keep the draft as proposed and list what must be fixed before saving."""
+    estimated = item.pop("__estimated", False)
     try:
         model.model_validate(item)
         errors = []
     except ValidationError as error:
         errors = [problem(issue) for issue in error.errors()][:10]
-    return {"data": item, "errors": errors}
+    return {"data": item, "errors": errors, "estimated": estimated}
 
 
 def save(session: Session, user_id: int, data: CommitRequest) -> dict:

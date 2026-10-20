@@ -99,6 +99,26 @@ class AssistantApiTests(unittest.TestCase):
         self.extract.assert_not_called()
         self.assertEqual(count(AiUsage), 0)
 
+    def test_estimated_meal_nutrition_is_labelled(self):
+        self.consent()
+        self.register()
+        estimated = {**MEAL, "calories": 750, "protein": 32, "carbohydrates": 95, "fat": 24, "nutrition_estimated": True, "memo": "시간 추정"}
+        stated = {**MEAL, "name": "프로틴 쉐이크", "protein": 25, "nutrition_estimated": False}
+        r = self.draft({**DRAFT, "meals": [estimated, stated]})
+        self.assertEqual(r.status_code, 200, r.text)
+        first, second = r.json()["meals"]
+        # The flag never reaches validation, the screen gets it, and the saved memo carries it.
+        self.assertEqual((first["errors"], first["estimated"]), ([], True))
+        self.assertEqual(first["data"]["memo"], "시간 추정 · 열량·영양소 AI 추정")
+        self.assertNotIn("nutrition_estimated", first["data"])
+        self.assertEqual((second["estimated"], second["data"]["memo"]), (False, None))
+        self.assertFalse(r.json()["body_metrics"][0]["estimated"])
+        saved = self.commit({"meals": [first["data"]]})
+        self.assertEqual(saved.status_code, 201, saved.text)
+        with SessionLocal() as s:
+            meal = s.scalar(select(Meal))
+            self.assertEqual((meal.calories, meal.protein, meal.memo), (750, 32, "시간 추정 · 열량·영양소 AI 추정"))
+
     def test_draft_sends_only_text_time_and_own_exercises(self):
         self.consent()
         self.register()

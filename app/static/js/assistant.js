@@ -119,6 +119,7 @@
         include.addEventListener("change", () => card.classList.toggle("excluded", !include.checked));
         card.classList.toggle("excluded", !include.checked);
         const head = node("div", null, "assistant-draft-head"); head.append(include, node("span", `${spec.label} ${index + 1}`));
+        if (item.estimated) head.append(node("span", "영양 정보 AI 추정 · 확인 후 수정하세요", "assistant-badge"));
         const fields = node("div", null, "assistant-fields");
         for (const f of spec.fields) fields.append(field(kind, item.data, f));
         card.append(head, fields);
