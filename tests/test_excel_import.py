@@ -14,7 +14,9 @@ from sqlalchemy.orm import Session
 from app.database import Base, SessionLocal, engine
 from app.main import app
 from app.models import Workout, WorkoutSet, Meal, BodyMetric, ExcelPreview, ImportArchive
+from app.services import excel_import
 from app.services.legacy_xlsx import build_plan
+from app.services.sync_service import SyncError
 
 HEADERS={
  "웨이트 기록":"날짜|루틴|운동|세트1|세트2|세트3|세트4|반복 범위|RIR|총볼륨(kg)|컨디션(1~5)|통증/불편|메모|주차",
@@ -51,11 +53,11 @@ class ExcelTests(unittest.TestCase):
         self.original=content(workbook())
     def tearDown(self):self.client.__exit__(None,None,None)
     def upload(self,data=None):
-        r=self.client.post("/api/sync/excel/preview?filename=records.xlsx",content=self.original if data is None else data,headers={"content-type":MIME})
-        self.assertEqual(r.status_code,200,r.text);return r.json()
+        # The fixed-format converter feeds the same compare/commit pipeline the AI path uses.
+        return excel_import.create_preview(self.user.id,self.original if data is None else data,"records.xlsx")
     def save(self,preview,selected=None):
         if selected is None:selected=[e["key"] for e in preview["entries"] if e["status"] in {"new","updated"}]
-        return self.client.post("/api/sync/excel/"+preview["token"]+"/commit",json={"selected":selected})
+        return self.client.post("/api/import/"+preview["token"]+"/commit",json={"selected":selected})
     def count(self,model):
         with SessionLocal() as s:return s.scalar(select(func.count()).select_from(model))
     def seed(self):
@@ -80,7 +82,7 @@ class ExcelTests(unittest.TestCase):
         meal=next(e for e in updates if e["kind"]=="meals");self.assertEqual(meal["before"]["protein"],30);self.assertEqual(meal["incoming"]["protein"],42)
         r=self.save(p,[meal["key"]]);self.assertEqual(r.status_code,200,r.text)
         with SessionLocal() as s:self.assertEqual(s.scalar(select(Meal)).protein,42);self.assertEqual(s.scalar(select(BodyMetric)).weight,70)
-        history=self.client.get("/api/sync/excel/history").json();self.assertEqual(history[0]["changes"][0]["before"]["protein"],30)
+        history=self.client.get("/api/import/history").json();self.assertEqual(history[0]["changes"][0]["before"]["protein"],30)
     def test_missing_rows_are_not_deleted(self):
         self.seed();book=load_workbook(BytesIO(self.original));book["식사 기록"].delete_rows(4)
         p=self.upload(content(book));self.assertEqual(self.save(p).status_code,200);self.assertEqual(self.count(Meal),1)
@@ -117,7 +119,7 @@ class ExcelTests(unittest.TestCase):
         p=self.upload();self.assertEqual(self.save(p,["unknown"]).status_code,422)
         with SessionLocal() as s:s.get(ExcelPreview,p["token"]).created_at-=timedelta(hours=2);s.commit()
         self.assertEqual(self.save(p).status_code,409)
-        self.client.delete("/api/sync/excel/"+p["token"]);self.assertEqual(self.save(p).status_code,404)
+        self.client.delete("/api/import/"+p["token"]);self.assertEqual(self.save(p).status_code,404)
     def test_archive_only_changes_and_history(self):
         self.seed();book=load_workbook(BytesIO(self.original));book["12주 루틴"]["A1"]="수정한 계획"
         p=self.upload(content(book));self.assertEqual(p["counts"],{"identical":4});self.assertEqual(self.save(p,[]).status_code,200)
@@ -128,13 +130,15 @@ class ExcelTests(unittest.TestCase):
         book=load_workbook(BytesIO(self.original));book["식사 기록"]["H4"]=42;p=self.upload(content(book));self.assertEqual(self.save(p).status_code,200)
         with SessionLocal() as s:m=s.scalar(select(Meal));self.assertEqual((m.source,m.external_id),("google_sheets","existing_id"))
     def test_headers_formulas_and_bad_files(self):
+        # The fixed-format converter (CLI path) still rejects a wrong header, a formula, and a non-xlsx.
         for edit in [lambda b:b["식사 기록"].cell(3,8,"wrong"),lambda b:b["식사 기록"].cell(4,8,"=1+1")]:
-            b=workbook();edit(b);r=self.client.post("/api/sync/excel/preview?filename=a.xlsx",content=content(b),headers={"content-type":MIME});self.assertEqual(r.status_code,422,r.text)
-        r=self.client.post("/api/sync/excel/preview?filename=a.xlsx",content=b"bad",headers={"content-type":MIME});self.assertEqual(r.status_code,422)
+            b=workbook();edit(b)
+            with self.assertRaises(SyncError):excel_import.create_preview(self.user.id,content(b),"a.xlsx")
+        with self.assertRaises(SyncError):excel_import.create_preview(self.user.id,b"bad","a.xlsx")
         self.assertEqual(self.count(Workout),0)
     def test_size_bound_and_cross_site(self):
-        r=self.client.post("/api/sync/excel/preview?filename=a.xlsx",content=b"x"*(5*1024*1024+1),headers={"content-type":MIME});self.assertEqual(r.status_code,413)
-        r=self.client.post("/api/sync/excel/preview?filename=a.xlsx",content=self.original,headers={"content-type":MIME,"sec-fetch-site":"cross-site"});self.assertEqual(r.status_code,403)
+        r=self.client.post("/api/import/preview?filename=a.xlsx",content=b"x"*(5*1024*1024+1),headers={"content-type":MIME});self.assertEqual(r.status_code,413)
+        r=self.client.post("/api/import/preview?filename=a.xlsx",content=self.original,headers={"content-type":MIME,"sec-fetch-site":"cross-site"});self.assertEqual(r.status_code,403)
     def test_sheet_only_natural_key_changes_show_candidates(self):
         self.seed();b=load_workbook(BytesIO(self.original));b["식사 기록"]["C4"]="다른 이름";p=self.upload(content(b))
         meal=next(e for e in p["entries"] if e["kind"]=="meals");self.assertEqual(meal["status"],"new");self.assertEqual(len(meal["candidates"]),1)
@@ -159,8 +163,7 @@ class ExcelTests(unittest.TestCase):
                 data=source.read(item)
                 if item.filename=="xl/worksheets/sheet1.xml":data=data.replace(b'r="A1"',b'r="A1000000000"')
                 target.writestr(item,data)
-        r=self.client.post("/api/sync/excel/preview?filename=a.xlsx",content=out.getvalue(),headers={"content-type":MIME})
-        self.assertEqual(r.status_code,422)
+        with self.assertRaises(SyncError):excel_import.create_preview(self.user.id,out.getvalue(),"a.xlsx")
 
     def test_fields_absent_from_workbook_are_preserved(self):
         self.seed()

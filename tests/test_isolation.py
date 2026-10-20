@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from app.database import SessionLocal
 from app.main import app
 from app.models import Meal, Workout
+from app.services import excel_import
 from app.services.sync_service import apply_rows, parse_tables
 from app.sync_schemas import COLUMNS
 from test_excel_import import MIME, content, workbook
@@ -129,21 +130,20 @@ class IsolationTests(unittest.TestCase):
         from app.models import ImportArchive
         original = content(workbook())
 
-        def upload() -> dict:
-            response = self.client.post("/api/sync/excel/preview?filename=records.xlsx", content=original, headers={"content-type": MIME})
-            self.assertEqual(response.status_code, 200, response.text)
-            return response.json()
+        def upload(user) -> dict:
+            # The preview is owned by whoever uploaded it; the compare/commit pipeline is shared.
+            return excel_import.create_preview(user.id, original, "records.xlsx")
 
         def commit(preview: dict):
             selected = [e["key"] for e in preview["entries"] if e["status"] in {"new", "updated"}]
-            return self.client.post(f"/api/sync/excel/{preview['token']}/commit", json={"selected": selected})
+            return self.client.post(f"/api/import/{preview['token']}/commit", json={"selected": selected})
 
         act_as(self.owner)
-        mine = upload()
+        mine = upload(self.owner)
         act_as(self.member)
         self.assertEqual(commit(mine).status_code, 404)
-        self.client.delete("/api/sync/excel/" + mine["token"])
-        theirs = upload()
+        self.client.delete("/api/import/" + mine["token"])
+        theirs = upload(self.member)
         self.assertEqual(theirs["counts"], {"new": 4})
         self.assertEqual(commit(theirs).status_code, 200)
         act_as(self.owner)
@@ -151,9 +151,9 @@ class IsolationTests(unittest.TestCase):
         saved = commit(mine)
         self.assertEqual(saved.status_code, 200, saved.text)
         archive = saved.json()["archive_id"]
-        self.assertEqual(len(self.client.get("/api/sync/excel/history").json()), 1)
+        self.assertEqual(len(self.client.get("/api/import/history").json()), 1)
         act_as(self.member)
-        self.assertEqual(len(self.client.get("/api/sync/excel/history").json()), 1)
+        self.assertEqual(len(self.client.get("/api/import/history").json()), 1)
         with SessionLocal() as session:
             self.assertEqual(session.scalar(select(func.count()).select_from(Meal)), 2)
             # The same file is archived once per user, each owned by its uploader.

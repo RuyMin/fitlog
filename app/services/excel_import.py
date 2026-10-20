@@ -6,18 +6,44 @@ import secrets
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import ValidationError
 from sqlalchemy import delete, select, text, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app import config
+from app.assistant_schemas import WorkoutDraft
 from app.database import SessionLocal
 from app.models import ExcelPreview, ImportArchive, Exercise, Workout, WorkoutSet, utc_now
-from app.services.legacy_xlsx import build_plan
+from app.schemas import BodyMetricInput, MealInput, SleepInput
+from app.services import accounts, assistant, claude_import
+from app.services.claude_records import AssistantError
+from app.services.legacy_xlsx import build_plan, load_cells
 from app.services.sync_service import MODELS, parse_tables, SyncError
 from app.services.persistence import owned
+from app.sync_schemas import COLUMNS
 
 TTL = timedelta(hours=1)
 LABELS = {"workouts": "운동", "workout_sets": "세트", "meals": "식단", "body_metrics": "신체", "sleep": "수면"}
+AI_ROW_LIMIT = 800
+AI_MESSAGES = {
+    "no_key": "운영자가 공용 AI 키를 아직 등록하지 않았습니다. 설정에서 등록해 주세요.",
+    "key_unreadable": "서버 비밀키가 바뀌어 저장된 AI 키를 읽을 수 없습니다. 운영자가 키를 다시 등록해야 합니다.",
+    "server_not_configured": "운영자가 서버의 AI 설정(FITLOG_SECRET_KEY)을 아직 하지 않았습니다.",
+    "daily_limit": "오늘 AI 사용 한도를 모두 썼습니다. 내일 다시 시도해 주세요.",
+    "invalid_key": "등록된 AI 키가 올바르지 않습니다. 운영자에게 확인을 요청해 주세요.",
+    "key_forbidden": "등록된 AI 키에 사용 권한이 없습니다.",
+    "model_unavailable": "등록된 키로는 앱이 쓰는 모델을 사용할 수 없습니다.",
+    "rate_limited": "AI 요청이 몰려 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    "request_rejected": "AI 요청이 거절되었습니다. 운영자에게 결제·크레딧 상태를 확인해 달라고 요청해 주세요.",
+    "refused": "AI가 이 파일 처리를 거절했습니다.",
+    "too_long": "표가 너무 커서 한 번에 분석하지 못했습니다. 시트를 나눠 올려 주세요.",
+    "unreadable": "AI 응답을 읽지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    "upstream": "AI 서버 오류로 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    "unreachable": "AI 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+}
 
 
 def wire(value):
@@ -124,24 +150,17 @@ def compare(session: Session, user_id: int, rows: dict) -> list[dict]:
     return entries
 
 
-def create_preview(user_id: int, original: bytes, filename: str) -> dict:
-    try:
-        plan = build_plan(original, filename)
-        rows = parse_tables(plan["tables"])
-        if sum(len(v) for v in rows.values()) > 5000:
-            raise SyncError("한 번에 최대 5,000개 기록만 비교할 수 있습니다.")
-    except SyncError:
-        raise
-    except ValueError as exc:
-        raise SyncError(str(exc)) from None
-    except Exception:
-        raise SyncError("Excel 파일을 읽지 못했습니다. 손상·암호 설정·시트 형식을 확인해 주세요.") from None
+def _persist_preview(user_id: int, plan: dict, filename: str, original: bytes) -> dict:
+    """Shared tail for both import paths: validate, diff against current records, store a reviewable preview."""
+    rows = parse_tables(plan["tables"])
+    if sum(len(v) for v in rows.values()) > 5000:
+        raise SyncError("한 번에 최대 5,000개 기록만 비교할 수 있습니다.")
     with SessionLocal() as session:
         session.execute(text("BEGIN"))
         digest = fingerprint(session, user_id)
         entries = compare(session, user_id, rows)
         archived = session.scalar(select(ImportArchive.id).where(ImportArchive.user_id == user_id, ImportArchive.sha256 == plan["sha256"]))
-    plan.pop("original")
+    plan.pop("original", None)
     payload = {"plan":plan,"fingerprint":digest,"entries":entries}
     with SessionLocal() as session:
         session.execute(text("BEGIN IMMEDIATE"))
@@ -152,7 +171,153 @@ def create_preview(user_id: int, original: bytes, filename: str) -> dict:
         session.add(preview);session.commit()
         return {"token":preview.token,"filename":filename,"expires_at":wire(preview.created_at+TTL),
                 "previous_archive_id":archived,"counts":dict(Counter(e["status"] for e in entries)),
-                "entries":entries,"notes":plan["report"]["notes"]}
+                "entries":entries,"notes":plan["report"]["notes"],"unparsed":plan["report"].get("unparsed", [])}
+
+
+def create_preview(user_id: int, original: bytes, filename: str) -> dict:
+    """Fixed 7-sheet Korean workbook path (CLI/legacy); the browser upload uses create_ai_preview."""
+    try:
+        plan = build_plan(original, filename)
+    except SyncError:
+        raise
+    except ValueError as exc:
+        raise SyncError(str(exc)) from None
+    except Exception:
+        raise SyncError("Excel 파일을 읽지 못했습니다. 손상·암호 설정·시트 형식을 확인해 주세요.") from None
+    return _persist_preview(user_id, plan, filename, original)
+
+
+def create_ai_preview(user_id: int, original: bytes, filename: str, zone_name: str) -> dict:
+    """Map an arbitrary workbook to records with Claude, then reuse the reviewable preview pipeline.
+
+    The model's output is validated like a manual entry and never written until the user commits.
+    """
+    try:
+        zone = ZoneInfo(zone_name)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise SyncError("시간대를 확인해 주세요.", 422) from None
+    try:
+        sheets = load_cells(original)
+    except ValueError as exc:
+        raise SyncError(str(exc)) from None
+    except Exception:
+        raise SyncError("Excel 파일을 읽지 못했습니다. 손상·암호 설정·시트 형식을 확인해 주세요.") from None
+    total = sum(len(rows) for rows in sheets.values())
+    if total == 0:
+        raise SyncError("표에서 읽을 데이터가 없습니다. 내용이 있는 .xlsx 파일을 올려 주세요.")
+    if total > AI_ROW_LIMIT:
+        raise SyncError(f"AI 분석은 한 번에 최대 {AI_ROW_LIMIT:,}행까지 지원합니다. 시트를 나눠 올려 주세요.")
+    with SessionLocal() as session:
+        if not accounts.has_ai_consent(session, user_id):
+            raise SyncError("AI 외부 전송에 먼저 동의해 주세요. 설정의 계정 카드에서 동의할 수 있습니다.", 403)
+        try:
+            api_key = assistant.stored_key(session)
+            assistant.take_quota(session, user_id)
+        except AssistantError as exc:
+            raise _ai_error(exc) from None
+    try:
+        raw = claude_import.extract(api_key, config.AI_MODEL, sheets, datetime.now(zone), zone.key)
+    except AssistantError as exc:
+        raise _ai_error(exc) from None
+    plan = ai_plan(raw, sheets, original, filename, zone.key)
+    return _persist_preview(user_id, plan, filename, original)
+
+
+def _ai_error(exc: AssistantError) -> SyncError:
+    return SyncError(AI_MESSAGES.get(exc.code, "AI 요청을 처리하지 못했습니다."), exc.status)
+
+
+def _list(raw: dict, key: str) -> list:
+    value = raw.get(key)
+    return value if isinstance(value, list) else []
+
+
+def mapped_rows(raw: dict, stamp: str, prefix: str) -> tuple[dict, list]:
+    """Validate each AI draft with the same input models as manual entry; drop invalid ones.
+
+    This keeps parse_tables all-or-nothing happy and guarantees the model cannot push a value
+    past the app's own validation. Dropped rows are listed back to the user, not silently lost.
+    """
+    rows = {key: [] for key in COLUMNS}
+    dropped = []
+    counter = 0
+    def ident() -> str:
+        nonlocal counter
+        counter += 1
+        return f"ai_{prefix}_{counter}"
+    for item in _list(raw, "meals"):
+        if not isinstance(item, dict):
+            continue
+        item = dict(item)
+        if item.pop("nutrition_estimated", False):
+            memo = (item.get("memo") or "").strip()
+            item["memo"] = f"{memo} · {assistant.ESTIMATE_NOTE}" if memo else assistant.ESTIMATE_NOTE
+        try:
+            MealInput.model_validate(item)
+        except ValidationError:
+            dropped.append("식단: " + str(item.get("name") or item.get("eaten_at") or "확인 불가"))
+            continue
+        rows["meals"].append({"external_id": ident(), "eaten_at": item["eaten_at"], "meal_type": item.get("meal_type", "other"),
+                              "name": item["name"], "calories": item.get("calories"), "protein": item.get("protein"),
+                              "carbohydrates": item.get("carbohydrates"), "fat": item.get("fat"), "memo": item.get("memo"),
+                              "image_url": None, "updated_at": stamp})
+    for item in _list(raw, "body_metrics"):
+        if not isinstance(item, dict):
+            continue
+        try:
+            BodyMetricInput.model_validate(item)
+        except ValidationError:
+            dropped.append("신체: " + str(item.get("measured_at") or "확인 불가"))
+            continue
+        rows["body_metrics"].append({"external_id": ident(), "measured_at": item["measured_at"], "weight": item.get("weight"),
+                                     "body_fat": item.get("body_fat"), "skeletal_muscle": item.get("skeletal_muscle"),
+                                     "memo": item.get("memo"), "updated_at": stamp})
+    for item in _list(raw, "sleep"):
+        if not isinstance(item, dict):
+            continue
+        try:
+            SleepInput.model_validate(item)
+        except ValidationError:
+            dropped.append("수면: " + str(item.get("sleep_start") or "확인 불가"))
+            continue
+        rows["sleep"].append({"external_id": ident(), "sleep_start": item["sleep_start"], "sleep_end": item["sleep_end"],
+                              "duration_minutes": None, "sleep_type": item.get("sleep_type", "main"),
+                              "memo": item.get("memo"), "updated_at": stamp})
+    for item in _list(raw, "workouts"):
+        if not isinstance(item, dict):
+            continue
+        try:
+            WorkoutDraft.model_validate(item)
+        except ValidationError:
+            dropped.append("운동: " + str(item.get("title") or item.get("workout_date") or "확인 불가"))
+            continue
+        workout_id = ident()
+        rows["workouts"].append({"external_id": workout_id, "workout_date": item["workout_date"], "title": item["title"],
+                                 "body_part": item.get("body_part"), "started_at": None, "ended_at": None,
+                                 "memo": item.get("memo"), "updated_at": stamp})
+        for entry in item.get("sets") or []:
+            rows["workout_sets"].append({"external_id": ident(), "workout_external_id": workout_id, "exercise": entry["exercise"],
+                                         "set_number": entry["set_number"], "weight": entry.get("weight"), "reps": entry.get("reps"),
+                                         "completed": entry.get("completed", True), "rpe": None, "rir": None, "memo": None,
+                                         "updated_at": stamp})
+    return rows, dropped
+
+
+def ai_plan(raw: dict, sheets: dict, original: bytes, filename: str, zone_name: str) -> dict:
+    stamp = datetime.now(timezone.utc).isoformat()
+    rows, dropped = mapped_rows(raw, stamp, secrets.token_hex(4))
+    tables = {key: [cols] + [[record.get(c) for c in cols] for record in rows[key]] for key, cols in COLUMNS.items()}
+    unparsed = ([str(x)[:500] for x in _list(raw, "unparsed")] + dropped)[:80]
+    counts = {key: len(value) for key, value in rows.items()}
+    notes = [f"AI가 업로드한 표를 FitLog 기록으로 매핑한 초안입니다({zone_name} 기준). 저장 전에 각 항목을 확인해 주세요."]
+    notes.append("값이 분명하지 않은 행은 아래 ‘AI가 변환하지 못한 내용’에 남겨 두고 기록으로 만들지 않았습니다." if unparsed
+                 else "모든 행을 기록 초안으로 변환했습니다.")
+    report = {"counts": counts, "unparsed": unparsed, "notes": notes,
+              "summary": (f"AI 매핑: 운동 {counts['workouts']}회 · 세트 {counts['workout_sets']}개 · "
+                          f"식단 {counts['meals']}건 · 신체 {counts['body_metrics']}건 · 수면 {counts['sleep']}건.")}
+    archive = {name: [{"row": i, "values": cells} for i, cells in enumerate(rowset, 1)] for name, rowset in sheets.items()}
+    return {"sha256": hashlib.sha256(original).hexdigest(), "filename": filename,
+            "archive": archive, "tables": tables, "report": report}
 
 
 def commit_preview(user_id: int, token: str, selected: list[str]) -> dict:

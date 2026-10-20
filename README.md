@@ -501,16 +501,18 @@ docker compose exec fitlog python -m app.services.legacy_xlsx --apply /app/data/
 이 파일과 변환 결과는 개인 건강 데이터이므로 `data/` 아래에만 두고 Git에는 넣지 않습니다.
 
 
-## Excel 업로드 → 비교 → 선택 저장 (v0.6)
+## Excel 업로드 → AI 매핑 → 비교 → 선택 저장
 
-[설정](http://localhost:51881/settings) 상단의 **Excel 기록 가져오기**에서 사용합니다.
+[설정](http://localhost:51881/settings)의 **Excel 기록 가져오기**에서 사용합니다. 사람마다 양식이 달라도 AI가 분석해 FitLog 기록(운동·식단·신체·수면)으로 매핑합니다. 쓰려면 먼저 계정 카드에서 **AI 외부 전송에 동의**해야 합니다.
 
-1. 기존 `운동_식사_통합기록.xlsx`와 같은 7개 시트·컬럼 순서를 유지한 파일을 선택합니다.
-2. **기존 기록과 비교**를 누릅니다. 이 단계에서는 운동·식단 등의 기록을 변경하지 않습니다.
-3. 신규·변경·동일·확인 필요 건수를 확인합니다. 각 항목을 펼치면 기존 값과 파일 값, 같은 날의 기존 후보를 볼 수 있습니다.
+1. 쓰던 `.xlsx` 파일을 선택하고 **파일의 시간대**(기본 Asia/Seoul)를 고릅니다. 시간대 없는 날짜·시각은 이 기준으로 해석합니다.
+2. **AI로 분석해 비교**를 누릅니다. 셀 값이 Anthropic으로 전송되어 기록 초안으로 매핑되며, 이 단계에서는 기존 기록을 변경하지 않습니다. 사람마다 하루 사용 횟수에 제한이 있습니다.
+3. AI 매핑 노트와 **AI가 변환하지 못한 내용**(값이 모호한 행 등), 신규·변경·동일·확인 필요 건수를 확인합니다. 각 항목을 펼치면 기존 값과 파일 값, 같은 날의 기존 후보를 볼 수 있습니다.
 4. 저장할 신규·변경 항목의 **이 기록 저장**을 선택합니다. 기본 선택은 없습니다. 필요하면 전체 선택 버튼을 사용합니다.
 5. **선택한 기록 저장**을 누릅니다. 선택하지 않은 데이터와 파일에서 빠진 기존 기록은 그대로 유지합니다. 선택이 없으면 원본 파일만 보관합니다.
 6. **최근 Excel 저장 이력**에서 실제 저장한 값의 이전/이후 내용을 확인합니다.
+
+매핑 단계: 안전한 범위 내에서 셀을 읽어(`legacy_xlsx.load_cells`, 수식 미평가) 시간대·현재 시각과 함께 모델에 전달하고, 모델이 돌려준 초안을 **수동 입력과 동일한 입력 검증**으로 한 건씩 확인합니다. 검증을 통과하지 못한 행은 저장 대상에서 빼고 ‘변환하지 못한 내용’에 남깁니다. 검증을 통과한 초안만 아래 비교·커밋 파이프라인으로 넘어가므로 모델 출력이 검증을 건너뛰고 저장되는 일은 없습니다.
 
 ### 매칭 기준과 제한
 
@@ -523,7 +525,7 @@ docker compose exec fitlog python -m app.services.legacy_xlsx --apply /app/data/
 - 식별 기준이 같은 파일 행이나 DB 후보가 여러 개면 **확인 필요**로 표시하고 해당 항목은 저장할 수 없습니다. 연결된 운동이 모호하면 그 세트도 제외합니다. 원본 중복을 수정하거나 기존 기록을 정리한 뒤 다시 비교하세요.
 - 날짜·시각·이름 자체를 바꾸면 새 기록으로 인식될 수 있습니다. 같은 날 후보를 함께 표시하지만 자동으로 합치지 않습니다. 이 경우 해당 신규 항목을 선택하지 말고 기존 기록을 앱에서 수정한 뒤 다시 비교하거나, 별도 기록임을 확인한 경우에만 신규 저장하세요.
 - 새 운동의 세트를 선택하면 해당 운동도 함께 선택됩니다. 서버에서도 부모 운동 선택 여부를 검사합니다.
-- 현재는 기존 통합기록 양식만 지원합니다. 임의의 Excel 컬럼, 매크로, 암호화 파일, 기록 시트의 수식은 지원하지 않습니다. 수식은 계산하지 않으므로 값으로 붙여 넣어 업로드하세요.
+- 임의 양식을 지원하지만 매크로·암호화 파일은 받지 않고, 수식은 계산하지 않습니다(저장된 텍스트만 읽음). AI 매핑은 비용·토큰을 고려해 한 번에 전체 800행까지 지원하며, 초과 시 시트를 나눠 올려 주세요. 7개 시트 고정 양식의 결정적(무 AI) 변환기는 CLI 이관 도구로 남아 있습니다(`python -m app.services.legacy_xlsx`).
 
 ### 저장·업로드 안전성
 
@@ -532,20 +534,21 @@ docker compose exec fitlog python -m app.services.legacy_xlsx --apply /app/data/
 동일 저장 요청을 반복해도 한 번만 반영합니다. 이미 저장한 비교에 다른 선택을 보내면 거부합니다.
 기록을 변경하는 날짜/수치에 대한 기존 입력 검증을 재사용합니다.
 
-업로드는 .xlsx 최대 5MB, 압축 해제 총 20MB, ZIP 항목 1,000개, 시트당 5,000행/50열, 전체 셀 범위 200,000칸, 변환 기록 5,000개로 제한합니다.
+업로드는 .xlsx 최대 5MB, 압축 해제 총 20MB, ZIP 항목 1,000개, 시트당 5,000행/50열, 전체 셀 범위 200,000칸으로 제한하고, AI 매핑은 전체 800행까지 받습니다.
 `openpyxl`과 `defusedxml`로 읽으며 파일 내 수식·외부 링크를 실행하지 않습니다. XML 방어 근거: [openpyxl 공식 보안 안내](https://openpyxl.readthedocs.io/en/stable/#security).
+업로드한 셀 값은 매핑을 위해 Anthropic으로 전송되며 FitLog에 따로 저장하지 않습니다(원본 파일은 저장 시 `import_archives`에 보관). 전송 동의·일일 한도는 AI 기록 도우미와 동일한 규칙을 씁니다.
 비교 초안은 비공개 SQLite `excel_previews`에 저장합니다. 취소하면 제거하고, 만료 초안은 다음 업로드 때 정리합니다. 대기 초안은 최대 20개입니다.
 저장된 원본은 `import_archives`, 이전/이후 값과 처리 결과는 `excel_previews`에 보존합니다. 이력 화면/API는 최근 10회를 보여줍니다.
 스키마 v2 업그레이드는 기존 DB를 자동 백업한 뒤 새 테이블을 생성합니다.
 
 ### API와 코드
 
-- `POST /api/sync/excel/preview?filename=records.xlsx`: XLSX 바이너리 본문, Content-Type `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. token/건수/비교 항목 반환.
-- `POST /api/sync/excel/{token}/commit`: JSON `{"selected":["0","2"]}`. 선택 키는 해당 미리보기 응답의 key만 사용합니다.
-- `DELETE /api/sync/excel/{token}`: 미저장 비교 취소.
-- `GET /api/sync/excel/history`: 최근 10개 저장 이력과 변경 전/후 값.
+- `POST /api/import/preview?filename=records.xlsx&timezone=Asia/Seoul`: XLSX 바이너리 본문, Content-Type `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. token/건수/비교 항목/AI 노트/변환하지 못한 내용 반환.
+- `POST /api/import/{token}/commit`: JSON `{"selected":["0","2"]}`. 선택 키는 해당 미리보기 응답의 key만 사용합니다.
+- `DELETE /api/import/{token}`: 미저장 비교 취소.
+- `GET /api/import/history`: 최근 10개 저장 이력과 변경 전/후 값.
 
-`app/services/excel_import.py`가 비교·선택 저장·동시 변경 검사, `app/api/excel.py`가 업로드 제한/API, `app/static/js/excel-import.js`가 검토 UI를 담당합니다.
+`app/services/claude_import.py`가 AI 매핑 호출, `app/services/excel_import.py`가 초안 검증·비교·선택 저장·동시 변경 검사, `app/api/excel.py`가 업로드 제한/API, `app/static/js/excel-import.js`가 검토 UI를 담당합니다.
 배포는 `docker compose up -d --build`로 합니다.
 
 ## GitHub Actions와 NAS 이미지 배포
