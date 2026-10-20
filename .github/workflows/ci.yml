@@ -57,7 +57,7 @@ jobs:
           docker run -d --name fitlog-smoke \
             --tmpfs /app/data:uid=10001,gid=10001,mode=0770 "$IMAGE:sha-$GITHUB_SHA"
           for attempt in $(seq 1 30); do
-            if docker exec fitlog-smoke python -c 'import json,urllib.request,http.client; assert json.load(urllib.request.urlopen("http://127.0.0.1:8080/api/health"))["status"]=="ok"; c=http.client.HTTPConnection("127.0.0.1",8080); c.request("GET","/api/sync/status"); assert c.getresponse().status==401'; then
+            if docker exec fitlog-smoke python -c 'import json,urllib.request,http.client; assert json.load(urllib.request.urlopen("http://127.0.0.1:8080/api/health"))["status"]=="ok"; c=http.client.HTTPConnection("127.0.0.1",8080); c.request("GET","/api/me"); assert c.getresponse().status==401'; then
               exit 0
             fi
             sleep 2

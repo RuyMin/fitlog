@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 from app.api.deps import CurrentUser
 from app.services import excel_import
-from app.services.google_sheets import SyncError
+from app.services.sync_service import SyncError
 from app.services.legacy_xlsx import MAX_UPLOAD_BYTES
 
 router=APIRouter(prefix="/api/sync/excel",tags=["excel import"])

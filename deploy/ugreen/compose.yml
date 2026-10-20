@@ -35,8 +35,6 @@ services:
     network_mode: service:tailscale
     environment:
       FITLOG_DATA_DIR: /app/data
-      GOOGLE_SERVICE_ACCOUNT_FILE: /app/config/google-service-account.json
-      GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID:?Set GOOGLE_SPREADSHEET_ID in .env}
       FITLOG_PUBLIC_URL: ${FITLOG_PUBLIC_URL:-}
       FITLOG_OWNER_EMAIL: ${FITLOG_OWNER_EMAIL:-}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}

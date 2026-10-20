@@ -20,10 +20,9 @@ curl -fSLo tailscale/serve.json https://raw.githubusercontent.com/RuyMin/fitlog/
 test -f .env || cp .env.example .env
 ```
 
-`.env`에 현재 사용 중인 Spreadsheet ID와 로그인 설정을 넣습니다. Sheets 인증 키는 기존 config/google-service-account.json을 그대로 사용합니다.
+`.env`에 로그인 설정을 넣습니다.
 
 ```text
-GOOGLE_SPREADSHEET_ID=현재_문서_ID
 FITLOG_IMAGE_TAG=latest
 TS_AUTHKEY=<Tailscale auth key, 첫 실행 후 삭제>
 FITLOG_PUBLIC_URL=https://fitlog.<tailnet>.ts.net

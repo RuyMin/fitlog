@@ -1,42 +1,6 @@
 "use strict";
 (() => {
   const $ = (id) => document.getElementById(id);
-  const node = (tag, value) => { const n = document.createElement(tag); if (value != null) n.textContent = value; return n; };
-  let busy = false;
-  async function api(path, post = false) {
-    const r = await fetch("/api/sync/" + path, {method: post ? "POST" : "GET", cache: "no-store", headers: post ? {"Content-Type": "application/json"} : {}, body: post ? "{}" : undefined, signal: AbortSignal.timeout(post ? 180000 : 10000)});
-    const data = await r.json();
-    if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "요청을 처리하지 못했습니다.");
-    return data;
-  }
-  function result(data) {
-    const container = $("sync-results"); container.replaceChildren();
-    if (!data) return;
-    const names = {workouts: "운동", workout_sets: "세트", meals: "식단", body_metrics: "신체", sleep: "수면"};
-    for (const [key, label] of Object.entries(names)) {
-      const n = data[key]; if (n) container.append(node("p", `${label}: ${n.inserted}건 추가 · ${n.updated}건 수정 · ${n.skipped}건 유지`));
-    }
-  }
-  async function status() {
-    try {
-      const data = await api("status");
-      const labels = {not_configured:"Not configured · 설정 필요", not_verified:"설정됨 · 연결 확인 전", connected:"Connected · 마지막 동기화 성공", different_spreadsheet:"다른 Spreadsheet · 기존 ID 확인 필요"};
-      $("sync-connection").textContent = data.running ? "동기화 중" : labels[data.connection_status];
-      $("sync-sheet").textContent = data.spreadsheet_title || data.spreadsheet_id || "미설정";
-      $("sync-last").textContent = data.last_sync_at ? new Date(data.last_sync_at).toLocaleString("ko-KR") + (data.last_sync_status === "ok" ? " · 성공" : " · 실패") : "아직 없음";
-      $("sync-help").textContent = !data.configured ? "서비스 계정 JSON 파일과 Spreadsheet ID를 설정해 주세요. README의 Google Sheets 연결 절차를 따라주세요." : data.last_sync_error || "한글 통합기록 7개 탭 또는 영어 표준 시트 5개를 자동 인식합니다. 지금 동기화를 눌러 기록을 가져오세요.";
-      $("sync-now").disabled = busy || data.running || !data.configured || data.connection_status === "different_spreadsheet";
-      result(data.last_result);
-    } catch { $("sync-connection").textContent = "서버 연결 실패"; $("sync-now").disabled = true; }
-  }
-  $("sync-now").addEventListener("click", async () => {
-    if (busy) return; busy = true; $("sync-now").disabled = true;
-    $("sync-message").textContent = "동기화 중…"; $("sync-results").replaceChildren();
-    try { const data = await api("google", true); result(data); $("sync-message").textContent = "동기화 완료"; }
-    catch (error) { $("sync-message").textContent = error.name === "TimeoutError" ? "응답 대기 시간이 지났습니다. 상태 새로고침으로 결과를 확인해 주세요." : error.message === "Failed to fetch" ? "서버에 연결하지 못했습니다. 연결 후 상태를 새로고침해 주세요." : error.message; }
-    finally { busy = false; await status(); }
-  });
-  $("sync-refresh").addEventListener("click", status);
 
   const when = (value) => new Date(value).toLocaleString("ko-KR");
   function consentText(entry, isAdmin) {
@@ -124,7 +88,5 @@
     $("account-email").textContent = me.display_name ? `${me.display_name} (${me.email})` : me.email;
     $("account-role").textContent = me.role === "admin" ? "관리자" : "멤버";
     consents(me);
-    // The service account and Spreadsheet are server-wide, so only the admin syncs.
-    if (me.role === "admin") { $("sync-card").hidden = false; status(); }
   });
 })();
