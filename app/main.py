@@ -64,8 +64,10 @@ async def database_unavailable(_: Request, error: OperationalError) -> JSONRespo
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 SECURITY_HEADERS = {
     # Everything is served locally: no CDN, inline script/style or external images.
+    # form-action also governs redirects after a submit: the invite form posts to
+    # /auth/google/start, which redirects to Google's sign-in page.
     "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; object-src 'none'; "
-                               "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+                               "base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "same-origin",

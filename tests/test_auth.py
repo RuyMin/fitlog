@@ -238,6 +238,14 @@ class SecurityPolicyTests(unittest.TestCase):
                 self.assertEqual(headers["referrer-policy"], "same-origin")
         self.assertEqual(self.client.get("/api/health").headers["cache-control"], "no-store")
 
+    def test_invite_form_may_continue_to_google_only(self) -> None:
+        """The invite form's submit redirects to Google; form-action must allow exactly that host."""
+        csp = self.client.get("/invite/" + "a" * 43).headers["content-security-policy"]
+        directives = dict(part.strip().split(" ", 1) for part in csp.split(";"))
+        self.assertEqual(directives["form-action"].split(), ["'self'", "https://accounts.google.com"])
+        from app.auth.google import AUTHORIZE_URL
+        self.assertTrue(AUTHORIZE_URL.startswith("https://accounts.google.com/"))
+
     def test_pages_have_no_inline_styles_or_scripts(self) -> None:
         """The CSP forbids them; keep markup and scripts compatible."""
         import re
