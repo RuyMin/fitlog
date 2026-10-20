@@ -92,6 +92,8 @@ sudo docker image tag "$old" fitlog-rollback:v2
 
 ```bash
 sudo docker compose --env-file .env -f compose.yml pull
+# 기존 v2 컨테이너가 51881을 잡고 있으면 새 tailscale 컨테이너가 같은 포트를 열지 못합니다.
+sudo docker compose --env-file .env -f compose.yml stop fitlog
 sudo docker compose --env-file .env -f compose.yml up -d --wait --wait-timeout 180
 sudo docker compose --env-file .env -f compose.yml logs --tail 50 fitlog
 curl -f http://localhost:51881/api/health
