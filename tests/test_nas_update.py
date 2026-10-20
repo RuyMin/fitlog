@@ -25,7 +25,7 @@ a=sys.argv[1:];mode=os.environ['TEST_MODE']
 with open(os.environ['TEST_TRACE'],'a') as f:f.write(' '.join(a)+'\\n')
 if a[0]=='compose':
  action=a[7]
- if action=='config' and '--images' in a:print('ghcr.io/ruymin/fitlog:latest')
+ if action=='config' and '--images' in a:print('tailscale/tailscale:stable' if mode=='no_fitlog_image' else 'tailscale/tailscale:stable\\nghcr.io/ruymin/fitlog:latest')
  elif action=='ps':print('container123')
  elif action=='pull' and mode=='pull_failure':sys.exit(1)
  elif action=='exec':
@@ -34,7 +34,9 @@ if a[0]=='compose':
  elif action=='up' and mode=='health_failure':sys.exit(1)
 elif a[0]=='inspect':
  print(('unhealthy' if mode=='unhealthy' else 'healthy') if 'Health' in a[2] else 'sha256:old')
-elif a[:2]==['image','inspect']:print('sha256:old' if mode=='unchanged' else 'sha256:new')
+elif a[:2]==['image','inspect']:
+ if a[-1]!='ghcr.io/ruymin/fitlog:latest':print('Error response from daemon: page not found',file=sys.stderr);sys.exit(1)
+ print('sha256:old' if mode=='unchanged' else 'sha256:new')
 ''')
         fake.chmod(0o755)
     def run_update(self,mode):
@@ -51,7 +53,7 @@ elif a[:2]==['image','inspect']:print('sha256:old' if mode=='unchanged' else 'sh
         self.assertIn('--wait --wait-timeout 120',t)
         self.assertFalse((self.root/'.update-failed').exists())
     def test_pull_and_backup_failures_leave_container(self):
-        for mode in ['pull_failure','backup_failure','unhealthy']:
+        for mode in ['pull_failure','backup_failure','unhealthy','no_fitlog_image']:
             with self.subTest(mode=mode):
                 (self.root/'trace').write_text('')
                 r,t=self.run_update(mode);self.assertNotEqual(r.returncode,0)

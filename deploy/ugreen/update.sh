@@ -20,7 +20,9 @@ health=$(docker inspect --format '{{.State.Health.Status}}' "$container")
 [[ "$health" == healthy ]] || { log "Current container is not healthy; refusing unattended update."; exit 1; }
 old_image=$(docker inspect --format '{{.Image}}' "$container")
 compose pull fitlog
-image=$(compose config --images)
+# compose.yml also lists the Tailscale sidecar (even for `config --images fitlog`); compare FitLog only.
+image=$(compose config --images | grep -m1 '^ghcr\.io/ruymin/fitlog:' || true)
+[[ -n "$image" ]] || { log "FitLog image not found in compose.yml; update cancelled."; exit 1; }
 new_image=$(docker image inspect --format '{{.Id}}' "$image")
 if [[ "$old_image" == "$new_image" ]]; then
   log "Image unchanged; container left running."
