@@ -63,8 +63,13 @@ class PhaseOneTests(unittest.TestCase):
     def test_app_version_is_exposed(self) -> None:
         self.assertEqual(self.client.get("/api/health").json()["version"], config.APP_VERSION)
         self.assertIn('id="app-version"', self.client.get("/settings").text)
-        app_js = (Path(__file__).resolve().parents[1] / "app" / "static" / "js" / "app.js").read_text(encoding="utf-8")
-        self.assertIn("app-version", app_js)
+        # Home and settings fill the version from /api/health; no page hardcodes a version string.
+        static = Path(__file__).resolve().parents[1] / "app" / "static"
+        self.assertIn("app-version", (static / "js" / "app.js").read_text(encoding="utf-8"))
+        for page in ["index.html", "settings.html"]:
+            text = (static / page).read_text(encoding="utf-8")
+            self.assertIn('id="app-version"', text, page)
+            self.assertNotIn("v0.6", text, page)
 
     def test_health_database_failure(self) -> None:
         with patch("sqlalchemy.orm.Session.execute", side_effect=OperationalError("SELECT 1", {}, Exception("private"))):
