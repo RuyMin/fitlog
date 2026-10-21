@@ -3,7 +3,7 @@ import os
 from urllib.parse import urlsplit
 
 # Single source of truth for the app version (FastAPI metadata, /api/health, settings footer).
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 def goal(name: str, default: str, maximum: float) -> float:
     """A server-wide daily target for the home rings; per-user goals are deferred."""
@@ -16,6 +16,9 @@ def goal(name: str, default: str, maximum: float) -> float:
 PROTEIN_GOAL_GRAMS = goal("FITLOG_PROTEIN_GOAL_G", "150", 1000)
 CALORIE_GOAL_KCAL = goal("FITLOG_CALORIE_GOAL_KCAL", "2100", 10000)
 SLEEP_GOAL_MINUTES = goal("FITLOG_SLEEP_GOAL_MINUTES", "420", 1440)
+# Macro targets follow the calorie goal: half from carbohydrate (4 kcal/g), 30% from fat (9 kcal/g).
+CARBOHYDRATE_GOAL_GRAMS = round(CALORIE_GOAL_KCAL * 0.5 / 4)
+FAT_GOAL_GRAMS = round(CALORIE_GOAL_KCAL * 0.3 / 9)
 
 
 def public_origin(value: str) -> str | None:

@@ -202,6 +202,7 @@ class DailyRecordAPITests(unittest.TestCase):
         result = self.summary()
         self.assertEqual((result["calories"], result["carbohydrates_grams"], result["fat_grams"]), (800, 60, 10))
         self.assertEqual((result["calorie_goal_kcal"], result["sleep_goal_minutes"]), (2100, 420))
+        self.assertEqual((result["carbohydrate_goal_grams"], result["fat_goal_grams"]), (262, 70))
         self.assertEqual(result["volume_kg"], 980)
         self.assertEqual(result["workout_titles"], ["하체"])
         self.assertEqual(result["main_sleep_start"], "2026-09-24T14:30:00+00:00")
@@ -229,5 +230,5 @@ class DailyRecordAPITests(unittest.TestCase):
             self.assertEqual(self.client.get("/api/" + path + "/99999").status_code, 404)
             self.assertEqual(self.client.put("/api/" + path + "/99999", json=body).status_code, 404)
             self.assertEqual(self.client.delete("/api/" + path + "/99999").status_code, 404)
-        for path in ["/meals","/body-metrics","/sleep","/static/js/records.js","/static/css/records.css"]:
+        for path in ["/meals","/body-metrics","/sleep","/static/js/records.js","/static/css/records.css","/static/js/meals.js","/static/css/meals.css"]:
             self.assertEqual(self.client.get(path).status_code, 200)

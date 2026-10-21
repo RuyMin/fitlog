@@ -1,9 +1,9 @@
 "use strict";
-const CACHE = "fitlog-shell-v23";
+const CACHE = "fitlog-shell-v24";
 const ASSETS = [
   "/settings", "/static/css/settings.css", "/static/js/settings.js", "/static/js/excel-import.js",
   "/statistics", "/static/css/statistics.css", "/static/js/statistics.js", "/static/js/charts.js",
-  "/meals", "/body-metrics", "/sleep", "/static/css/records.css", "/static/js/records.js",
+  "/meals", "/static/css/meals.css", "/static/js/meals.js", "/body-metrics", "/sleep", "/static/css/records.css", "/static/js/records.js",
   "/workouts", "/static/css/workouts.css", "/static/js/workouts.js", "/static/js/home.js",
   "/static/js/assistant.js", "/static/css/assistant.css", "/static/css/home.css",
   "/", "/static/css/app.css", "/static/js/app.js", "/manifest.json",

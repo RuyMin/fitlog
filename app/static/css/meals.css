@@ -1,0 +1,54 @@
+/* Meals by day: date stepper, intake ring and macro bars, the day's meals, 7-day calories. */
+.meals-page{display:flex;flex-direction:column;gap:16px}
+.meals-page .topbar{margin-bottom:0;align-items:flex-end}
+.meals-page .status:not(.error){display:none}
+.meals-page #notice:empty{display:none}
+
+.day-stepper{align-self:flex-start;justify-self:start;display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:2px}
+main .day-stepper button{width:42px;min-height:42px;padding:0;border:0;border-radius:20px;background:none;display:grid;place-items:center}
+.day-stepper button:disabled{opacity:.35;cursor:default}
+.day-stepper svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.day-picker{position:relative;margin:0;padding:0 6px;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;cursor:pointer}
+.day-picker input{position:absolute;inset:0;opacity:0;margin:0;min-height:0;padding:0;cursor:pointer}
+
+.intake{display:flex;flex-direction:column;gap:18px}
+.intake-top{display:flex;align-items:center;gap:20px}
+.kcal-ring{position:relative;flex:none;width:132px;height:132px}
+.kcal-ring svg{width:132px;height:132px;transform:rotate(-90deg)}
+.kcal-ring circle{fill:none;stroke-width:12}
+.kcal-track{stroke:var(--meal-soft)}.kcal-value{stroke:var(--meal);stroke-linecap:round;transition:stroke-dasharray .6s ease}
+.kcal-ring p{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.kcal-ring strong{font-size:22px;font-weight:800}.kcal-ring p>span{font-size:11px;color:var(--muted)}
+.intake-remaining{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px;color:var(--muted)}
+.intake-remaining p{font-size:14px;line-height:1}.intake-remaining strong{font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--ink)}
+.estimate-badge{font-size:12px;font-weight:600;color:var(--meal-ink);background:var(--meal-soft);border-radius:8px;padding:3px 8px}
+.macros{display:flex;flex-direction:column;gap:12px}
+.macro p{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.macro p>span:first-child{font-weight:700}.macro p>span:last-child{color:var(--muted)}.macro strong{color:var(--ink)}
+.macro-track{display:block;height:10px;border-radius:5px;background:var(--soft);overflow:hidden}
+.macro-track span{display:block;height:100%;width:0;border-radius:5px;transition:width .6s ease}
+.macro-protein .macro-track span{background:var(--accent)}.macro-carb .macro-track span{background:var(--meal)}.macro-fat .macro-track span{background:#d9b13f}
+.intake .hint{margin:0}
+
+.meal-list{display:flex;flex-direction:column;gap:10px}
+main button.meal-item{display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px 16px;color:var(--ink)}
+main button.meal-item:hover{border-color:var(--accent)}
+.meal-row{display:flex;align-items:center;gap:14px;width:100%}
+.meal-when{flex:none;width:44px;display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted);line-height:1.4}.meal-when b{font-size:12px;color:var(--ink)}
+.meal-text{flex:1;display:flex;flex-direction:column;line-height:1.4;min-width:0}
+.meal-text b{font-size:14px;overflow-wrap:anywhere}.meal-text span{font-size:12px;color:var(--muted)}
+.meal-kcal{flex:none;font-size:15px;font-weight:800}.meal-kcal small{font-size:11px;font-weight:500;color:var(--muted)}
+.meal-estimate,.meal-memo{display:block;font-size:12px;line-height:1.45;border-radius:12px;padding:8px 10px;overflow-wrap:anywhere}
+.meal-estimate{background:var(--meal-soft);color:var(--meal-ink)}.meal-memo{background:var(--soft);color:var(--muted)}
+main button.meal-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px;margin-top:10px;border:1.5px dashed var(--line);border-radius:20px;background:none;color:var(--accent);font-weight:700}
+.meal-add svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+
+.kcal-bars{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;height:150px}
+.kcal-goal-line{position:absolute;left:0;right:0;border-top:1.5px dashed var(--muted);opacity:.6;z-index:1;pointer-events:none}
+main button.kcal-bar{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-height:0;height:100%;padding:0;border:0;background:none;border-radius:8px}
+.kcal-column{flex:1;display:flex;align-items:flex-end}
+.kcal-fill{width:100%;border-radius:6px 6px 3px 3px;background:var(--meal);opacity:.45;min-height:2px}
+.kcal-bar.selected .kcal-fill{opacity:1}
+.kcal-day{font-size:11px;color:var(--muted);text-align:center;line-height:16px}.kcal-bar.selected .kcal-day{color:var(--ink);font-weight:700}
+.dialog-spacer{flex:1}
+@media(min-width:900px){.meals-page{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.meals-page>.topbar,.meals-page>.day-stepper{grid-column:1/-1}.meal-section{grid-row:span 2}}
