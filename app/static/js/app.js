@@ -15,6 +15,11 @@ window.fetch = async (...args) => {
 // The signed-in account, shared by page scripts: {id, email, display_name, role}.
 window.fitlogMe = fetch("/api/me", {cache: "no-store"}).then((r) => r.ok ? r.json() : null).catch(() => null);
 
+// Mark the current section in the shared menu (the same markup on every page).
+for (const link of document.querySelectorAll(".navigation [data-nav]")) {
+  if (link.dataset.nav.split(" ").includes(location.pathname)) { link.classList.add("active"); link.setAttribute("aria-current", "page"); }
+}
+
 const today = document.querySelector("#today");
 today.textContent = new Intl.DateTimeFormat("ko-KR", {
   month: "long", day: "numeric", weekday: "long"

@@ -203,7 +203,6 @@ $("#page-description").textContent = config.description;
 $("#filter-hint").textContent = config.dateHint;
 $("#form-hint").textContent = config.hint;
 document.querySelector('.record-tabs a[href="' + location.pathname + '"]').setAttribute("aria-current","page");
-if (location.pathname === "/meals") { $("#meal-nav").classList.add("active"); $("#meal-nav").setAttribute("aria-current","page"); }
 createFields();
 $("#record-form").addEventListener("input", updateDuration);
 $("#new-record").addEventListener("click", () => openForm());

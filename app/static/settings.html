@@ -3,15 +3,25 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#183f35"><title>FitLog · 설정</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-<link rel="stylesheet" href="/static/css/app.css?v=20261026"><link rel="stylesheet" href="/static/css/workouts.css?v=20261026"><link rel="stylesheet" href="/static/css/settings.css?v=20261026">
-<script src="/static/js/app.js?v=20261026" defer></script><script src="/static/js/settings.js?v=20261026" defer></script><script src="/static/js/excel-import.js?v=20261026" defer></script>
+<link rel="stylesheet" href="/static/css/app.css?v=1.1.0"><link rel="stylesheet" href="/static/css/workouts.css?v=1.1.0"><link rel="stylesheet" href="/static/css/settings.css?v=1.1.0">
+<script src="/static/js/app.js?v=1.1.0" defer></script><script src="/static/js/settings.js?v=1.1.0" defer></script><script src="/static/js/excel-import.js?v=1.1.0" defer></script>
 </head><body class="settings-page">
 <a class="skip" href="#main">본문으로 이동</a>
-<aside class="sidebar"><a class="brand" href="/"><span class="brand-mark">F<span>·</span></span> FitLog</a><p class="brand-caption">나를 알아가는 작은 기록</p>
-<nav class="navigation" aria-label="주 메뉴"><a href="/"><span aria-hidden="true">⌂</span>홈</a><a href="/workouts"><span aria-hidden="true">↗</span>운동</a><a href="/meals"><span aria-hidden="true">◒</span>식단</a><a href="/statistics"><span aria-hidden="true">▥</span>통계</a><a href="/settings" class="active" aria-current="page"><span aria-hidden="true">⚙</span>설정</a></nav>
-<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p></aside>
+<aside class="sidebar">
+<a class="brand" href="/" aria-label="FitLog 홈"><span class="brand-mark">F<span>·</span></span> FitLog</a>
+<p class="brand-caption">나를 알아가는 작은 기록</p>
+<nav class="navigation" aria-label="주 메뉴">
+<a href="/" data-nav="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>홈</span></a>
+<a href="/workouts" data-nav="/workouts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>운동</span></a>
+<a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>기록하기</span></a>
+<a href="/meals" data-nav="/meals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg><span>식단</span></a>
+<a href="/statistics" data-nav="/statistics /body-metrics /sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
+<a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
+</nav>
+<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+</aside>
 <main id="main">
-<header class="topbar"><span class="eyebrow">MY SETTINGS</span><span id="server-status" class="status" role="status">서버 확인 중</span></header>
+<header class="topbar"><span class="eyebrow">MY SETTINGS</span><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
 <section class="page-heading"><div><p id="today" class="date"></p><h1>설정과 데이터</h1><p class="muted">계정과 동의 내역을 확인하고 기존 기록을 가져옵니다.</p></div></section>
 <section class="card account-card" aria-labelledby="account-heading"><h2 id="account-heading">계정</h2>
 <dl class="sync-details"><dt>Google 계정</dt><dd id="account-email">확인 중</dd><dt>권한</dt><dd id="account-role">—</dd>
@@ -36,6 +46,7 @@
 <p id="ai-message" role="status" aria-live="polite"></p></section>
 <section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
 <p class="muted">쓰던 운동·식단·체중·수면 기록 .xlsx 파일을 올리면 AI가 양식을 분석해 FitLog 기록으로 바꿔 줍니다. 양식이 서로 달라도 됩니다. 저장 전에 항목을 직접 확인하며, 비교만으로는 기록을 바꾸지 않습니다. 사용하려면 위 계정 카드에서 AI 외부 전송에 동의해 주세요.</p>
+<p class="excel-warning" role="note"><strong>큰 파일은 실패할 수 있어요.</strong> 행이 수백 개를 넘는 파일은 AI 분석 시간이 초과되어 실패할 수 있고, 실패해도 오늘 AI 사용 횟수 1회가 차감됩니다. 시트나 기간을 나눠 작은 파일로 올려 주세요.</p>
 <form id="excel-upload"><label for="excel-file">기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required>
 <label for="excel-timezone">파일의 시간대</label><select id="excel-timezone"><option value="Asia/Seoul" selected>한국 (Asia/Seoul)</option><option value="Asia/Tokyo">일본 (Asia/Tokyo)</option><option value="America/Los_Angeles">미국 서부 (Los Angeles)</option><option value="America/New_York">미국 동부 (New York)</option><option value="Europe/London">영국 (London)</option><option value="UTC">UTC</option></select>
 <button id="excel-compare" class="primary" type="submit">AI로 분석해 비교</button></form>

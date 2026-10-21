@@ -167,6 +167,17 @@ class SleepResponse(BaseModel):
     memo: str | None
 
 
+class WeekDay(BaseModel):
+    date: date
+    workout: bool
+    logged: bool
+
+
+class WeightPoint(BaseModel):
+    measured_at: UTCDateTime
+    weight: float
+
+
 class DashboardResponse(BaseModel):
     date: date
     timezone: str
@@ -180,3 +191,14 @@ class DashboardResponse(BaseModel):
     protein_goal_grams: float
     sleep_records_count: int
     sleep_minutes: int | None
+    volume_kg: float | None
+    workout_titles: list[str]
+    calories: float | None
+    carbohydrates_grams: float | None
+    fat_grams: float | None
+    calorie_goal_kcal: float
+    sleep_goal_minutes: float
+    main_sleep_start: UTCDateTime | None
+    main_sleep_end: UTCDateTime | None
+    week: list[WeekDay]
+    weights: list[WeightPoint]
