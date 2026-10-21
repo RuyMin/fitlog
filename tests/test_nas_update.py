@@ -34,13 +34,15 @@ if a[0]=='compose':
  elif action=='up' and mode=='health_failure':sys.exit(1)
 elif a[0]=='inspect':
  print(('unhealthy' if mode=='unhealthy' else 'healthy') if 'Health' in a[2] else 'sha256:old')
+elif a[0]=='images':
+ print(os.environ.get('TEST_ROLLBACKS','').replace(',','\\n'))
 elif a[:2]==['image','inspect']:
  if a[-1]!='ghcr.io/ruymin/fitlog:latest':print('Error response from daemon: page not found',file=sys.stderr);sys.exit(1)
  print('sha256:old' if mode=='unchanged' else 'sha256:new')
 ''')
         fake.chmod(0o755)
-    def run_update(self,mode):
-        env={**os.environ,'PATH':str(self.root)+os.pathsep+os.environ['PATH'],'TEST_MODE':mode,'TEST_TRACE':str(self.root/'trace')}
+    def run_update(self,mode,rollbacks=''):
+        env={**os.environ,'PATH':str(self.root)+os.pathsep+os.environ['PATH'],'TEST_MODE':mode,'TEST_TRACE':str(self.root/'trace'),'TEST_ROLLBACKS':rollbacks}
         result=subprocess.run(['bash',str(self.root/'update.sh')],env=env,capture_output=True,text=True,timeout=10)
         trace=(self.root/'trace').read_text() if (self.root/'trace').exists() else ''
         return result,trace
@@ -52,6 +54,17 @@ elif a[:2]==['image','inspect']:
         self.assertLess(t.index(' exec '),t.index(' up '))
         self.assertIn('--wait --wait-timeout 120',t)
         self.assertFalse((self.root/'.update-failed').exists())
+    def test_success_prunes_old_automatic_rollbacks_only(self):
+        tags=['20261020T131828Z','20261021T115407Z','v2','20261021T102045Z','20261021T113659Z','20261020T144234Z']
+        r,t=self.run_update('changed',','.join(tags));self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        removed=[line.split(':')[1] for line in t.splitlines() if line.startswith('image rm ')]
+        self.assertEqual(sorted(removed),['20261020T131828Z','20261020T144234Z'])
+        self.assertLess(t.index(' up '),t.index('image rm '))
+    def test_unchanged_and_no_rollbacks_do_not_prune(self):
+        r,t=self.run_update('unchanged','20261020T131828Z,20261020T144234Z,20261021T102045Z,20261021T113659Z');self.assertEqual(r.returncode,0,r.stderr)
+        self.assertNotIn('image rm',t)
+        r,t=self.run_update('changed','');self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertNotIn('image rm',t)
     def test_pull_and_backup_failures_leave_container(self):
         for mode in ['pull_failure','backup_failure','unhealthy','no_fitlog_image']:
             with self.subTest(mode=mode):
