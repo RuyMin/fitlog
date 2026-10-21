@@ -31,9 +31,9 @@ async function checkHealth() {
     if (result.status !== "ok") throw new Error("Health check failed");
     status.textContent = "● 서버 연결됨";
     status.className = "status ok";
-    // Only the settings page has this element; other pages skip it.
+    // The home footer and settings footer carry this element; other pages skip it.
     const version = document.querySelector("#app-version");
-    if (version && result.version) version.textContent = "FitLog v" + result.version;
+    if (version && result.version) version.textContent = "v" + result.version;
   } catch {
     status.textContent = "서버 연결을 확인해 주세요";
     status.className = "status error";
