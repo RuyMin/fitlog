@@ -230,5 +230,5 @@ class DailyRecordAPITests(unittest.TestCase):
             self.assertEqual(self.client.get("/api/" + path + "/99999").status_code, 404)
             self.assertEqual(self.client.put("/api/" + path + "/99999", json=body).status_code, 404)
             self.assertEqual(self.client.delete("/api/" + path + "/99999").status_code, 404)
-        for path in ["/meals","/body-metrics","/sleep","/static/js/records.js","/static/css/records.css","/static/js/meals.js","/static/css/meals.css"]:
+        for path in ["/meals","/body-metrics","/sleep","/static/js/records.js","/static/css/records.css","/static/js/meals.js","/static/css/meals.css","/body","/static/js/body.js","/static/css/body.css"]:
             self.assertEqual(self.client.get(path).status_code, 200)

@@ -1,0 +1,49 @@
+/* 몸·추이: period switch, body composition range bars, trend lines, 7-night sleep chart. */
+.body-page{display:flex;flex-direction:column;gap:16px}
+.body-page .topbar{margin-bottom:0;align-items:flex-end}
+.body-page .status:not(.error){display:none}
+.body-page #notice:empty{display:none}
+.body-page .card{display:flex;flex-direction:column;gap:14px}
+.body-page .section-heading{margin-bottom:0}
+
+.period{align-self:flex-start;justify-self:start;display:flex;gap:2px;background:var(--soft);border-radius:14px;padding:3px}
+main .period button{min-height:38px;padding:0 14px;border:0;border-radius:11px;background:none;color:var(--muted);font-size:13px}
+main .period button[aria-pressed=true]{background:var(--surface);color:var(--ink);font-weight:700}
+
+.composition-rows{display:flex;flex-direction:column;gap:18px}
+.composition-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.composition-head>span:first-child{font-size:14px;font-weight:700}
+.composition-value{font-size:12px;color:var(--muted)}.composition-value strong{font-size:20px;font-weight:800;color:var(--ink)}
+.composition-change{font-size:12px;color:var(--good)}
+.range-track{display:block;height:14px;border-radius:7px;background:var(--soft);padding:4px}
+.range-fill{display:block;height:100%;border-radius:3px;background:var(--accent);transition:width .6s ease}
+.range-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
+.composition-note{font-size:12px;color:var(--muted);line-height:1.5;background:var(--bg);border-radius:12px;padding:10px 12px}
+.composition-note strong{color:var(--ink)}
+.card-action{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;font-size:13px;font-weight:700;color:var(--accent)}
+.card-action svg,.body-links svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+.trend-charts{display:flex;flex-direction:column;gap:14px}
+.trend{margin:0;display:flex;flex-direction:column;gap:4px}
+.trend figcaption{display:flex;justify-content:space-between;font-size:12px}
+.trend-summary{color:var(--muted)}.trend-summary strong{color:var(--ink)}
+.trend-svg{width:100%;height:90px;overflow:visible}
+.trend-grid{stroke:var(--soft);stroke-width:1;vector-effect:non-scaling-stroke}
+.trend-line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.trend:nth-child(2) .trend-line{stroke:#5e8f3a}.trend:nth-child(2) .trend-dot{fill:#5e8f3a}
+.trend:nth-child(3) .trend-line{stroke:var(--meal)}.trend:nth-child(3) .trend-dot{fill:var(--meal)}
+.trend-dot{fill:var(--accent)}
+.trend-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+
+.sleep-bars{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;height:140px}
+.sleep-goal-line{position:absolute;left:0;right:0;border-top:1.5px dashed var(--muted);opacity:.6;z-index:1;pointer-events:none}
+.sleep-day{display:flex;flex-direction:column;gap:6px;height:100%}
+.sleep-column{flex:1;display:flex;align-items:flex-end}
+.sleep-fill{width:100%;min-height:2px;border-radius:6px 6px 3px 3px;background:var(--sleep);opacity:.45}
+.sleep-day.is-today .sleep-fill{opacity:1}
+.sleep-label{font-size:11px;line-height:16px;color:var(--muted);text-align:center}.sleep-day.is-today .sleep-label{color:var(--ink);font-weight:700}
+
+.body-links{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.body-links a{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:0 16px;font-size:14px;border-top:1px solid var(--line)}
+.body-links a:first-child{border-top:0}.body-links svg{color:var(--muted)}
+@media(min-width:900px){.body-page{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.body-page>.topbar,.body-page>.period,.body-page>#notice{grid-column:1/-1}.trends{grid-row:span 2}}

@@ -104,6 +104,11 @@ def meals_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "meals.html", headers={"Cache-Control": "no-cache"})
 
 
+@app.get("/body", include_in_schema=False)
+def body_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "body.html", headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/body-metrics", include_in_schema=False)
 @app.get("/sleep", include_in_schema=False)
 def records_page() -> FileResponse:
