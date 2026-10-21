@@ -2,6 +2,9 @@ import math
 import os
 from urllib.parse import urlsplit
 
+# Single source of truth for the app version (FastAPI metadata, /api/health, settings footer).
+APP_VERSION = "1.0.0"
+
 # A configurable example target; a settings UI is deferred.
 PROTEIN_GOAL_GRAMS = float(os.environ.get("FITLOG_PROTEIN_GOAL_G", "150"))
 if not math.isfinite(PROTEIN_GOAL_GRAMS) or not 0 < PROTEIN_GOAL_GRAMS <= 1000:
