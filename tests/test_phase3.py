@@ -186,6 +186,35 @@ class DailyRecordAPITests(unittest.TestCase):
         self.assertEqual(result["completed_sets"], 1)
         self.assertEqual(result["sleep_minutes"], 402)
 
+    def test_dashboard_home_rings_week_and_weight_trend(self) -> None:
+        self.create("meals", {**self.meal, "calories": 500, "protein": 30, "carbohydrates": 60, "fat": 10})
+        self.create("meals", {**self.meal, "eaten_at": "2026-09-25T19:00:00+09:00", "calories": 300})
+        self.create("meals", {**self.meal, "eaten_at": "2026-09-22T12:00:00+09:00"})
+        self.create("body-metrics", {**self.body, "measured_at": "2026-08-20T08:00:00+09:00", "weight": 80})
+        self.create("body-metrics", {**self.body, "measured_at": "2026-09-20T08:00:00+09:00", "weight": 78})
+        self.create("body-metrics", self.body)
+        self.create("sleep", self.sleep)
+        exercise = self.create("exercises", {"name": "Squat"})
+        self.create("workouts", {"workout_date": "2026-09-23", "title": "등"})
+        workout = self.create("workouts", {"workout_date": "2026-09-25", "title": "하체"})
+        for number, weight, reps, done in [(1, 60, 8, True), (2, 50, 10, True), (3, 100, 5, False)]:
+            self.create(f"workouts/{workout['id']}/sets", {"exercise_id": exercise["id"], "set_number": number, "weight": weight, "reps": reps, "completed": done})
+        result = self.summary()
+        self.assertEqual((result["calories"], result["carbohydrates_grams"], result["fat_grams"]), (800, 60, 10))
+        self.assertEqual((result["calorie_goal_kcal"], result["sleep_goal_minutes"]), (2100, 420))
+        self.assertEqual(result["volume_kg"], 980)
+        self.assertEqual(result["workout_titles"], ["하체"])
+        self.assertEqual(result["main_sleep_start"], "2026-09-24T14:30:00+00:00")
+        self.assertEqual([d["date"] for d in result["week"]], [f"2026-09-{n}" for n in range(21, 28)])
+        self.assertEqual([d["workout"] for d in result["week"]], [False, False, True, False, True, False, False])
+        self.assertEqual([d["logged"] for d in result["week"]], [False, True, True, False, True, False, False])
+        self.assertEqual([p["weight"] for p in result["weights"]], [78, 78.4])
+        empty = self.summary("date=2026-09-28&timezone=Asia/Seoul")
+        self.assertIsNone(empty["calories"])
+        self.assertIsNone(empty["volume_kg"])
+        self.assertIsNone(empty["main_sleep_start"])
+        self.assertFalse(any(d["logged"] for d in empty["week"]))
+
     def test_dashboard_dst_day_and_invalid_timezone(self) -> None:
         for stamp, protein in [("2026-03-08T00:00:00-05:00", 10), ("2026-03-08T23:59:00-04:00", 20), ("2026-03-09T00:00:00-04:00", 99)]:
             self.create("meals", {**self.meal, "eaten_at":stamp, "protein":protein})

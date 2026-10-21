@@ -3,12 +3,19 @@ import os
 from urllib.parse import urlsplit
 
 # Single source of truth for the app version (FastAPI metadata, /api/health, settings footer).
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 
-# A configurable example target; a settings UI is deferred.
-PROTEIN_GOAL_GRAMS = float(os.environ.get("FITLOG_PROTEIN_GOAL_G", "150"))
-if not math.isfinite(PROTEIN_GOAL_GRAMS) or not 0 < PROTEIN_GOAL_GRAMS <= 1000:
-    raise ValueError("FITLOG_PROTEIN_GOAL_G must be greater than 0 and at most 1000.")
+def goal(name: str, default: str, maximum: float) -> float:
+    """A server-wide daily target for the home rings; per-user goals are deferred."""
+    value = float(os.environ.get(name, default))
+    if not math.isfinite(value) or not 0 < value <= maximum:
+        raise ValueError(f"{name} must be greater than 0 and at most {maximum:g}.")
+    return value
+
+
+PROTEIN_GOAL_GRAMS = goal("FITLOG_PROTEIN_GOAL_G", "150", 1000)
+CALORIE_GOAL_KCAL = goal("FITLOG_CALORIE_GOAL_KCAL", "2100", 10000)
+SLEEP_GOAL_MINUTES = goal("FITLOG_SLEEP_GOAL_MINUTES", "420", 1440)
 
 
 def public_origin(value: str) -> str | None:

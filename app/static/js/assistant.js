@@ -79,7 +79,11 @@
   });
   function clearPhotos() { photos = []; renderPhotos(); }
 
-  function message(text, error = false) { $("assistant-message").textContent = text; $("assistant-message").className = "assistant-message" + (error ? " error" : ""); }
+  function message(text, error = false) {
+    $("assistant-message").textContent = text; $("assistant-message").className = "assistant-message" + (error ? " error" : "");
+    // The save button sits below the drafts in a scrolling sheet; bring the error into view.
+    if (error && text) $("assistant-message").scrollIntoView({block: "nearest", behavior: "smooth"});
+  }
   function errorText(data, fallback) {
     const detail = data && data.detail;
     if (detail && detail.code) return ERRORS[detail.code] || fallback;
