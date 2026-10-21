@@ -3,6 +3,8 @@ from typing import Annotated, Literal, Self
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, PlainSerializer, model_validator
 
+from app.config import APP_VERSION
+
 UTCDateTime = Annotated[datetime, PlainSerializer(
     lambda value: value.replace(tzinfo=timezone.utc).isoformat(), return_type=str
 )]
@@ -14,6 +16,7 @@ Memo = Annotated[str, Field(max_length=5000)]
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     app: Literal["FitLog"] = "FitLog"
+    version: str = APP_VERSION
 
 
 class InputModel(BaseModel):

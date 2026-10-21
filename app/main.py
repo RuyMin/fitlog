@@ -36,7 +36,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         engine.dispose()
 
 
-app = FastAPI(title="FitLog", version="0.6.0", lifespan=lifespan)
+app = FastAPI(title="FitLog", version=config.APP_VERSION, lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(assistant_router)
 app.include_router(excel_router)

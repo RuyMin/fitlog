@@ -9,6 +9,7 @@ from support import TEMP as _TEMP, act_as, create_user
 from fastapi.testclient import TestClient
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError, OperationalError
+from app import config
 from app.database import DATABASE_PATH, SessionLocal, engine
 from app.main import app
 from app.models import BodyMetric, Exercise, Meal, SleepRecord, Workout, WorkoutSet
@@ -30,7 +31,8 @@ class PhaseOneTests(unittest.TestCase):
     def test_health_and_database_configuration(self) -> None:
         result = self.client.get("/api/health")
         self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.json(), {"status": "ok", "app": "FitLog"})
+        self.assertEqual(result.json(), {"status": "ok", "app": "FitLog", "version": config.APP_VERSION})
+        self.assertEqual(config.APP_VERSION, "1.0.0")
         self.assertTrue(DATABASE_PATH.is_file())
         self.assertTrue((Path(_TEMP.name) / "uploads").is_dir())
         self.assertEqual(set(inspect(engine).get_table_names()), {
@@ -57,6 +59,12 @@ class PhaseOneTests(unittest.TestCase):
         for path in ["/data/fitlog.db", "/uploads/example.jpg", "/api/unknown"]:
             self.assertEqual(self.client.get(path).status_code, 404)
         self.assertEqual(self.client.get("/api/unknown").json(), {"detail": "Not Found"})
+
+    def test_app_version_is_exposed(self) -> None:
+        self.assertEqual(self.client.get("/api/health").json()["version"], config.APP_VERSION)
+        self.assertIn('id="app-version"', self.client.get("/settings").text)
+        app_js = (Path(__file__).resolve().parents[1] / "app" / "static" / "js" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("app-version", app_js)
 
     def test_health_database_failure(self) -> None:
         with patch("sqlalchemy.orm.Session.execute", side_effect=OperationalError("SELECT 1", {}, Exception("private"))):
