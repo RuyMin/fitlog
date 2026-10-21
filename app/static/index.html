@@ -8,12 +8,12 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <link rel="stylesheet" href="/static/css/app.css?v=1.2.0">
-  <link rel="stylesheet" href="/static/css/home.css?v=1.2.0">
-  <link rel="stylesheet" href="/static/css/assistant.css?v=1.2.0">
-  <script src="/static/js/app.js?v=1.2.0" defer></script>
-  <script src="/static/js/home.js?v=1.2.0" defer></script>
-  <script src="/static/js/assistant.js?v=1.2.0" defer></script>
+  <link rel="stylesheet" href="/static/css/app.css?v=20261022">
+  <link rel="stylesheet" href="/static/css/home.css?v=20261022">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261022">
+  <script src="/static/js/app.js?v=20261022" defer></script>
+  <script src="/static/js/home.js?v=20261022" defer></script>
+  <script src="/static/js/assistant.js?v=20261022" defer></script>
   <title>FitLog · 오늘의 기록</title>
 </head>
 <body>
@@ -26,7 +26,7 @@
 <a href="/workouts" data-nav="/workouts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>운동</span></a>
 <a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>기록하기</span></a>
 <a href="/meals" data-nav="/meals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg><span>식단</span></a>
-<a href="/statistics" data-nav="/statistics /body-metrics /sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
+<a href="/body" data-nav="/body /body-metrics /sleep /statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
 <a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
 </nav>
 <p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
@@ -50,7 +50,7 @@
 
     <section class="tiles" aria-labelledby="summary-title"><h2 id="summary-title" class="visually-hidden">오늘의 요약</h2>
       <a class="tile tile-work" href="/workouts"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg></span>운동</span><span class="tile-value"><b id="today-sets">—</b> 세트</span><span class="tile-note" id="today-workouts">기록을 불러오는 중</span></a>
-      <a class="tile tile-body" href="/body-metrics"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span>체중</span><span class="tile-value"><b id="latest-weight">—</b> kg</span><svg class="spark" id="weight-spark" viewBox="0 0 140 28" preserveAspectRatio="none" aria-hidden="true"><polyline id="weight-line" points=""></polyline></svg><span class="tile-note" id="weight-note">기록을 불러오는 중</span></a>
+      <a class="tile tile-body" href="/body"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span>체중</span><span class="tile-value"><b id="latest-weight">—</b> kg</span><svg class="spark" id="weight-spark" viewBox="0 0 140 28" preserveAspectRatio="none" aria-hidden="true"><polyline id="weight-line" points=""></polyline></svg><span class="tile-note" id="weight-note">기록을 불러오는 중</span></a>
       <a class="tile tile-meal" href="/meals"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg></span>식단</span><span class="tile-value"><b id="today-kcal">—</b> kcal</span><span class="macro-bar" id="macro-bar" hidden><span id="macro-carb" class="macro-carb"></span><span id="macro-protein" class="macro-protein"></span><span id="macro-fat" class="macro-fat"></span></span><span class="tile-note" id="protein-note">기록을 불러오는 중</span></a>
       <a class="tile tile-sleep" href="/sleep"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></span>수면</span><span class="tile-value" id="today-sleep">—</span><span class="sleep-bar" id="sleep-bar" hidden><span id="sleep-span"></span></span><span class="tile-note" id="sleep-note">기록을 불러오는 중</span></a>
     </section>

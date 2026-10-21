@@ -191,3 +191,5 @@ $("#filter-form").addEventListener("submit", (event) => { event.preventDefault()
 $("#clear-filter").addEventListener("click", () => { $("#filter-form").reset(); notice(""); loadRecords(); });
 $("#load-more").addEventListener("click", async (event) => { event.currentTarget.disabled = true; const control = event.currentTarget; try { await loadRecords(true); } finally { control.disabled = false; } });
 loadRecords();
+// /body-metrics#new and /sleep#new (from 몸·추이) open the add form straight away.
+if (location.hash === "#new") { history.replaceState(null, "", location.pathname); openForm(); }
