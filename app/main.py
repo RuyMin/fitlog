@@ -100,6 +100,10 @@ async def security_policy(request: Request, call_next: RequestResponseEndpoint) 
 
 
 @app.get("/meals", include_in_schema=False)
+def meals_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "meals.html", headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/body-metrics", include_in_schema=False)
 @app.get("/sleep", include_in_schema=False)
 def records_page() -> FileResponse:

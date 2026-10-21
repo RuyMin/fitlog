@@ -197,6 +197,8 @@ class DashboardResponse(BaseModel):
     carbohydrates_grams: float | None
     fat_grams: float | None
     calorie_goal_kcal: float
+    carbohydrate_goal_grams: float
+    fat_goal_grams: float
     sleep_goal_minutes: float
     main_sleep_start: UTCDateTime | None
     main_sleep_end: UTCDateTime | None

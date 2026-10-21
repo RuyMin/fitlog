@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183f35"><title>FitLog · 식단</title>
+<link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="stylesheet" href="/static/css/app.css?v=1.2.0"><link rel="stylesheet" href="/static/css/workouts.css?v=1.2.0"><link rel="stylesheet" href="/static/css/meals.css?v=1.2.0">
+<script src="/static/js/app.js?v=1.2.0" defer></script><script src="/static/js/meals.js?v=1.2.0" defer></script>
+</head><body>
+<a class="skip" href="#main">본문으로 이동</a>
+<aside class="sidebar">
+<a class="brand" href="/" aria-label="FitLog 홈"><span class="brand-mark">F<span>·</span></span> FitLog</a>
+<p class="brand-caption">나를 알아가는 작은 기록</p>
+<nav class="navigation" aria-label="주 메뉴">
+<a href="/" data-nav="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>홈</span></a>
+<a href="/workouts" data-nav="/workouts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>운동</span></a>
+<a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>기록하기</span></a>
+<a href="/meals" data-nav="/meals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg><span>식단</span></a>
+<a href="/statistics" data-nav="/statistics /body-metrics /sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
+<a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
+</nav>
+<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+</aside>
+<main id="main" class="meals-page">
+<header class="topbar"><div><p id="today" class="date"></p><h1>식단</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
+
+<div class="day-stepper" role="group" aria-label="날짜 선택">
+<button type="button" id="day-prev" aria-label="전날"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<label class="day-picker"><span id="day-label">오늘</span><input type="date" id="day-input" aria-label="날짜 고르기"></label>
+<button type="button" id="day-next" aria-label="다음 날"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+</div>
+
+<section class="intake card" aria-labelledby="intake-title"><h2 id="intake-title" class="visually-hidden">섭취 열량과 영양소</h2>
+<div class="intake-top">
+<div class="kcal-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="kcal-track" cx="60" cy="60" r="50"></circle><circle class="kcal-value" id="kcal-arc" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="0 100"></circle></svg><p><strong id="kcal-eaten">—</strong><span>/ <span id="kcal-goal">—</span> kcal</span></p></div>
+<div class="intake-remaining"><span id="remaining-label">남은 열량</span><p><strong id="kcal-remaining">—</strong> kcal</p><span id="estimate-note" class="estimate-badge" hidden></span></div>
+</div>
+<div class="macros">
+<div class="macro macro-protein"><p><span>단백질</span><span><strong id="protein-eaten">—</strong> / <span id="protein-goal">—</span>g</span></p><span class="macro-track"><span id="protein-fill"></span></span></div>
+<div class="macro macro-carb"><p><span>탄수화물</span><span><strong id="carb-eaten">—</strong> / <span id="carb-goal">—</span>g</span></p><span class="macro-track"><span id="carb-fill"></span></span></div>
+<div class="macro macro-fat"><p><span>지방</span><span><strong id="fat-eaten">—</strong> / <span id="fat-goal">—</span>g</span></p><span class="macro-track"><span id="fat-fill"></span></span></div>
+</div>
+<p id="unknown-note" class="hint" hidden></p>
+</section>
+
+<section aria-labelledby="meal-list-title" class="meal-section">
+<div class="section-heading"><h2 id="meal-list-title">먹은 것</h2><a href="/#record">사진·문장으로 기록</a></div>
+<p id="notice" role="status" aria-live="polite"></p>
+<div id="meal-list" class="meal-list" aria-live="polite"></div>
+<button type="button" id="new-meal" class="meal-add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>식사나 간식 추가</button>
+</section>
+
+<section class="card week-kcal" aria-labelledby="week-kcal-title">
+<div class="section-heading"><h2 id="week-kcal-title">최근 7일 열량</h2><span id="week-kcal-note"></span></div>
+<div class="kcal-bars" id="kcal-bars"><span class="kcal-goal-line" id="kcal-goal-line"></span></div>
+</section>
+
+<p id="pwa-note" class="muted pwa-note" role="status"></p>
+<noscript>식단 기록에는 JavaScript와 서버 연결이 필요합니다.</noscript>
+</main>
+<dialog id="meal-dialog" aria-labelledby="form-title">
+<form id="meal-form"><h2 id="form-title">식단 추가</h2><p class="hint">영양 정보가 없으면 비워 두세요. 0은 실제 0으로 저장합니다.</p>
+<label>식사 시각 *<input name="eaten_at" type="datetime-local" required></label>
+<label>식사 구분 *<select name="meal_type" required><option value="breakfast">아침</option><option value="lunch">점심</option><option value="dinner">저녁</option><option value="snack">간식</option><option value="other">기타</option></select></label>
+<label>음식·식사 이름 *<input name="name" type="text" maxlength="200" required placeholder="예: 닭가슴살 샐러드"></label>
+<div class="form-grid">
+<label>열량 (kcal)<input name="calories" type="number" min="0" max="100000" step="any" inputmode="decimal"></label>
+<label>단백질 (g)<input name="protein" type="number" min="0" max="100000" step="any" inputmode="decimal"></label>
+<label>탄수화물 (g)<input name="carbohydrates" type="number" min="0" max="100000" step="any" inputmode="decimal"></label>
+<label>지방 (g)<input name="fat" type="number" min="0" max="100000" step="any" inputmode="decimal"></label>
+</div>
+<label>메모<textarea name="memo" maxlength="5000" rows="3"></textarea></label>
+<p class="form-error" role="alert"></p>
+<div class="dialog-actions"><button type="button" id="delete-meal" class="danger" hidden>삭제</button><span class="dialog-spacer"></span><button type="button" id="cancel-meal">취소</button><button type="submit" class="primary">저장</button></div>
+</form></dialog>
+</body></html>

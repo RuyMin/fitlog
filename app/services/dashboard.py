@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
-from app.config import CALORIE_GOAL_KCAL, PROTEIN_GOAL_GRAMS, SLEEP_GOAL_MINUTES
+from app.config import CALORIE_GOAL_KCAL, CARBOHYDRATE_GOAL_GRAMS, FAT_GOAL_GRAMS, PROTEIN_GOAL_GRAMS, SLEEP_GOAL_MINUTES
 from app.models import BodyMetric, Meal, SleepRecord, Workout, WorkoutSet
 from app.schemas import BodyMetricResponse, DashboardResponse, WeekDay, WeightPoint
 from app.services.records import utc_naive
@@ -49,6 +49,7 @@ def get_dashboard(session: Session, user_id: int, day: date, zone: ZoneInfo) -> 
         sleep_records_count=sleep_count, sleep_minutes=sleep_minutes,
         volume_kg=volume, workout_titles=titles,
         calories=calories, carbohydrates_grams=carbohydrates, fat_grams=fat, calorie_goal_kcal=CALORIE_GOAL_KCAL,
+        carbohydrate_goal_grams=CARBOHYDRATE_GOAL_GRAMS, fat_goal_grams=FAT_GOAL_GRAMS,
         sleep_goal_minutes=SLEEP_GOAL_MINUTES,
         main_sleep_start=last_sleep.sleep_start if last_sleep else None,
         main_sleep_end=last_sleep.sleep_end if last_sleep else None,

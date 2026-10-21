@@ -1,22 +1,7 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
-const mealTypes = {breakfast: "아침", lunch: "점심", dinner: "저녁", snack: "간식", other: "기타"};
 const sleepTypes = {main: "주 수면", nap: "낮잠"};
 const configs = {
-  "/meals": {
-    title: "식단 기록", description: "먹은 것부터 간단히. 영양 정보는 아는 만큼만 남겨요.",
-    hint: "영양 정보가 없으면 비워두세요. 0은 실제 0으로 저장합니다. 사진 첨부는 추후 지원합니다.",
-    dateHint: "식사 시각 기준 · 현재 기기 시간대", timeField: "eaten_at",
-    fields: [
-      {name:"eaten_at", label:"식사 시각", type:"datetime-local", required:true},
-      {name:"meal_type", label:"식사 구분", type:"select", options:mealTypes, required:true},
-      {name:"name", label:"음식·식사 이름", type:"text", required:true, maxLength:200, placeholder:"예: 닭가슴살 샐러드"},
-      {name:"calories", label:"열량 (kcal)", type:"number", min:0, max:100000},
-      {name:"protein", label:"단백질 (g)", type:"number", min:0, max:100000},
-      {name:"carbohydrates", label:"탄수화물 (g)", type:"number", min:0, max:100000},
-      {name:"fat", label:"지방 (g)", type:"number", min:0, max:100000}
-    ]
-  },
   "/body-metrics": {
     title:"체중·신체 기록", description:"작은 변화를 기록해 나의 흐름을 살펴보세요.",
     hint:"체중·체지방률·골격근량 중 하나 이상 입력하세요. 시각은 현재 기기 시간대입니다.",
@@ -106,7 +91,6 @@ function openForm(record = null) {
     if (record) input.value = field.type === "datetime-local" ? localInput(record[field.name]) : record[field.name] ?? "";
     else if (field.type === "datetime-local") input.value = field.name === "sleep_start" ? "" : localInput();
   }
-  if (!record && form.elements.meal_type) form.elements.meal_type.value = "other";
   form.elements.memo.value = record?.memo ?? "";
   updateDuration(); $("#record-dialog").showModal();
 }
@@ -125,13 +109,7 @@ function recordCard(record) {
   card.append(element("p", formatDate(record[config.timeField]), "date"));
   const heading = element("div", null, "record-heading");
   const values = element("div", null, "record-values");
-  if (location.pathname === "/meals") {
-    heading.append(element("h2", record.name), element("span", mealTypes[record.meal_type] || record.meal_type, "record-kind"));
-    metric(values, "열량", display(record.calories,"kcal"));
-    metric(values, "단백질", display(record.protein,"g"));
-    metric(values, "탄수화물", display(record.carbohydrates,"g"));
-    metric(values, "지방", display(record.fat,"g"));
-  } else if (location.pathname === "/body-metrics") {
+  if (location.pathname === "/body-metrics") {
     heading.append(element("h2", "신체 측정"));
     metric(values,"체중",display(record.weight,"kg"));
     metric(values,"체지방률",display(record.body_fat,"%"));
