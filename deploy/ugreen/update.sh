@@ -11,6 +11,18 @@ exec > >(tee -a "logs/update-$(date +%F).log") 2>&1
 log() { printf '[%s] %s\n' "$(date -Iseconds)" "$*"; }
 trap 'log "Update failed at line $LINENO. Inspect logs; data was not automatically restored."' ERR
 compose() { docker compose --project-name fitlog-nas --env-file .env -f compose.yml "$@"; }
+# Keep only the newest automatic rollback tags (fitlog-rollback:<UTC stamp>); hand-made tags such as :v2 are left alone.
+KEEP_ROLLBACKS=3
+prune_rollbacks() {
+  local tag
+  { docker images --format '{{.Tag}}' fitlog-rollback | grep -E '^[0-9]{8}T[0-9]{6}Z$' || true; }     | sort -r | tail -n +"$((KEEP_ROLLBACKS + 1))" | while read -r tag; do
+      if docker image rm "fitlog-rollback:$tag" >/dev/null 2>&1; then
+        log "Removed old rollback image fitlog-rollback:$tag."
+      else
+        log "Could not remove fitlog-rollback:$tag; left in place."
+      fi
+    done
+}
 [[ -f .env ]] || { log "Missing .env"; exit 1; }
 [[ ! -f .update-failed ]] || { log "Previous update failed. Resolve it and remove .update-failed before retrying."; exit 1; }
 compose config --quiet
@@ -54,6 +66,7 @@ printf 'previous_image=%s\nbackup=before-auto-update-%s.db\n' "$rollback" "$stam
 if compose up -d --no-deps --no-build --pull never --wait --wait-timeout 120 fitlog; then
   rm -- .update-failed
   log "Update healthy. Previous image retained as $rollback."
+  prune_rollbacks
 else
   log "New version failed health checks; automatic updates paused."
   log "Previous image: $rollback; backup: data/backups/before-auto-update-$stamp.db"
