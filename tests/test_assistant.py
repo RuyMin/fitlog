@@ -341,12 +341,14 @@ class ClaudeCallTests(unittest.TestCase):
         self.assertNotIn("fallbacks", calls)
         self.assertNotIn("betas", calls)
 
-    def test_schema_objects_are_closed_and_fully_required(self):
+    def test_schema_objects_are_closed_and_required_except_cardio(self):
+        # Cardio set fields are optional rather than nullable to stay under the union-type limit (test_ai_schema.py).
+        optional = {"duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate"}
         def walk(node):
             if isinstance(node, dict):
                 if node.get("type") == "object":
                     self.assertIs(node["additionalProperties"], False)
-                    self.assertEqual(set(node["required"]), set(node["properties"]))
+                    self.assertLessEqual(set(node["properties"]) - set(node["required"]), optional)
                 for value in node.values():
                     walk(value)
             elif isinstance(node, list):
@@ -376,6 +378,17 @@ class ClaudeCallTests(unittest.TestCase):
                 self.run_extract(error=error)
             self.assertEqual(raised.exception.code, code)
             self.assertNotIn("secret", str(raised.exception))
+
+    def test_rejection_reason_is_logged_for_the_operator(self):
+        import anthropic
+        import httpx2
+        request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+        body = {"type": "error", "error": {"type": "invalid_request_error", "message": "Schema has too many union-typed parameters"}}
+        error = anthropic.BadRequestError("bad", response=httpx2.Response(400, request=request), body=body)
+        with self.assertLogs("fitlog.ai", "WARNING") as logs, self.assertRaises(AssistantError):
+            self.run_extract(error=error)
+        self.assertIn("too many union-typed parameters", logs.output[0])
+        self.assertIn("status=400", logs.output[0])
 
 
 class AssistantPageTests(unittest.TestCase):
