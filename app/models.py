@@ -1,4 +1,4 @@
-"""Schema v3; all timestamp values follow the UTC-naive storage convention.
+"""Schema v4; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -8,6 +8,7 @@ from sqlalchemy import (
     LargeBinary, Boolean, CheckConstraint, Date, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer,
     String, Text, UniqueConstraint,
 )
+from sqlalchemy import text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -166,12 +167,15 @@ class Exercise(Owned, Base):
         CheckConstraint("length(trim(name)) > 0", name="ck_exercise_name"),
         UniqueConstraint("user_id", "name", name="uq_exercise_user_name"),
         UniqueConstraint("id", "user_id", name="uq_exercise_owner"),
+        # One exercise per built-in preset for each user; custom exercises have no preset.
+        Index("uq_exercise_user_preset", "user_id", "preset_id", unique=True, sqlite_where=text("preset_id IS NOT NULL")),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
     category: Mapped[str | None] = mapped_column(String(100))
     body_part: Mapped[str | None] = mapped_column(String(100))
+    preset_id: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
 

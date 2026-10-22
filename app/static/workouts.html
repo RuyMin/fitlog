@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#183f35"><title>FitLog · 운동 기록</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
-<link rel="stylesheet" href="/static/css/app.css?v=20261022"><link rel="stylesheet" href="/static/css/workouts.css?v=20261022">
-<script src="/static/js/app.js?v=20261022" defer></script><script src="/static/js/workouts.js?v=20261022" defer></script>
+<link rel="stylesheet" href="/static/css/app.css?v=20261022.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261022.2"><link rel="stylesheet" href="/static/css/anatomy.css?v=20261022.2"><link rel="stylesheet" href="/static/css/workout-log.css?v=20261022.2">
+<script src="/static/js/app.js?v=20261022.2" defer></script><script src="/static/js/anatomy.js?v=20261022.2" defer></script><script src="/static/js/workouts.js?v=20261022.2" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">본문으로 이동</a>
@@ -22,16 +22,24 @@
 </nav>
 <p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
 </aside>
-<main id="main">
-<header class="topbar"><span class="eyebrow">MY WORKOUT LOG</span><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
-<section class="page-heading"><div><p id="today" class="date"></p><h1>운동 기록</h1><p class="muted">오늘의 한 세트가 내일의 변화를 만듭니다.</p></div></section>
-<div class="toolbar"><button id="new-workout" class="primary">+ 운동 기록</button><button id="manage-exercises">종목 관리</button><button id="refresh">새로고침</button></div>
+<main id="main" class="workouts-page">
+<header class="topbar"><div><p id="today" class="date"></p><h1>운동</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
 <p id="notice" role="status" aria-live="polite"></p>
-<section id="list-view">
-<form id="filter-form" class="filters"><label>시작 날짜<input type="date" name="date_from"></label><label>종료 날짜<input type="date" name="date_to"></label><button type="submit">조회</button><button type="button" id="clear-filter">초기화</button></form>
-<div id="workout-list" class="workout-list" aria-live="polite"></div><button id="load-more" hidden>더 보기</button>
+
+<section id="list-view" class="workouts-list-view">
+<section class="week-card" aria-labelledby="week-title">
+<div class="week-head"><h2 id="week-title">이번 주</h2><a href="/statistics">운동 통계 ›</a></div>
+<div class="week-stats"><p><strong id="week-count">—</strong> 회<span>운동</span></p><p><strong id="week-sets">—</strong> 세트<span>완료 세트</span></p><p><strong id="week-volume">—</strong><span>볼륨</span></p></div>
+<ol class="week-bars" id="week-bars" aria-label="이번 주 운동한 날"></ol>
 </section>
-<section id="detail-view" hidden><a href="/workouts" class="back-link">← 운동 목록</a><div id="workout-detail"></div></section>
+<section id="today-card" class="session-card" aria-live="polite"></section>
+<section class="past-section" aria-labelledby="past-title">
+<div class="section-heading"><h2 id="past-title">지난 운동</h2><button type="button" id="manage-exercises" class="link-button">내 종목 관리</button></div>
+<div id="workout-list" class="past-list" aria-live="polite"></div><button id="load-more" type="button" hidden>더 보기</button>
+</section>
+</section>
+
+<section id="detail-view" hidden><a href="/workouts" class="back-link">← 운동 목록</a><div id="workout-detail" class="session-card"></div></section>
 <p id="pwa-note" class="muted pwa-note" role="status"></p>
 <noscript>운동 기록에는 JavaScript와 서버 연결이 필요합니다.</noscript>
 </main>
@@ -47,24 +55,39 @@
 <p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" data-close>취소</button><button type="submit" class="primary">저장</button></div>
 </form></dialog>
 
-<dialog id="set-dialog" aria-labelledby="set-form-title">
-<form id="set-form"><h2 id="set-form-title">세트 추가</h2>
-<label>운동 종목 *<select name="exercise_id" required></select></label>
-<p class="hint">새 종목은 ‘종목 관리’에서 먼저 등록하세요.</p>
-<div class="form-grid"><label>세트 번호 *<input name="set_number" type="number" min="1" max="10000" step="1" required></label><label>중량 (kg)<input name="weight" type="number" min="0" max="10000" step="any" inputmode="decimal"></label><label>횟수<input name="reps" type="number" min="0" max="100000" step="1" inputmode="numeric"></label></div>
-<p class="hint">중량·횟수는 모르면 비워두세요. 맨몸 운동은 중량 0으로 기록할 수 있어요.</p>
-<label class="checkbox"><input name="completed" type="checkbox">세트 완료</label>
-<label>메모<textarea name="memo" maxlength="5000" rows="3"></textarea></label>
-<p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" data-close>취소</button><button type="submit" class="primary">저장</button></div>
-</form></dialog>
+<dialog id="picker-dialog" class="sheet-dialog" aria-labelledby="picker-title">
+<div class="picker">
+<div class="picker-head"><h2 id="picker-title">운동 추가</h2><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<label class="picker-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><span class="visually-hidden">운동 검색</span><input id="picker-query" type="search" placeholder="이름·별칭 검색 (예: 사레레, 턱걸이)" autocomplete="off"></label>
+<div class="chips" id="picker-parts" role="group" aria-label="부위"></div>
+<div class="chips chips-small" id="picker-gear" role="group" aria-label="장비"></div>
+<p class="picker-count" id="picker-count"></p>
+<div class="picker-results" id="picker-results"></div>
+<button type="button" id="picker-custom" class="picker-custom" hidden></button>
+<div class="picker-foot"><span id="picker-selected">0개 선택</span><button type="button" id="picker-add" class="primary" disabled>운동에 추가</button></div>
+</div>
+</dialog>
+
+<dialog id="info-dialog" aria-labelledby="info-title">
+<div class="info">
+<div class="picker-head"><div><h2 id="info-title"></h2><p id="info-sub" class="muted"></p></div><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="tag-list" id="info-tags"></div>
+<div class="info-tabs" role="tablist" aria-label="그림 종류"><button type="button" role="tab" id="tab-muscle" aria-selected="true">사용 근육</button><button type="button" role="tab" id="tab-motion" aria-selected="false">동작 <span class="soon">준비 중</span></button></div>
+<div id="info-muscle"></div>
+<div id="info-motion" class="motion-placeholder" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M10 9.5v5l4.5-2.5z"></path></svg><strong>동작 이미지는 다음 버전에서 추가돼요</strong><span>시작·끝 자세 그림이 이 자리에 들어갑니다.</span></div>
+<p class="legend"><span class="legend-primary">주 사용 근육</span><span class="legend-secondary">보조 근육</span></p>
+<p class="credit">근육 그림: Ryan Graves · CC BY 4.0 (색상 변경)</p>
+<div id="info-records" class="info-records"></div>
+</div>
+</dialog>
 
 <dialog id="exercise-dialog" aria-labelledby="exercise-heading">
-<div class="section-heading"><h2 id="exercise-heading">종목 관리</h2><button type="button" data-close>닫기</button></div>
+<div class="section-heading"><h2 id="exercise-heading">내 종목 관리</h2><button type="button" data-close>닫기</button></div>
 <form id="exercise-form"><h3 id="exercise-form-title">새 종목</h3>
-<label>종목명 *<input name="name" maxlength="200" placeholder="예: Squat" required></label>
-<div class="form-grid"><label>분류<input name="category" maxlength="100" placeholder="예: 근력"></label><label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 하체"></label></div>
+<label>종목명 *<input name="name" maxlength="200" placeholder="예: 케이블 Y 레이즈" required></label>
+<div class="form-grid"><label>장비<input name="category" maxlength="100" placeholder="예: 케이블"></label><label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 어깨"></label></div>
 <p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="reset-exercise">새 종목으로 전환</button><button type="submit" class="primary">저장</button></div>
-</form><p class="hint">기록된 세트에서 사용하는 종목은 삭제할 수 없습니다.</p>
+</form><p class="hint">기록된 세트에서 사용하는 종목은 삭제할 수 없습니다. 프리셋과 연결된 종목은 이름을 바꿔도 근육 그림이 유지됩니다.</p>
 <div id="exercise-list"></div>
 </dialog>
 </body></html>

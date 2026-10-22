@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Self
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, PlainSerializer, model_validator
 
 from app.config import APP_VERSION
+from app.services import exercise_presets
 
 UTCDateTime = Annotated[datetime, PlainSerializer(
     lambda value: value.replace(tzinfo=timezone.utc).isoformat(), return_type=str
@@ -27,6 +28,13 @@ class ExerciseInput(InputModel):
     name: Name
     category: ShortText | None = None
     body_part: ShortText | None = None
+    preset_id: Annotated[str, Field(max_length=64)] | None = None
+
+    @model_validator(mode="after")
+    def known_preset(self) -> Self:
+        if self.preset_id is not None and self.preset_id not in exercise_presets.ids():
+            raise ValueError("알 수 없는 운동 프리셋입니다.")
+        return self
 
 
 class ExerciseResponse(ExerciseInput):
