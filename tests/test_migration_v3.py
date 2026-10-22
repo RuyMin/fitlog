@@ -12,7 +12,7 @@ from support import TEMP  # noqa: F401 — isolate FITLOG_DATA_DIR before app im
 from sqlalchemy import create_engine
 
 from app.database import Base
-from app.migrations import migrate
+from app.migrations import SCHEMA_VERSION, migrate
 
 SCHEMA_V2 = (Path(__file__).parent / "fixtures" / "schema_v2.sql").read_text(encoding="utf-8")
 OWNED = ("exercises", "workouts", "workout_sets", "meals", "body_metrics", "sleep_records",
@@ -53,11 +53,11 @@ class V3MigrationTests(unittest.TestCase):
         c.execute("PRAGMA foreign_keys=ON")
         return c
 
-    def upgrade(self, owner: str | None = "Owner@Example.com ") -> None:
+    def upgrade(self, owner: str | None = "Owner@Example.com ", version: int = 3) -> None:
         env = {k: v for k, v in os.environ.items() if k != "FITLOG_OWNER_EMAIL"}
         if owner is not None:
             env["FITLOG_OWNER_EMAIL"] = owner
-        with patch("app.migrations.SCHEMA_VERSION", 3), patch.dict(os.environ, env, clear=True):
+        with patch("app.migrations.SCHEMA_VERSION", version), patch.dict(os.environ, env, clear=True):
             migrate(self.engine, self.path)
 
     def version(self) -> int:
@@ -160,9 +160,9 @@ class V3MigrationTests(unittest.TestCase):
             self.upgrade()
 
     def test_migrated_schema_equals_models(self) -> None:
-        """migrations.py DDL and models.py must describe the same database."""
+        """migrations.py DDL and models.py must describe the same database (the whole ladder, v2 to current)."""
         self.seed()
-        self.upgrade()
+        self.upgrade(version=SCHEMA_VERSION)
         Base.metadata.create_all(self.engine)
         fresh = Path(self.tmp.name) / "fresh.db"
         engine = create_engine("sqlite:///" + fresh.as_posix())

@@ -8,12 +8,18 @@ from app.api.deps import CurrentUser
 from app.database import get_session
 from app.models import Exercise, Workout, WorkoutSet
 from app.schemas import DeleteResponse, ExerciseInput, ExerciseResponse, SetInput, SetResponse, WorkoutInput, WorkoutResponse
-from app.services import workouts as service
+from app.services import exercise_presets, workouts as service
 
 router = APIRouter(prefix="/api", tags=["workouts"])
 DB = Annotated[Session, Depends(get_session)]
 Limit = Annotated[int, Query(ge=1, le=100)]
 Offset = Annotated[int, Query(ge=0)]
+
+
+@router.get("/exercise-presets")
+def list_exercise_presets(user: CurrentUser) -> dict:
+    """Built-in presets with their tags; the same for every user."""
+    return exercise_presets.catalog()
 
 
 @router.get("/exercises", response_model=list[ExerciseResponse])

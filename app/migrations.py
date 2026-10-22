@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -344,7 +344,36 @@ def count(c: Connection, table: str) -> int:
     return c.exec_driver_sql(f"SELECT count(*) FROM {table}").scalar_one()
 
 
-STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3}
+V4_PRESET_INDEX = ("CREATE UNIQUE INDEX uq_exercise_user_preset ON exercises (user_id, preset_id) "
+                   "WHERE preset_id IS NOT NULL")
+
+
+def migrate_v4(engine: Engine) -> None:
+    """Link exercises to built-in presets: add exercises.preset_id and fill it where a name clearly matches.
+
+    Only an exact name or alias match (ignoring spaces and case) links, and only the first such
+    exercise per user and preset, so the unique index holds. Nothing else is renamed or merged.
+    """
+    from app.services.exercise_presets import match_name
+    with engine.connect() as c:
+        c.exec_driver_sql("BEGIN IMMEDIATE")
+        try:
+            c.exec_driver_sql("ALTER TABLE exercises ADD COLUMN preset_id VARCHAR(64)")
+            c.exec_driver_sql(V4_PRESET_INDEX)
+            linked = set()
+            for exercise_id, user_id, name in c.exec_driver_sql("SELECT id, user_id, name FROM exercises ORDER BY id").all():
+                preset = match_name(name)
+                if preset and (user_id, preset) not in linked:
+                    linked.add((user_id, preset))
+                    c.exec_driver_sql("UPDATE exercises SET preset_id = ? WHERE id = ?", (preset, exercise_id))
+            c.exec_driver_sql("PRAGMA user_version=4")
+            c.commit()
+        except Exception:
+            c.rollback()
+            raise
+
+
+STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4}
 
 
 def finish_migration(engine: Engine) -> None:

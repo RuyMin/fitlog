@@ -605,3 +605,11 @@ docker compose -f compose.nas.yml up -d
 버전을 고정하거나 이전 이미지를 선택하려면 `.env`의 `FITLOG_IMAGE_TAG`를 `sha-<전체 커밋 SHA>`로 바꾸고 동일한 pull/up 명령을 실행하세요. DB 스키마가 변경된 버전에서 되돌릴 때는 이전 이미지와 DB의 호환성을 먼저 확인하고 필요하면 백업 복원 절차를 사용해야 합니다. 이미지 변경만으로 DB 마이그레이션이 되돌아가지는 않습니다.
 
 UGREEN NAS에서 GUI로 만든 기존 컨테이너를 자동 업데이트 방식으로 전환하려면 [전용 전환 가이드](deploy/ugreen/README.md)를 사용하세요. `/volume1/docker/fitlog` 경로와 컨테이너 내부 51881 포트를 사용하는 현재 설치에 맞춰져 있으며, 최초 전환 후 예약 실행으로 이미지 변경 확인·SQLite 백업·컨테이너 교체·기동 검증을 수행합니다.
+
+## 오픈소스 고지
+
+- 운동 화면의 근육 그림(`app/static/img/anatomy.svg`)은 Ryan Graves의 해부도
+  ([Figma Community](https://www.figma.com/community/file/1320468164820924031), CC BY 4.0)를
+  [muscle_mapper](https://github.com/suryamolly/muscle_mapper) 패키지에서 받아 색상 지정 방식만 바꿔 사용합니다.
+  다시 만들 때는 원본 SVG 두 장(front.svg, back.svg)이 있는 폴더를 지정해 `python scripts/build_anatomy.py <폴더>`를 실행합니다.
+- 운동 프리셋(`app/data/exercise_presets.json`)은 이 프로젝트에서 직접 정리한 목록입니다.

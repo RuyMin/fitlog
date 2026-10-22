@@ -1,0 +1,3310 @@
+{
+ "version": 1,
+ "parts": [
+  "가슴",
+  "등",
+  "어깨",
+  "팔",
+  "하체",
+  "코어",
+  "전신",
+  "유산소"
+ ],
+ "equipment": [
+  "맨몸",
+  "바벨",
+  "덤벨",
+  "머신",
+  "케이블",
+  "스미스머신",
+  "EZ바",
+  "케틀벨",
+  "밴드",
+  "기타"
+ ],
+ "presets": [
+  {
+   "id": "bench_press",
+   "name": "바벨 벤치프레스",
+   "name_en": "Barbell Bench Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근",
+    "삼두근",
+    "전면 삼각근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "벤치",
+    "벤치프레스",
+    "플랫 벤치"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "삼두근",
+    "전면 삼각근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "incline_bench_press",
+   "name": "인클라인 바벨 벤치프레스",
+   "name_en": "Incline Barbell Bench Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부",
+    "전면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인클라인 벤치",
+    "인클라인 프레스"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "전면 삼각근",
+    "삼두근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "decline_bench_press",
+   "name": "디클라인 바벨 벤치프레스",
+   "name_en": "Decline Barbell Bench Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 하부",
+    "삼두근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "디클라인 벤치"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 하부",
+    "삼두근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_bench_press",
+   "name": "덤벨 벤치프레스",
+   "name_en": "Dumbbell Bench Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근",
+    "삼두근",
+    "전면 삼각근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 프레스",
+    "덤벨 벤치"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "삼두근",
+    "전면 삼각근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_incline_press",
+   "name": "인클라인 덤벨 프레스",
+   "name_en": "Incline Dumbbell Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부",
+    "전면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인클라인 덤벨 벤치프레스"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "전면 삼각근",
+    "삼두근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_fly",
+   "name": "덤벨 플라이",
+   "name_en": "Dumbbell Fly",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 플라이스",
+    "플라이"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "db_incline_fly",
+   "name": "인클라인 덤벨 플라이",
+   "name_en": "Incline Dumbbell Fly",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인클라인 플라이"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "db_pullover",
+   "name": "덤벨 풀오버",
+   "name_en": "Dumbbell Pullover",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근",
+    "광배근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "풀오버"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "광배근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "smith_bench_press",
+   "name": "스미스머신 벤치프레스",
+   "name_en": "Smith Machine Bench Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근",
+    "삼두근",
+    "전면 삼각근"
+   ],
+   "equipment": "스미스머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스미스 벤치"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "삼두근",
+    "전면 삼각근",
+    "스미스머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "smith_incline_press",
+   "name": "스미스머신 인클라인 프레스",
+   "name_en": "Smith Machine Incline Press",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부",
+    "전면 삼각근"
+   ],
+   "equipment": "스미스머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스미스 인클라인"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "전면 삼각근",
+    "스미스머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "chest_press_machine",
+   "name": "체스트 프레스 머신",
+   "name_en": "Chest Press Machine",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근",
+    "삼두근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "체스트 프레스",
+    "머신 프레스"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "삼두근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "incline_chest_press_machine",
+   "name": "인클라인 체스트 프레스 머신",
+   "name_en": "Incline Chest Press Machine",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부",
+    "삼두근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인클라인 머신 프레스"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "삼두근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "pec_deck",
+   "name": "펙덱 플라이",
+   "name_en": "Pec Deck Fly",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "펙덱",
+    "버터플라이",
+    "체스트 플라이 머신"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "cable_crossover",
+   "name": "케이블 크로스오버",
+   "name_en": "Cable Crossover",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "크로스오버",
+    "케이블 플라이"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "low_cable_fly",
+   "name": "로우 케이블 플라이",
+   "name_en": "Low-to-High Cable Fly",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "로우 투 하이 플라이"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "push_up",
+   "name": "푸시업",
+   "name_en": "Push-up",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근",
+    "삼두근",
+    "전면 삼각근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "팔굽혀펴기",
+    "푸쉬업"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근",
+    "삼두근",
+    "전면 삼각근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "incline_push_up",
+   "name": "인클라인 푸시업",
+   "name_en": "Incline Push-up",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 하부",
+    "삼두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "인클라인 푸쉬업"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 하부",
+    "삼두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "decline_push_up",
+   "name": "디클라인 푸시업",
+   "name_en": "Decline Push-up",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 상부",
+    "전면 삼각근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "디클라인 푸쉬업"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 상부",
+    "전면 삼각근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "chest_dips",
+   "name": "딥스",
+   "name_en": "Chest Dips",
+   "body_part": "가슴",
+   "muscles": [
+    "대흉근 하부",
+    "삼두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "평행봉 딥스",
+    "체스트 딥스"
+   ],
+   "tags": [
+    "가슴",
+    "대흉근 하부",
+    "삼두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "deadlift",
+   "name": "컨벤셔널 데드리프트",
+   "name_en": "Conventional Deadlift",
+   "body_part": "등",
+   "muscles": [
+    "척추기립근",
+    "둔근",
+    "햄스트링",
+    "광배근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "데드",
+    "데드리프트"
+   ],
+   "tags": [
+    "등",
+    "척추기립근",
+    "둔근",
+    "햄스트링",
+    "광배근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "rack_pull",
+   "name": "랙 풀",
+   "name_en": "Rack Pull",
+   "body_part": "등",
+   "muscles": [
+    "척추기립근",
+    "승모근",
+    "광배근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "랙풀"
+   ],
+   "tags": [
+    "등",
+    "척추기립근",
+    "승모근",
+    "광배근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "pull_up",
+   "name": "풀업",
+   "name_en": "Pull-up",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "이두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "턱걸이",
+    "풀 업"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "이두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "chin_up",
+   "name": "친업",
+   "name_en": "Chin-up",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "이두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "언더그립 턱걸이"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "이두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "assisted_pull_up",
+   "name": "어시스티드 풀업",
+   "name_en": "Assisted Pull-up",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "이두근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "어시스트 풀업",
+    "풀업 머신"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "이두근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "lat_pulldown",
+   "name": "랫풀다운",
+   "name_en": "Lat Pulldown",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "이두근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "랫 풀 다운",
+    "렛풀다운"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "이두근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "close_grip_pulldown",
+   "name": "클로즈그립 랫풀다운",
+   "name_en": "Close-grip Lat Pulldown",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "브이바 랫풀다운"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "straight_arm_pulldown",
+   "name": "스트레이트 암 풀다운",
+   "name_en": "Straight-arm Pulldown",
+   "body_part": "등",
+   "muscles": [
+    "광배근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "암 풀다운"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "barbell_row",
+   "name": "바벨 로우",
+   "name_en": "Barbell Row",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근",
+    "승모근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "벤트오버 로우",
+    "바벨 벤트오버 로우"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "승모근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "pendlay_row",
+   "name": "펜들레이 로우",
+   "name_en": "Pendlay Row",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "팬들레이 로우"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_row",
+   "name": "원암 덤벨 로우",
+   "name_en": "One-arm Dumbbell Row",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 로우",
+    "원암 로우"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "chest_supported_row",
+   "name": "체스트 서포티드 덤벨 로우",
+   "name_en": "Chest-supported Dumbbell Row",
+   "body_part": "등",
+   "muscles": [
+    "능형근",
+    "광배근",
+    "후면 삼각근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인클라인 덤벨 로우"
+   ],
+   "tags": [
+    "등",
+    "능형근",
+    "광배근",
+    "후면 삼각근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "seated_cable_row",
+   "name": "시티드 케이블 로우",
+   "name_en": "Seated Cable Row",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근"
+   ],
+   "equipment": "케이블",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "케이블 로우",
+    "시티드 로우"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "케이블",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "seated_row_machine",
+   "name": "시티드 로우 머신",
+   "name_en": "Seated Row Machine",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "로우 머신"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "t_bar_row",
+   "name": "티바 로우",
+   "name_en": "T-bar Row",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근",
+    "승모근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "T바 로우"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "승모근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "inverted_row",
+   "name": "인버티드 로우",
+   "name_en": "Inverted Row",
+   "body_part": "등",
+   "muscles": [
+    "광배근",
+    "능형근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "오스트레일리안 풀업"
+   ],
+   "tags": [
+    "등",
+    "광배근",
+    "능형근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "back_extension",
+   "name": "백 익스텐션",
+   "name_en": "Back Extension",
+   "body_part": "등",
+   "muscles": [
+    "척추기립근",
+    "둔근"
+   ],
+   "equipment": "기타",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "하이퍼 익스텐션",
+    "로만체어"
+   ],
+   "tags": [
+    "등",
+    "척추기립근",
+    "둔근",
+    "기타",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "bb_shrug",
+   "name": "바벨 슈러그",
+   "name_en": "Barbell Shrug",
+   "body_part": "등",
+   "muscles": [
+    "승모근"
+   ],
+   "equipment": "바벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "슈러그"
+   ],
+   "tags": [
+    "등",
+    "승모근",
+    "바벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "db_shrug",
+   "name": "덤벨 슈러그",
+   "name_en": "Dumbbell Shrug",
+   "body_part": "등",
+   "muscles": [
+    "승모근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 쉬러그"
+   ],
+   "tags": [
+    "등",
+    "승모근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "ohp",
+   "name": "오버헤드 프레스",
+   "name_en": "Overhead Press",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "측면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "OHP",
+    "밀리터리 프레스",
+    "바벨 숄더 프레스"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "측면 삼각근",
+    "삼두근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_shoulder_press",
+   "name": "덤벨 숄더 프레스",
+   "name_en": "Dumbbell Shoulder Press",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "측면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 프레스 어깨"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "측면 삼각근",
+    "삼두근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "arnold_press",
+   "name": "아놀드 프레스",
+   "name_en": "Arnold Press",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "측면 삼각근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "아널드 프레스"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "측면 삼각근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "shoulder_press_machine",
+   "name": "숄더 프레스 머신",
+   "name_en": "Shoulder Press Machine",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "측면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "머신 숄더 프레스"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "측면 삼각근",
+    "삼두근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "smith_shoulder_press",
+   "name": "스미스머신 숄더 프레스",
+   "name_en": "Smith Machine Shoulder Press",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "스미스머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스미스 숄더 프레스"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "삼두근",
+    "스미스머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "lateral_raise",
+   "name": "사이드 레터럴 레이즈",
+   "name_en": "Dumbbell Lateral Raise",
+   "body_part": "어깨",
+   "muscles": [
+    "측면 삼각근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "사레레",
+    "사이드 레이즈",
+    "레터럴 레이즈"
+   ],
+   "tags": [
+    "어깨",
+    "측면 삼각근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "cable_lateral_raise",
+   "name": "케이블 레터럴 레이즈",
+   "name_en": "Cable Lateral Raise",
+   "body_part": "어깨",
+   "muscles": [
+    "측면 삼각근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "케이블 사레레"
+   ],
+   "tags": [
+    "어깨",
+    "측면 삼각근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "lateral_raise_machine",
+   "name": "레터럴 레이즈 머신",
+   "name_en": "Lateral Raise Machine",
+   "body_part": "어깨",
+   "muscles": [
+    "측면 삼각근"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "머신 사레레"
+   ],
+   "tags": [
+    "어깨",
+    "측면 삼각근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "front_raise",
+   "name": "프론트 레이즈",
+   "name_en": "Dumbbell Front Raise",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "프런트 레이즈"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "rear_delt_fly",
+   "name": "리어 델트 플라이",
+   "name_en": "Dumbbell Rear Delt Fly",
+   "body_part": "어깨",
+   "muscles": [
+    "후면 삼각근",
+    "능형근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "벤트오버 레터럴 레이즈",
+    "후면 플라이"
+   ],
+   "tags": [
+    "어깨",
+    "후면 삼각근",
+    "능형근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "reverse_pec_deck",
+   "name": "리버스 펙덱",
+   "name_en": "Reverse Pec Deck",
+   "body_part": "어깨",
+   "muscles": [
+    "후면 삼각근"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "리어 델트 머신",
+    "리버스 플라이 머신"
+   ],
+   "tags": [
+    "어깨",
+    "후면 삼각근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "face_pull",
+   "name": "페이스 풀",
+   "name_en": "Face Pull",
+   "body_part": "어깨",
+   "muscles": [
+    "후면 삼각근",
+    "승모근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "페이스풀"
+   ],
+   "tags": [
+    "어깨",
+    "후면 삼각근",
+    "승모근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "upright_row",
+   "name": "업라이트 로우",
+   "name_en": "Upright Row",
+   "body_part": "어깨",
+   "muscles": [
+    "측면 삼각근",
+    "승모근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "업라이트로우"
+   ],
+   "tags": [
+    "어깨",
+    "측면 삼각근",
+    "승모근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "pike_push_up",
+   "name": "파이크 푸시업",
+   "name_en": "Pike Push-up",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "파이크 푸쉬업"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "삼두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "handstand_push_up",
+   "name": "핸드스탠드 푸시업",
+   "name_en": "Handstand Push-up",
+   "body_part": "어깨",
+   "muscles": [
+    "전면 삼각근",
+    "삼두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "물구나무 푸시업"
+   ],
+   "tags": [
+    "어깨",
+    "전면 삼각근",
+    "삼두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "band_pull_apart",
+   "name": "밴드 풀 어파트",
+   "name_en": "Band Pull-apart",
+   "body_part": "어깨",
+   "muscles": [
+    "후면 삼각근",
+    "능형근"
+   ],
+   "equipment": "밴드",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "풀어파트"
+   ],
+   "tags": [
+    "어깨",
+    "후면 삼각근",
+    "능형근",
+    "밴드",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "bb_curl",
+   "name": "바벨 컬",
+   "name_en": "Barbell Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "바벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "바벨 바이셉 컬",
+    "이두 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "바벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "ez_curl",
+   "name": "EZ바 컬",
+   "name_en": "EZ-bar Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "EZ바",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "이지바 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "EZ바",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "db_curl",
+   "name": "덤벨 컬",
+   "name_en": "Dumbbell Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "얼터네이트 덤벨 컬",
+    "덤벨 바이셉 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "hammer_curl",
+   "name": "해머 컬",
+   "name_en": "Hammer Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근",
+    "전완근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "해머컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "전완근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "incline_db_curl",
+   "name": "인클라인 덤벨 컬",
+   "name_en": "Incline Dumbbell Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인클라인 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "preacher_curl",
+   "name": "프리처 컬",
+   "name_en": "Preacher Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "EZ바",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스콧 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "EZ바",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "concentration_curl",
+   "name": "컨센트레이션 컬",
+   "name_en": "Concentration Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "컨센 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "cable_curl",
+   "name": "케이블 컬",
+   "name_en": "Cable Curl",
+   "body_part": "팔",
+   "muscles": [
+    "이두근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "케이블 바이셉 컬"
+   ],
+   "tags": [
+    "팔",
+    "이두근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "close_grip_bench",
+   "name": "클로즈그립 벤치프레스",
+   "name_en": "Close-grip Bench Press",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근",
+    "대흉근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "내로우 벤치"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "대흉근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "skull_crusher",
+   "name": "라잉 트라이셉스 익스텐션",
+   "name_en": "Lying Triceps Extension",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "EZ바",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스컬 크러셔",
+    "라잉 익스텐션"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "EZ바",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "triceps_pushdown",
+   "name": "케이블 푸시다운",
+   "name_en": "Triceps Pushdown",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "트라이셉스 푸시다운",
+    "푸쉬다운"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "rope_pushdown",
+   "name": "로프 푸시다운",
+   "name_en": "Rope Pushdown",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "로프 푸쉬다운"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "db_overhead_extension",
+   "name": "덤벨 오버헤드 익스텐션",
+   "name_en": "Dumbbell Overhead Triceps Extension",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 트라이셉스 익스텐션",
+    "프렌치 프레스"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "cable_overhead_extension",
+   "name": "케이블 오버헤드 익스텐션",
+   "name_en": "Cable Overhead Triceps Extension",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "로프 오버헤드 익스텐션"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "triceps_kickback",
+   "name": "덤벨 킥백",
+   "name_en": "Triceps Kickback",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "덤벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "트라이셉스 킥백"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "덤벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "bench_dips",
+   "name": "벤치 딥스",
+   "name_en": "Bench Dips",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "체어 딥스"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "wrist_curl",
+   "name": "리스트 컬",
+   "name_en": "Wrist Curl",
+   "body_part": "팔",
+   "muscles": [
+    "전완근"
+   ],
+   "equipment": "바벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "손목 컬"
+   ],
+   "tags": [
+    "팔",
+    "전완근",
+    "바벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "reverse_curl",
+   "name": "리버스 컬",
+   "name_en": "Reverse Curl",
+   "body_part": "팔",
+   "muscles": [
+    "전완근",
+    "이두근"
+   ],
+   "equipment": "EZ바",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "리버스 바벨 컬"
+   ],
+   "tags": [
+    "팔",
+    "전완근",
+    "이두근",
+    "EZ바",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "back_squat",
+   "name": "바벨 백스쿼트",
+   "name_en": "Barbell Back Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근",
+    "햄스트링"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스쿼트",
+    "백스쿼트",
+    "바벨 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "햄스트링",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "front_squat",
+   "name": "프론트 스쿼트",
+   "name_en": "Front Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "프런트 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "smith_squat",
+   "name": "스미스머신 스쿼트",
+   "name_en": "Smith Machine Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "스미스머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스미스 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "스미스머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "goblet_squat",
+   "name": "고블릿 스쿼트",
+   "name_en": "Goblet Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "고블렛 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "air_squat",
+   "name": "맨몸 스쿼트",
+   "name_en": "Bodyweight Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "에어 스쿼트",
+    "스쿼트 맨몸"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "hack_squat",
+   "name": "핵 스쿼트",
+   "name_en": "Hack Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "핵스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "leg_press",
+   "name": "레그 프레스",
+   "name_en": "Leg Press",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "레그프레스"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "bulgarian_split_squat",
+   "name": "불가리안 스플릿 스쿼트",
+   "name_en": "Bulgarian Split Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "불스쿼",
+    "스플릿 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_lunge",
+   "name": "덤벨 런지",
+   "name_en": "Dumbbell Lunge",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "워킹 런지",
+    "런지"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "bodyweight_lunge",
+   "name": "맨몸 런지",
+   "name_en": "Bodyweight Lunge",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "런지 맨몸"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "step_up",
+   "name": "스텝업",
+   "name_en": "Dumbbell Step-up",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "박스 스텝업"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "pistol_squat",
+   "name": "피스톨 스쿼트",
+   "name_en": "Pistol Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "한발 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "romanian_deadlift",
+   "name": "루마니안 데드리프트",
+   "name_en": "Romanian Deadlift",
+   "body_part": "하체",
+   "muscles": [
+    "햄스트링",
+    "둔근",
+    "척추기립근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "RDL",
+    "루마니안",
+    "루데"
+   ],
+   "tags": [
+    "하체",
+    "햄스트링",
+    "둔근",
+    "척추기립근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "db_romanian_deadlift",
+   "name": "덤벨 루마니안 데드리프트",
+   "name_en": "Dumbbell Romanian Deadlift",
+   "body_part": "하체",
+   "muscles": [
+    "햄스트링",
+    "둔근"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "덤벨 RDL"
+   ],
+   "tags": [
+    "하체",
+    "햄스트링",
+    "둔근",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "sumo_deadlift",
+   "name": "스모 데드리프트",
+   "name_en": "Sumo Deadlift",
+   "body_part": "하체",
+   "muscles": [
+    "둔근",
+    "내전근",
+    "햄스트링"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스모 데드"
+   ],
+   "tags": [
+    "하체",
+    "둔근",
+    "내전근",
+    "햄스트링",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "good_morning",
+   "name": "굿모닝",
+   "name_en": "Good Morning",
+   "body_part": "하체",
+   "muscles": [
+    "햄스트링",
+    "척추기립근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "굿모닝 엑서사이즈"
+   ],
+   "tags": [
+    "하체",
+    "햄스트링",
+    "척추기립근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "leg_extension",
+   "name": "레그 익스텐션",
+   "name_en": "Leg Extension",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "레그익스텐션"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "lying_leg_curl",
+   "name": "라잉 레그 컬",
+   "name_en": "Lying Leg Curl",
+   "body_part": "하체",
+   "muscles": [
+    "햄스트링"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "레그 컬",
+    "라잉 레그컬"
+   ],
+   "tags": [
+    "하체",
+    "햄스트링",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "seated_leg_curl",
+   "name": "시티드 레그 컬",
+   "name_en": "Seated Leg Curl",
+   "body_part": "하체",
+   "muscles": [
+    "햄스트링"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "시티드 레그컬"
+   ],
+   "tags": [
+    "하체",
+    "햄스트링",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "nordic_curl",
+   "name": "노르딕 햄스트링 컬",
+   "name_en": "Nordic Hamstring Curl",
+   "body_part": "하체",
+   "muscles": [
+    "햄스트링"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "노르딕 컬"
+   ],
+   "tags": [
+    "하체",
+    "햄스트링",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "hip_thrust",
+   "name": "바벨 힙 쓰러스트",
+   "name_en": "Barbell Hip Thrust",
+   "body_part": "하체",
+   "muscles": [
+    "둔근",
+    "햄스트링"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "힙쓰러스트",
+    "힙 스러스트"
+   ],
+   "tags": [
+    "하체",
+    "둔근",
+    "햄스트링",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "glute_bridge",
+   "name": "글루트 브릿지",
+   "name_en": "Glute Bridge",
+   "body_part": "하체",
+   "muscles": [
+    "둔근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "힙 브릿지",
+    "브릿지"
+   ],
+   "tags": [
+    "하체",
+    "둔근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "cable_kickback",
+   "name": "케이블 킥백",
+   "name_en": "Cable Glute Kickback",
+   "body_part": "하체",
+   "muscles": [
+    "둔근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "힙 킥백",
+    "글루트 킥백"
+   ],
+   "tags": [
+    "하체",
+    "둔근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "hip_abduction",
+   "name": "힙 어브덕션",
+   "name_en": "Hip Abduction Machine",
+   "body_part": "하체",
+   "muscles": [
+    "중둔근"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "아웃타이",
+    "어브덕션"
+   ],
+   "tags": [
+    "하체",
+    "중둔근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "hip_adduction",
+   "name": "힙 어덕션",
+   "name_en": "Hip Adduction Machine",
+   "body_part": "하체",
+   "muscles": [
+    "내전근"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "이너타이",
+    "어덕션"
+   ],
+   "tags": [
+    "하체",
+    "내전근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "standing_calf_raise",
+   "name": "스탠딩 카프 레이즈",
+   "name_en": "Standing Calf Raise",
+   "body_part": "하체",
+   "muscles": [
+    "종아리"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "카프 레이즈",
+    "종아리 운동"
+   ],
+   "tags": [
+    "하체",
+    "종아리",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "seated_calf_raise",
+   "name": "시티드 카프 레이즈",
+   "name_en": "Seated Calf Raise",
+   "body_part": "하체",
+   "muscles": [
+    "종아리"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "앉아서 카프 레이즈"
+   ],
+   "tags": [
+    "하체",
+    "종아리",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "bodyweight_calf_raise",
+   "name": "맨몸 카프 레이즈",
+   "name_en": "Bodyweight Calf Raise",
+   "body_part": "하체",
+   "muscles": [
+    "종아리"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "까치발 들기"
+   ],
+   "tags": [
+    "하체",
+    "종아리",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "plank",
+   "name": "플랭크",
+   "name_en": "Plank",
+   "body_part": "코어",
+   "muscles": [
+    "복직근",
+    "코어"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "time",
+   "aliases": [
+    "플랭크 버티기"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "side_plank",
+   "name": "사이드 플랭크",
+   "name_en": "Side Plank",
+   "body_part": "코어",
+   "muscles": [
+    "복사근",
+    "코어"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "time",
+   "aliases": [
+    "옆 플랭크"
+   ],
+   "tags": [
+    "코어",
+    "복사근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "hollow_hold",
+   "name": "할로우 홀드",
+   "name_en": "Hollow Body Hold",
+   "body_part": "코어",
+   "muscles": [
+    "복직근",
+    "코어"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "time",
+   "aliases": [
+    "할로우 바디"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "crunch",
+   "name": "크런치",
+   "name_en": "Crunch",
+   "body_part": "코어",
+   "muscles": [
+    "복직근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "복근 크런치"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "sit_up",
+   "name": "싯업",
+   "name_en": "Sit-up",
+   "body_part": "코어",
+   "muscles": [
+    "복직근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "윗몸일으키기",
+    "윗몸 일으키기"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "bicycle_crunch",
+   "name": "바이시클 크런치",
+   "name_en": "Bicycle Crunch",
+   "body_part": "코어",
+   "muscles": [
+    "복직근",
+    "복사근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "자전거 크런치"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "복사근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "v_up",
+   "name": "브이업",
+   "name_en": "V-up",
+   "body_part": "코어",
+   "muscles": [
+    "복직근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "V업"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "leg_raise",
+   "name": "라잉 레그 레이즈",
+   "name_en": "Lying Leg Raise",
+   "body_part": "코어",
+   "muscles": [
+    "복직근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "레그 레이즈",
+    "누워서 다리 들기"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "hanging_leg_raise",
+   "name": "행잉 레그 레이즈",
+   "name_en": "Hanging Leg Raise",
+   "body_part": "코어",
+   "muscles": [
+    "복직근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "매달려 다리 들기",
+    "행잉 레이즈"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "russian_twist",
+   "name": "러시안 트위스트",
+   "name_en": "Russian Twist",
+   "body_part": "코어",
+   "muscles": [
+    "복사근"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "러시안트위스트"
+   ],
+   "tags": [
+    "코어",
+    "복사근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "dead_bug",
+   "name": "데드버그",
+   "name_en": "Dead Bug",
+   "body_part": "코어",
+   "muscles": [
+    "복직근",
+    "코어"
+   ],
+   "equipment": "맨몸",
+   "kind": "isolation",
+   "tracking": "reps",
+   "aliases": [
+    "데드 버그"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "맨몸",
+    "고립"
+   ]
+  },
+  {
+   "id": "mountain_climber",
+   "name": "마운틴 클라이머",
+   "name_en": "Mountain Climber",
+   "body_part": "코어",
+   "muscles": [
+    "복직근",
+    "코어",
+    "심폐"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "마운틴클라이머"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "심폐",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "cable_crunch",
+   "name": "케이블 크런치",
+   "name_en": "Cable Crunch",
+   "body_part": "코어",
+   "muscles": [
+    "복직근"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "로프 크런치"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "ab_rollout",
+   "name": "앱 롤아웃",
+   "name_en": "Ab Wheel Rollout",
+   "body_part": "코어",
+   "muscles": [
+    "복직근",
+    "코어"
+   ],
+   "equipment": "기타",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "AB 슬라이드",
+    "복근 롤러",
+    "ab 롤아웃"
+   ],
+   "tags": [
+    "코어",
+    "복직근",
+    "기타",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "pallof_press",
+   "name": "팔로프 프레스",
+   "name_en": "Pallof Press",
+   "body_part": "코어",
+   "muscles": [
+    "복사근",
+    "코어"
+   ],
+   "equipment": "케이블",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "안티 로테이션 프레스"
+   ],
+   "tags": [
+    "코어",
+    "복사근",
+    "케이블",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "burpee",
+   "name": "버피",
+   "name_en": "Burpee",
+   "body_part": "전신",
+   "muscles": [
+    "대퇴사두근",
+    "대흉근",
+    "심폐"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "버피 테스트"
+   ],
+   "tags": [
+    "전신",
+    "대퇴사두근",
+    "대흉근",
+    "심폐",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "jumping_jack",
+   "name": "점핑잭",
+   "name_en": "Jumping Jack",
+   "body_part": "전신",
+   "muscles": [
+    "심폐"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "팔벌려뛰기"
+   ],
+   "tags": [
+    "전신",
+    "심폐",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
+   "id": "power_clean",
+   "name": "파워 클린",
+   "name_en": "Power Clean",
+   "body_part": "전신",
+   "muscles": [
+    "둔근",
+    "햄스트링",
+    "승모근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "클린"
+   ],
+   "tags": [
+    "전신",
+    "둔근",
+    "햄스트링",
+    "승모근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "snatch",
+   "name": "스내치",
+   "name_en": "Snatch",
+   "body_part": "전신",
+   "muscles": [
+    "둔근",
+    "햄스트링",
+    "측면 삼각근",
+    "승모근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "인상"
+   ],
+   "tags": [
+    "전신",
+    "둔근",
+    "햄스트링",
+    "측면 삼각근",
+    "승모근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "thruster",
+   "name": "쓰러스터",
+   "name_en": "Thruster",
+   "body_part": "전신",
+   "muscles": [
+    "대퇴사두근",
+    "둔근",
+    "전면 삼각근"
+   ],
+   "equipment": "바벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "스러스터"
+   ],
+   "tags": [
+    "전신",
+    "대퇴사두근",
+    "둔근",
+    "전면 삼각근",
+    "바벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "kb_swing",
+   "name": "케틀벨 스윙",
+   "name_en": "Kettlebell Swing",
+   "body_part": "전신",
+   "muscles": [
+    "둔근",
+    "햄스트링",
+    "척추기립근"
+   ],
+   "equipment": "케틀벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "케틀벨스윙",
+    "KB 스윙"
+   ],
+   "tags": [
+    "전신",
+    "둔근",
+    "햄스트링",
+    "척추기립근",
+    "케틀벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "kb_goblet_squat",
+   "name": "케틀벨 고블릿 스쿼트",
+   "name_en": "Kettlebell Goblet Squat",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근"
+   ],
+   "equipment": "케틀벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "케틀벨 스쿼트"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "케틀벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "turkish_get_up",
+   "name": "터키시 겟업",
+   "name_en": "Turkish Get-up",
+   "body_part": "전신",
+   "muscles": [
+    "코어",
+    "전면 삼각근",
+    "둔근"
+   ],
+   "equipment": "케틀벨",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "겟업"
+   ],
+   "tags": [
+    "전신",
+    "코어",
+    "전면 삼각근",
+    "둔근",
+    "케틀벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "farmers_walk",
+   "name": "파머스 워크",
+   "name_en": "Farmer's Walk",
+   "body_part": "전신",
+   "muscles": [
+    "전완근",
+    "승모근",
+    "코어"
+   ],
+   "equipment": "덤벨",
+   "kind": "compound",
+   "tracking": "time",
+   "aliases": [
+    "파머스 캐리",
+    "농부 걷기"
+   ],
+   "tags": [
+    "전신",
+    "전완근",
+    "승모근",
+    "코어",
+    "덤벨",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "box_jump",
+   "name": "박스 점프",
+   "name_en": "Box Jump",
+   "body_part": "전신",
+   "muscles": [
+    "대퇴사두근",
+    "둔근",
+    "심폐"
+   ],
+   "equipment": "기타",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "박스점프"
+   ],
+   "tags": [
+    "전신",
+    "대퇴사두근",
+    "둔근",
+    "심폐",
+    "기타",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "wall_ball",
+   "name": "월볼",
+   "name_en": "Wall Ball",
+   "body_part": "전신",
+   "muscles": [
+    "대퇴사두근",
+    "전면 삼각근",
+    "심폐"
+   ],
+   "equipment": "기타",
+   "kind": "compound",
+   "tracking": "reps",
+   "aliases": [
+    "월 볼 샷"
+   ],
+   "tags": [
+    "전신",
+    "대퇴사두근",
+    "전면 삼각근",
+    "심폐",
+    "기타",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "battle_rope",
+   "name": "배틀 로프",
+   "name_en": "Battle Rope",
+   "body_part": "전신",
+   "muscles": [
+    "전면 삼각근",
+    "코어",
+    "심폐"
+   ],
+   "equipment": "기타",
+   "kind": "compound",
+   "tracking": "time",
+   "aliases": [
+    "배틀로프"
+   ],
+   "tags": [
+    "전신",
+    "전면 삼각근",
+    "코어",
+    "심폐",
+    "기타",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "running",
+   "name": "러닝",
+   "name_en": "Running",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐"
+   ],
+   "equipment": "맨몸",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "달리기",
+    "조깅",
+    "야외 러닝"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "맨몸"
+   ]
+  },
+  {
+   "id": "treadmill",
+   "name": "트레드밀",
+   "name_en": "Treadmill",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐"
+   ],
+   "equipment": "머신",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "러닝머신",
+    "런닝머신"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "머신",
+    "기구"
+   ]
+  },
+  {
+   "id": "walking",
+   "name": "걷기",
+   "name_en": "Walking",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐"
+   ],
+   "equipment": "맨몸",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "산책",
+    "워킹"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "맨몸"
+   ]
+  },
+  {
+   "id": "hiking",
+   "name": "등산",
+   "name_en": "Hiking",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "대퇴사두근"
+   ],
+   "equipment": "맨몸",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "하이킹",
+    "트레킹"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "대퇴사두근",
+    "맨몸"
+   ]
+  },
+  {
+   "id": "cycling_indoor",
+   "name": "실내 자전거",
+   "name_en": "Stationary Bike",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "대퇴사두근"
+   ],
+   "equipment": "머신",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "사이클",
+    "스피닝",
+    "실내 사이클"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "대퇴사두근",
+    "머신",
+    "기구"
+   ]
+  },
+  {
+   "id": "cycling",
+   "name": "자전거",
+   "name_en": "Cycling",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "대퇴사두근"
+   ],
+   "equipment": "기타",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "라이딩",
+    "로드 자전거"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "대퇴사두근",
+    "기타",
+    "기구"
+   ]
+  },
+  {
+   "id": "rowing_machine",
+   "name": "로잉 머신",
+   "name_en": "Rowing Machine",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "광배근"
+   ],
+   "equipment": "머신",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "로잉",
+    "에르고",
+    "로잉머신"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "광배근",
+    "머신",
+    "기구"
+   ]
+  },
+  {
+   "id": "stair_climber",
+   "name": "천국의 계단",
+   "name_en": "Stair Climber",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "둔근"
+   ],
+   "equipment": "머신",
+   "kind": "cardio",
+   "tracking": "time",
+   "aliases": [
+    "스텝밀",
+    "스테어 클라이머",
+    "계단 오르기"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "둔근",
+    "머신",
+    "기구"
+   ]
+  },
+  {
+   "id": "elliptical",
+   "name": "일립티컬",
+   "name_en": "Elliptical",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐"
+   ],
+   "equipment": "머신",
+   "kind": "cardio",
+   "tracking": "time",
+   "aliases": [
+    "크로스 트레이너",
+    "일립티컬 머신"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "머신",
+    "기구"
+   ]
+  },
+  {
+   "id": "jump_rope",
+   "name": "줄넘기",
+   "name_en": "Jump Rope",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "종아리"
+   ],
+   "equipment": "기타",
+   "kind": "cardio",
+   "tracking": "time",
+   "aliases": [
+    "스킵핑"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "종아리",
+    "기타",
+    "기구"
+   ]
+  },
+  {
+   "id": "swimming",
+   "name": "수영",
+   "name_en": "Swimming",
+   "body_part": "유산소",
+   "muscles": [
+    "심폐",
+    "광배근"
+   ],
+   "equipment": "맨몸",
+   "kind": "cardio",
+   "tracking": "distance_time",
+   "aliases": [
+    "자유형",
+    "수영장"
+   ],
+   "tags": [
+    "유산소",
+    "심폐",
+    "광배근",
+    "맨몸"
+   ]
+  }
+ ]
+}
