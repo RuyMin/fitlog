@@ -132,6 +132,8 @@ LABELS = {
     "carbohydrates": "탄수화물", "fat": "지방", "memo": "메모", "measured_at": "측정 시각", "weight": "중량·체중",
     "body_fat": "체지방률", "skeletal_muscle": "골격근량", "sleep_start": "잠든 시각", "sleep_end": "일어난 시각",
     "sleep_type": "구분", "workout_date": "운동일", "title": "제목", "body_part": "부위", "sets": "세트",
+    "duration_seconds": "시간", "distance_m": "거리", "speed_kmh": "속도", "incline_pct": "경사", "level": "레벨",
+    "heart_rate": "심박",
     "exercise": "종목", "set_number": "세트 번호", "reps": "횟수", "completed": "완료",
 }
 

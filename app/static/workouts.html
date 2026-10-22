@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#183f35"><title>FitLog · 운동 기록</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
-<link rel="stylesheet" href="/static/css/app.css?v=20261022.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261022.2"><link rel="stylesheet" href="/static/css/anatomy.css?v=20261022.2"><link rel="stylesheet" href="/static/css/workout-log.css?v=20261022.2">
-<script src="/static/js/app.js?v=20261022.2" defer></script><script src="/static/js/anatomy.js?v=20261022.2" defer></script><script src="/static/js/workouts.js?v=20261022.2" defer></script>
+<link rel="stylesheet" href="/static/css/app.css?v=20261022.3"><link rel="stylesheet" href="/static/css/workouts.css?v=20261022.3"><link rel="stylesheet" href="/static/css/anatomy.css?v=20261022.3"><link rel="stylesheet" href="/static/css/workout-log.css?v=20261022.3">
+<script src="/static/js/app.js?v=20261022.3" defer></script><script src="/static/js/anatomy.js?v=20261022.3" defer></script><script src="/static/js/workouts.js?v=20261022.3" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">본문으로 이동</a>
@@ -31,6 +31,7 @@
 <div class="week-head"><h2 id="week-title">이번 주</h2><a href="/statistics">운동 통계 ›</a></div>
 <div class="week-stats"><p><strong id="week-count">—</strong> 회<span>운동</span></p><p><strong id="week-sets">—</strong> 세트<span>완료 세트</span></p><p><strong id="week-volume">—</strong><span>볼륨</span></p></div>
 <ol class="week-bars" id="week-bars" aria-label="이번 주 운동한 날"></ol>
+<p class="week-cardio" id="week-cardio"></p>
 </section>
 <section id="today-card" class="session-card" aria-live="polite"></section>
 <section class="past-section" aria-labelledby="past-title">
@@ -72,6 +73,7 @@
 <div class="info">
 <div class="picker-head"><div><h2 id="info-title"></h2><p id="info-sub" class="muted"></p></div><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
 <div class="tag-list" id="info-tags"></div>
+<p class="info-tracking" id="info-tracking"></p>
 <div class="info-tabs" role="tablist" aria-label="그림 종류"><button type="button" role="tab" id="tab-muscle" aria-selected="true">사용 근육</button><button type="button" role="tab" id="tab-motion" aria-selected="false">동작 <span class="soon">준비 중</span></button></div>
 <div id="info-muscle"></div>
 <div id="info-motion" class="motion-placeholder" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M10 9.5v5l4.5-2.5z"></path></svg><strong>동작 이미지는 다음 버전에서 추가돼요</strong><span>시작·끝 자세 그림이 이 자리에 들어갑니다.</span></div>

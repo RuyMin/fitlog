@@ -135,6 +135,11 @@
     return wrap;
   }
 
+  const CARDIO = [["duration_seconds", "시간", (s) => Math.floor(s / 60) + "분" + (s % 60 ? " " + s % 60 + "초" : "")],
+    ["distance_m", "거리", (m) => (m / 1000).toFixed(2).replace(/\.?0+$/, "") + "km"], ["speed_kmh", "속도", (v) => v + "km/h"],
+    ["incline_pct", "경사", (v) => v + "%"], ["level", "레벨", (v) => String(v)], ["calories", "소모", (v) => v + "kcal"],
+    ["heart_rate", "심박", (v) => v + "bpm"]];
+
   function setRow(set) {
     const tr = node("tr");
     const cell = (type, value, name) => {
@@ -147,6 +152,11 @@
     const td = node("td"); td.append(remove);
     tr.append(cell("text", set.exercise, "exercise"), cell("number", set.set_number, "set_number"), cell("number", set.weight, "weight"),
       cell("number", set.reps, "reps"), cell("checkbox", set.completed, "completed"), td);
+    // Cardio and timed values are kept as they are (edit them later on the workouts screen) and shown as a summary.
+    const extra = Object.fromEntries(CARDIO.map(([key]) => [key, set[key] ?? null]).filter(([, v]) => v != null));
+    tr.dataset.extra = JSON.stringify(extra);
+    const summary = CARDIO.filter(([key]) => extra[key] != null).map(([key, label, format]) => label + " " + format(extra[key])).join(" · ");
+    if (summary) tr.firstChild.append(node("small", summary, "assistant-extra"));
     return tr;
   }
 
@@ -208,7 +218,8 @@
         data.sets = [...card.querySelectorAll(".assistant-sets tr")].slice(1).map((tr) => {
           const get = (name) => tr.querySelector(`[data-name="${name}"]`);
           return {exercise: get("exercise").value.trim(), set_number: Number(get("set_number").value), weight: value(get("weight")),
-            reps: get("reps").value === "" ? null : Number(get("reps").value), completed: get("completed").checked};
+            reps: get("reps").value === "" ? null : Number(get("reps").value), completed: get("completed").checked,
+            ...JSON.parse(tr.dataset.extra || "{}")};
         });
       }
       body[kind].push(data);

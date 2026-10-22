@@ -67,6 +67,13 @@ class SetInput(InputModel):
     reps: Annotated[int, Field(ge=0, le=100000, strict=True)] | None = None
     completed: bool = False
     memo: Memo | None = None
+    duration_seconds: Annotated[int, Field(ge=0, le=86400, strict=True)] | None = None
+    distance_m: Annotated[float, Field(ge=0, le=1_000_000)] | None = None
+    speed_kmh: Annotated[float, Field(ge=0, le=100)] | None = None
+    incline_pct: Annotated[float, Field(ge=-30, le=60)] | None = None
+    level: Annotated[float, Field(ge=0, le=100)] | None = None
+    calories: Annotated[float, Field(ge=0, le=20000)] | None = None
+    heart_rate: Annotated[int, Field(ge=20, le=250, strict=True)] | None = None
 
 
 class SetResponse(SetInput):

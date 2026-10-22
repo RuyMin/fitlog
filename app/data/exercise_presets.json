@@ -2420,7 +2420,7 @@
    ],
    "equipment": "맨몸",
    "kind": "isolation",
-   "tracking": "time",
+   "tracking": "hold",
    "aliases": [
     "플랭크 버티기"
    ],
@@ -2442,7 +2442,7 @@
    ],
    "equipment": "맨몸",
    "kind": "isolation",
-   "tracking": "time",
+   "tracking": "hold",
    "aliases": [
     "옆 플랭크"
    ],
@@ -2464,7 +2464,7 @@
    ],
    "equipment": "맨몸",
    "kind": "isolation",
-   "tracking": "time",
+   "tracking": "hold",
    "aliases": [
     "할로우 바디"
    ],
@@ -2958,7 +2958,7 @@
    ],
    "equipment": "덤벨",
    "kind": "compound",
-   "tracking": "time",
+   "tracking": "weight_time",
    "aliases": [
     "파머스 캐리",
     "농부 걷기"
@@ -3037,7 +3037,7 @@
    ],
    "equipment": "기타",
    "kind": "compound",
-   "tracking": "time",
+   "tracking": "hold",
    "aliases": [
     "배틀로프"
    ],
@@ -3061,7 +3061,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "distance",
    "aliases": [
     "달리기",
     "조깅",
@@ -3083,7 +3083,7 @@
    ],
    "equipment": "머신",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "treadmill",
    "aliases": [
     "러닝머신",
     "런닝머신"
@@ -3105,7 +3105,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "distance",
    "aliases": [
     "산책",
     "워킹"
@@ -3127,7 +3127,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "distance",
    "aliases": [
     "하이킹",
     "트레킹"
@@ -3150,7 +3150,7 @@
    ],
    "equipment": "머신",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "cardio_machine",
    "aliases": [
     "사이클",
     "스피닝",
@@ -3175,7 +3175,7 @@
    ],
    "equipment": "기타",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "distance",
    "aliases": [
     "라이딩",
     "로드 자전거"
@@ -3199,7 +3199,7 @@
    ],
    "equipment": "머신",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "cardio_machine",
    "aliases": [
     "로잉",
     "에르고",
@@ -3224,7 +3224,7 @@
    ],
    "equipment": "머신",
    "kind": "cardio",
-   "tracking": "time",
+   "tracking": "cardio_machine",
    "aliases": [
     "스텝밀",
     "스테어 클라이머",
@@ -3248,7 +3248,7 @@
    ],
    "equipment": "머신",
    "kind": "cardio",
-   "tracking": "time",
+   "tracking": "cardio_machine",
    "aliases": [
     "크로스 트레이너",
     "일립티컬 머신"
@@ -3271,7 +3271,7 @@
    ],
    "equipment": "기타",
    "kind": "cardio",
-   "tracking": "time",
+   "tracking": "rope",
    "aliases": [
     "스킵핑"
    ],
@@ -3294,7 +3294,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance_time",
+   "tracking": "distance",
    "aliases": [
     "자유형",
     "수영장"
@@ -3306,5 +3306,15 @@
     "맨몸"
    ]
   }
- ]
+ ],
+ "tracking": {
+  "weight_reps": "중량 × 횟수",
+  "reps": "횟수 (맨몸, 추가 중량 선택)",
+  "hold": "세트마다 시간",
+  "weight_time": "세트마다 중량 · 시간",
+  "treadmill": "시간 · 속도 · 경사",
+  "distance": "거리 · 시간 (페이스 계산)",
+  "cardio_machine": "시간 · 레벨 · 거리(선택)",
+  "rope": "시간 · 횟수"
+ }
 }

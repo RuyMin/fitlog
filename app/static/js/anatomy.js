@@ -2,7 +2,7 @@
 // Muscle figures: one shared SVG sprite (/static/img/anatomy.svg, Ryan Graves, CC BY 4.0), colored per
 // figure with CSS variables (--m-<muscle>) so many thumbnails can reuse the same artwork.
 window.FitAnatomy = (() => {
-  const SPRITE = "/static/img/anatomy.svg?v=20261022.2";
+  const SPRITE = "/static/img/anatomy.svg?v=20261022.3";
   const VIEW_BOX = {front: "0 0 587 1137", back: "0 0 596 1133"};
   // Preset muscle tags → artwork muscles.
   const TAGS = {
