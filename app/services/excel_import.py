@@ -28,6 +28,7 @@ from app.sync_schemas import COLUMNS
 TTL = timedelta(hours=1)
 LABELS = {"workouts": "운동", "workout_sets": "세트", "meals": "식단", "body_metrics": "신체", "sleep": "수면"}
 AI_ROW_LIMIT = 800
+CARDIO_FIELDS = ("duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate")
 AI_MESSAGES = {
     "no_key": "운영자가 공용 AI 키를 아직 등록하지 않았습니다. 설정에서 등록해 주세요.",
     "key_unreadable": "서버 비밀키가 바뀌어 저장된 AI 키를 읽을 수 없습니다. 운영자가 키를 다시 등록해야 합니다.",
@@ -98,7 +99,11 @@ def compare(session: Session, user_id: int, rows: dict) -> list[dict]:
             values = {k: wire(v) for k,v in row.model_dump().items() if k not in {"external_id", "updated_at", "workout_external_id"}}
             # These fields do not exist in the legacy workbook; absence must not clear app/Google data.
             if kind == "meals": values.pop("image_url", None)
-            if kind == "workout_sets": values.pop("rpe", None)
+            if kind == "workout_sets":
+                values.pop("rpe", None)
+                # Cardio fields a file does not give must not clear what the app has.
+                for name in CARDIO_FIELDS:
+                    if values.get(name) is None: values.pop(name, None)
             parent = parents.get(row.workout_external_id) if kind == "workout_sets" else None
             key = identity(kind, values)
             if parent: key = (parent["key"], *key)
@@ -299,6 +304,7 @@ def mapped_rows(raw: dict, stamp: str, prefix: str) -> tuple[dict, list]:
             rows["workout_sets"].append({"external_id": ident(), "workout_external_id": workout_id, "exercise": entry["exercise"],
                                          "set_number": entry["set_number"], "weight": entry.get("weight"), "reps": entry.get("reps"),
                                          "completed": entry.get("completed", True), "rpe": None, "rir": None, "memo": None,
+                                         **{name: entry.get(name) for name in CARDIO_FIELDS},
                                          "updated_at": stamp})
     return rows, dropped
 

@@ -27,7 +27,7 @@ class PresetCatalogTests(unittest.TestCase):
         for preset in presets:
             self.assertIn(preset["body_part"], data["parts"], preset["id"])
             self.assertIn(preset["equipment"], data["equipment"], preset["id"])
-            self.assertIn(preset["tracking"], {"weight_reps", "reps", "time", "distance_time"}, preset["id"])
+            self.assertIn(preset["tracking"], data["tracking"], preset["id"])
             self.assertTrue(preset["muscles"], preset["id"])
 
     def test_name_matching(self) -> None:
@@ -61,6 +61,43 @@ class PresetApiTests(unittest.TestCase):
         self.assertIsNone(custom.json()["preset_id"])
 
 
+class CardioSetApiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.client = TestClient(app)
+        self.client.__enter__()
+        fresh_owner()
+        self.workout = self.client.post("/api/workouts", json={"workout_date": "2026-10-22", "title": "유산소"}).json()
+        self.exercise = self.client.post("/api/exercises", json={"name": "트레드밀", "preset_id": "treadmill"}).json()
+
+    def tearDown(self) -> None:
+        self.client.__exit__(None, None, None)
+
+    def post(self, **fields):
+        return self.client.post(f"/api/workouts/{self.workout['id']}/sets", json={"exercise_id": self.exercise["id"], **fields})
+
+    def test_intervals_store_cardio_fields(self) -> None:
+        first = self.post(set_number=1, duration_seconds=300, speed_kmh=5.5, incline_pct=0, completed=True)
+        second = self.post(set_number=2, duration_seconds=1200, speed_kmh=9, incline_pct=2, calories=310, heart_rate=152)
+        self.assertEqual((first.status_code, second.status_code), (201, 201), second.text)
+        sets = self.client.get(f"/api/workouts/{self.workout['id']}").json()["sets"]
+        self.assertEqual([(s["duration_seconds"], s["speed_kmh"], s["incline_pct"]) for s in sets], [(300, 5.5, 0), (1200, 9, 2)])
+        self.assertEqual((sets[1]["calories"], sets[1]["heart_rate"], sets[1]["weight"]), (310, 152, None))
+
+    def test_ai_excel_mapping_keeps_cardio_fields(self) -> None:
+        from app.services.excel_import import mapped_rows
+        rows, dropped = mapped_rows({"workouts": [{"workout_date": "2026-10-01", "title": "유산소", "sets": [
+            {"exercise": "트레드밀", "set_number": 1, "duration_seconds": 1800, "speed_kmh": 8.5, "incline_pct": 2, "completed": True}]}]},
+            "2026-10-22T00:00:00+00:00", "t")
+        self.assertEqual(dropped, [])
+        row = rows["workout_sets"][0]
+        self.assertEqual((row["duration_seconds"], row["speed_kmh"], row["incline_pct"], row["distance_m"]), (1800, 8.5, 2, None))
+
+    def test_out_of_range_values_are_rejected(self) -> None:
+        for fields in [{"incline_pct": 80}, {"heart_rate": 300}, {"duration_seconds": -1}, {"distance_m": -5}, {"duration_seconds": 1.5}]:
+            with self.subTest(fields=fields):
+                self.assertEqual(self.post(set_number=1, **fields).status_code, 422)
+
+
 class MigrationV4Tests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
@@ -72,6 +109,8 @@ INSERT INTO exercises VALUES (1, '스쿼트', NULL, '하체', '2026-09-01 00:00:
 INSERT INTO exercises VALUES (2, 'Barbell Back Squat', NULL, NULL, '2026-09-01 00:00:00');
 INSERT INTO exercises VALUES (3, '사레레', NULL, NULL, '2026-09-01 00:00:00');
 INSERT INTO exercises VALUES (4, '내 맘대로 운동', NULL, NULL, '2026-09-01 00:00:00');
+INSERT INTO workouts (id, workout_date, title, created_at, updated_at) VALUES (1, '2026-09-01', '하체', '2026-09-01 00:00:00', '2026-09-01 00:00:00');
+INSERT INTO workout_sets (id, workout_id, exercise_id, set_number, weight, reps, completed) VALUES (1, 1, 1, 1, 60, 8, 1);
 """)
         self.engine = create_engine("sqlite:///" + self.path.as_posix())
 
@@ -79,15 +118,17 @@ INSERT INTO exercises VALUES (4, '내 맘대로 운동', NULL, NULL, '2026-09-01
         self.engine.dispose()
         self.tmp.cleanup()
 
-    def test_v3_to_v4_adds_preset_id_and_links_clear_names(self) -> None:
+    def test_v3_to_current_links_presets_and_adds_cardio_columns(self) -> None:
         env = {**os.environ, "FITLOG_OWNER_EMAIL": "owner@example.com"}
         with patch("app.migrations.SCHEMA_VERSION", 3), patch.dict(os.environ, env, clear=True):
             migrate(self.engine, self.path)
         with patch.dict(os.environ, env, clear=True):
             migrate(self.engine, self.path)
         with closing(sqlite3.connect(self.path)) as c:
-            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 4)
+            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 5)
             linked = dict(c.execute("SELECT id, preset_id FROM exercises ORDER BY id").fetchall())
+            # v5: the strength set keeps its values and gains empty cardio columns.
+            self.assertEqual(c.execute("SELECT weight, reps, duration_seconds, distance_m, heart_rate FROM workout_sets").fetchone(), (60.0, 8, None, None, None))
         # 스쿼트 is an alias of the back squat; the second back-squat row stays unlinked (one per user and preset).
         self.assertEqual(linked, {1: "back_squat", 2: None, 3: "lateral_raise", 4: None})
 

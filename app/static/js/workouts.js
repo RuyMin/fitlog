@@ -98,8 +98,77 @@ function describe(exercise) {
   const preset = presetOf(exercise);
   return [preset?.body_part || exercise.body_part, preset?.equipment || exercise.category].filter(Boolean).join(" · ") || "부위·장비 미지정";
 }
-const setText = (set) => (set.weight != null ? number(set.weight) + "kg" : "—") + " × " + (set.reps ?? "—");
-const shortSet = (set) => (set.weight != null ? number(set.weight) : "—") + "×" + (set.reps ?? "—");
+// ---- set fields by tracking type -----------------------------------------------------------------
+// Each preset says how it is recorded (app/data/exercise_presets.json "tracking"); custom exercises use weight × reps.
+const CARDIO_FIELDS = ["duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate"];
+const FIELDS = {
+  weight: {key: "weight", label: "kg", mode: "decimal"},
+  reps: {key: "reps", label: "회", mode: "numeric"},
+  count: {key: "reps", label: "횟수", mode: "numeric"},
+  seconds: {key: "duration_seconds", label: "초", mode: "numeric"},
+  time: {key: "duration_seconds", label: "시간", mode: "time"},
+  speed: {key: "speed_kmh", label: "km/h", mode: "decimal"},
+  incline: {key: "incline_pct", label: "경사%", mode: "decimal"},
+  distance: {key: "distance_m", label: "km", mode: "km"},
+  level: {key: "level", label: "레벨", mode: "decimal"},
+};
+const TRACKING = {
+  weight_reps: {fields: ["weight", "reps"]},
+  reps: {fields: ["weight", "reps"], weightLabel: "+kg"},
+  hold: {fields: ["seconds"]},
+  weight_time: {fields: ["weight", "seconds"]},
+  treadmill: {fields: ["time", "speed", "incline"], cardio: true},
+  distance: {fields: ["distance", "time"], cardio: true},
+  cardio_machine: {fields: ["time", "level", "distance"], cardio: true},
+  rope: {fields: ["time", "count"], cardio: true},
+};
+const trackingOf = (exercise) => TRACKING[presetOf(exercise)?.tracking] ? presetOf(exercise).tracking : "weight_reps";
+function clock(seconds) {
+  if (seconds == null) return "";
+  const h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = Math.round(seconds % 60);
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
+}
+// "30" is minutes, "30:15" minutes:seconds, "1:05:00" hours:minutes:seconds.
+function parseClock(text) {
+  const parts = text.trim().split(":");
+  if (!text.trim() || parts.some((part) => !/^\d+$/.test(part)) || parts.length > 3) return text.trim() ? NaN : null;
+  const [a, b, c] = parts.map(Number);
+  return parts.length === 1 ? a * 60 : parts.length === 2 ? a * 60 + b : a * 3600 + b * 60 + c;
+}
+function fieldValue(field, set) {
+  const value = set[field.key];
+  if (value == null) return "";
+  return field.mode === "time" ? clock(value) : field.mode === "km" ? String(Number((value / 1000).toFixed(3))) : String(value);
+}
+function readField(field, text) {
+  if (field.mode === "time") return parseClock(text);
+  if (text.trim() === "") return null;
+  const value = Number(text);
+  if (!Number.isFinite(value)) return NaN;
+  return field.mode === "km" ? Math.round(value * 1000) : field.mode === "numeric" ? Math.round(value) : value;
+}
+// Distance of a cardio row: as entered, or speed × time on a treadmill.
+const rowDistance = (set) => set.distance_m ?? (set.speed_kmh != null && set.duration_seconds != null ? set.speed_kmh * set.duration_seconds / 3.6 : null);
+function cardioSummary(sets) {
+  const seconds = sets.reduce((sum, set) => sum + (set.duration_seconds || 0), 0);
+  const metres = sets.reduce((sum, set) => sum + (rowDistance(set) || 0), 0);
+  const count = sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+  const parts = [];
+  if (seconds) parts.push(clock(seconds));
+  if (metres) parts.push(number(metres / 1000) + "km");
+  if (seconds && metres >= 100) { const pace = seconds / (metres / 1000); parts.push(Math.floor(pace / 60) + "'" + String(Math.round(pace % 60)).padStart(2, "0") + "\"/km"); }
+  if (count) parts.push(number(count) + "회");
+  return parts.join(" · ");
+}
+function setText(set, tracking = "weight_reps") {
+  const config = TRACKING[tracking];
+  if (config.cardio) return cardioSummary([set]) || "—";
+  return config.fields.map((name) => {
+    const field = FIELDS[name], value = set[field.key];
+    if (value == null) return "—";
+    return name === "weight" ? number(value) + "kg" : name === "seconds" ? value + "초" : String(value);
+  }).join(" × ");
+}
 // Sets of an exercise in the most recent other workout we have loaded.
 function previousSets(exerciseId, workout) {
   const earlier = state.workouts.filter((item) => item.id !== workout.id && (item.workout_date < workout.workout_date || (item.workout_date === workout.workout_date && item.id < workout.id)));
@@ -109,10 +178,13 @@ function previousSets(exerciseId, workout) {
   }
   return [];
 }
+const userExercise = (exercise) => state.exercises.find((item) => item.id === exercise.id) || exercise;
 
 // ---- session editor ------------------------------------------------------------------------------
 function setPayload(set, changes = {}) {
-  return {exercise_id: set.exercise_id, set_number: set.set_number, weight: set.weight, reps: set.reps, completed: set.completed, memo: set.memo, ...changes};
+  const payload = {exercise_id: set.exercise_id, set_number: set.set_number, weight: set.weight, reps: set.reps, completed: set.completed, memo: set.memo};
+  for (const key of CARDIO_FIELDS) payload[key] = set[key] ?? null;
+  return {...payload, ...changes};
 }
 async function refreshWorkout(workout) {
   const fresh = await api("/workouts/" + workout.id);
@@ -126,73 +198,111 @@ function renderCurrent() {
   const today = state.workouts.find((item) => item.workout_date === localDate());
   if (!location.hash.slice(1)) renderToday(today);
 }
-function setRow(workout, set, prev) {
+function fieldInput(workout, set, field, prev, label) {
+  const input = node("input");
+  input.type = field.mode === "time" ? "text" : "number";
+  if (field.mode === "time") { input.inputMode = "numeric"; input.placeholder = prev ? fieldValue(field, prev) || "분:초" : "분:초"; input.pattern = "[0-9:]*"; }
+  else { input.min = field.key === "incline_pct" ? "-30" : "0"; input.step = field.mode === "numeric" ? "1" : "any"; input.inputMode = field.mode === "numeric" ? "numeric" : "decimal"; input.placeholder = prev ? fieldValue(field, prev) : ""; }
+  input.value = fieldValue(field, set);
+  input.setAttribute("aria-label", set.exercise.name + " " + set.set_number + " " + label);
+  input.addEventListener("change", () => mutate(input, async () => {
+    const value = readField(field, input.value);
+    if (Number.isNaN(value)) { input.value = fieldValue(field, set); throw new Error(label + " 값을 확인해 주세요." + (field.mode === "time" ? " 예: 30 (분), 30:15, 1:05:00" : "")); }
+    await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, {[field.key]: value}));
+    set[field.key] = value;
+    if (TRACKING[trackingOf(userExercise(set.exercise))].cardio) await refreshWorkout(workout);
+  }));
+  const cell = node("span", null, "set-cell"); cell.append(input);
+  return cell;
+}
+function setRow(workout, set, prev, tracking) {
+  const config = TRACKING[tracking];
   const row = node("div", null, "set-line" + (set.completed ? " done" : ""));
   row.setAttribute("role", "row");
-  row.append(node("span", String(set.set_number), "set-no"), node("span", prev ? shortSet(prev) : "—", "set-prev"));
-  const inputs = {};
-  for (const [key, label, mode] of [["weight", "중량(kg)", "decimal"], ["reps", "횟수", "numeric"]]) {
-    const input = node("input");
-    input.type = "number"; input.min = "0"; input.step = key === "weight" ? "any" : "1"; input.inputMode = mode;
-    input.value = set[key] ?? ""; input.placeholder = prev?.[key] ?? "";
-    input.setAttribute("aria-label", set.exercise.name + " " + set.set_number + "세트 " + label);
-    input.addEventListener("change", () => mutate(input, async () => {
-      const value = input.value === "" ? null : Number(input.value);
-      await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, {[key]: value}));
-      set[key] = value;
-    }));
-    inputs[key] = input;
-    const cell = node("span", null, "set-cell"); cell.append(input); row.append(cell);
+  row.append(node("span", String(set.set_number), "set-no"));
+  if (!config.cardio) row.append(node("span", prev ? setText(prev, tracking).replace(/kg/g, "").replace(/ × /g, "×") : "—", "set-prev"));
+  for (const name of config.fields) {
+    const field = FIELDS[name];
+    row.append(fieldInput(workout, set, field, prev, name === "weight" && config.weightLabel ? "추가 중량" : field.label));
   }
   const done = node("button", null, "set-done"); done.type = "button";
   done.innerHTML = SVG_CHECK;
   done.setAttribute("aria-pressed", String(set.completed));
-  done.setAttribute("aria-label", set.exercise.name + " " + set.set_number + "세트 " + (set.completed ? "완료 취소" : "완료"));
+  done.setAttribute("aria-label", set.exercise.name + " " + set.set_number + (config.cardio ? "구간 " : "세트 ") + (set.completed ? "완료 취소" : "완료"));
   done.addEventListener("click", () => mutate(done, async () => {
     // Completing an empty row adopts the previous session's numbers, like most workout loggers.
     const changes = {completed: !set.completed};
-    if (!set.completed && set.weight == null && set.reps == null && prev) Object.assign(changes, {weight: prev.weight, reps: prev.reps});
+    const keys = [...new Set(config.fields.map((name) => FIELDS[name].key))];
+    if (!set.completed && prev && keys.every((key) => set[key] == null)) for (const key of keys) changes[key] = prev[key] ?? null;
     await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, changes));
     await refreshWorkout(workout);
   }));
   const remove = node("button", "×", "set-remove"); remove.type = "button";
-  remove.setAttribute("aria-label", set.exercise.name + " " + set.set_number + "세트 삭제");
+  remove.setAttribute("aria-label", set.exercise.name + " " + set.set_number + (config.cardio ? "구간" : "세트") + " 삭제");
   remove.addEventListener("click", () => mutate(remove, async () => {
     await api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE");
     await refreshWorkout(workout);
   }));
   row.append(done, remove);
+  // Strength rows: number, previous, fields, done, remove. Cardio rows have no "previous" column.
+  row.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
   return row;
 }
+// Session-level calories and average heart rate live on the first row of a cardio exercise.
+function extrasRow(workout, first) {
+  const box = node("div", null, "cardio-extras");
+  for (const [key, label] of [["calories", "소모 kcal"], ["heart_rate", "평균 심박"]]) {
+    const wrap = node("label", null, "extra-field");
+    wrap.append(node("span", label));
+    const input = node("input"); input.type = "number"; input.min = key === "heart_rate" ? "20" : "0"; input.step = "1"; input.inputMode = "numeric";
+    input.value = first[key] ?? ""; input.placeholder = "선택";
+    input.addEventListener("change", () => mutate(input, async () => {
+      const value = input.value === "" ? null : Math.round(Number(input.value));
+      await api("/workouts/" + workout.id + "/sets/" + first.id, "PUT", setPayload(first, {[key]: value}));
+      first[key] = value;
+    }));
+    wrap.append(input); box.append(wrap);
+  }
+  return box;
+}
 function exerciseBlock(workout, sets) {
-  const exercise = sets[0].exercise;
-  const preset = presetOf(state.exercises.find((item) => item.id === exercise.id) || exercise);
+  const exercise = userExercise(sets[0].exercise);
+  const preset = presetOf(exercise);
+  const tracking = trackingOf(exercise), config = TRACKING[tracking];
   const prev = previousSets(exercise.id, workout);
-  const block = node("article", null, "ex-block");
-  const head = node("div", null, "ex-head");
-  const title = button("", () => openInfo(state.exercises.find((item) => item.id === exercise.id) || exercise), "ex-title");
+  const block = node("article", null, "ex-block" + (config.cardio ? " cardio" : ""));
+  const title = button("", () => openInfo(exercise), "ex-title");
   title.append(thumb(preset?.muscles, exercise.name));
   const text = node("span", null, "ex-text");
-  text.append(node("strong", exercise.name), node("span", describe(state.exercises.find((item) => item.id === exercise.id) || exercise) + (prev.length ? " · 지난번 " + setText(prev[0]) + " × " + prev.length : "")));
+  const last = prev.length ? (config.cardio ? " · 지난번 " + (cardioSummary(prev) || "기록 있음") : " · 지난번 " + setText(prev[0], tracking) + " × " + prev.length) : "";
+  text.append(node("strong", exercise.name), node("span", describe(exercise) + last));
   title.append(text);
   title.insertAdjacentHTML("beforeend", SVG_CHEVRON);
-  head.append(title);
-  block.append(head);
+  block.append(title);
   const table = node("div", null, "set-table"); table.setAttribute("role", "table");
-  table.setAttribute("aria-label", exercise.name + " 세트");
+  table.setAttribute("aria-label", exercise.name + (config.cardio ? " 구간" : " 세트"));
   const header = node("div", null, "set-line set-header"); header.setAttribute("role", "row");
-  for (const label of ["세트", "이전", "kg", "회", "완료", ""]) header.append(node("span", label));
+  const labels = [config.cardio ? "구간" : "세트", ...(config.cardio ? [] : ["이전"]),
+    ...config.fields.map((name) => name === "weight" && config.weightLabel ? config.weightLabel : FIELDS[name].label), "완료", ""];
+  for (const label of labels) header.append(node("span", label));
+  header.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
   table.append(header);
-  sets.forEach((set, index) => table.append(setRow(workout, set, prev[index])));
+  sets.forEach((set, index) => table.append(setRow(workout, set, prev[index], tracking)));
   block.append(table);
+  if (config.cardio) {
+    const summary = cardioSummary(sets);
+    if (summary) block.append(node("p", (sets.length > 1 ? "합계 " : "") + summary, "cardio-summary"));
+    block.append(extrasRow(workout, sets[0]));
+  }
   const actions = node("div", null, "ex-actions");
-  actions.append(button("+ 세트 추가", (control) => mutate(control, async () => {
-    const last = sets.at(-1);
-    await api("/workouts/" + workout.id + "/sets", "POST", {exercise_id: exercise.id, set_number: Math.max(...sets.map((set) => set.set_number)) + 1,
-      weight: last.weight, reps: last.reps, completed: false, memo: null});
+  actions.append(button(config.cardio ? "+ 구간 추가" : "+ 세트 추가", (control) => mutate(control, async () => {
+    const lastSet = sets.at(-1);
+    const copy = Object.fromEntries(config.fields.map((name) => [FIELDS[name].key, lastSet[FIELDS[name].key] ?? null]));
+    await api("/workouts/" + workout.id + "/sets", "POST", {...setPayload(lastSet, {}), ...Object.fromEntries(CARDIO_FIELDS.map((key) => [key, null])), ...copy,
+      set_number: Math.max(...sets.map((set) => set.set_number)) + 1, completed: false, memo: null});
     await refreshWorkout(workout);
   }), "dashed"), button("종목 빼기", (control) => {
-    if (!confirm(exercise.name + "의 세트 " + sets.length + "개를 이 운동에서 지울까요?")) return;
+    if (!confirm(exercise.name + "의 " + (config.cardio ? "기록" : "세트 " + sets.length + "개") + "를 이 운동에서 지울까요?")) return;
     mutate(control, async () => {
       for (const set of sets) await api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE");
       await refreshWorkout(workout);
@@ -275,7 +385,8 @@ async function repeat(source) {
   for (const set of today.sets) used.set(set.exercise_id, Math.max(used.get(set.exercise_id) || 0, set.set_number));
   for (const set of [...source.sets].sort((a, b) => a.id - b.id)) {
     const next = (used.get(set.exercise_id) || 0) + 1; used.set(set.exercise_id, next);
-    await api("/workouts/" + today.id + "/sets", "POST", {exercise_id: set.exercise_id, set_number: next, weight: set.weight, reps: set.reps, completed: false, memo: null});
+    // Plans copy over; outcomes (calories, heart rate) do not.
+    await api("/workouts/" + today.id + "/sets", "POST", setPayload(set, {set_number: next, completed: false, memo: null, calories: null, heart_rate: null}));
   }
   notice("‘" + source.title + "’ 구성을 오늘 운동에 불러왔어요.");
   if (location.hash) location.hash = ""; else await showRoute();
@@ -287,10 +398,14 @@ function renderWeek() {
   const days = Array.from({length: 7}, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return localDate(d); });
   const week = state.workouts.filter((item) => item.workout_date >= days[0] && item.workout_date <= days[6]);
   const done = week.flatMap((item) => item.sets.filter((set) => set.completed));
-  const volume = done.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
+  const volume = done.filter((set) => !TRACKING[trackingOf(userExercise(set.exercise))].cardio).reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
   $("#week-count").textContent = week.length;
-  $("#week-sets").textContent = done.length;
+  $("#week-sets").textContent = done.filter((set) => !TRACKING[trackingOf(userExercise(set.exercise))].cardio).length;
   $("#week-volume").textContent = volume >= 1000 ? number(volume / 1000) + " t" : number(volume) + " kg";
+  const cardio = done.filter((set) => TRACKING[trackingOf(userExercise(set.exercise))].cardio);
+  const minutes = Math.round(cardio.reduce((sum, set) => sum + (set.duration_seconds || 0), 0) / 60);
+  const metres = cardio.reduce((sum, set) => sum + (rowDistance(set) || 0), 0);
+  $("#week-cardio").textContent = minutes || metres ? "유산소 " + [minutes && minutes + "분", metres && number(metres / 1000) + "km"].filter(Boolean).join(" · ") : "";
   const bars = $("#week-bars"); bars.replaceChildren();
   ["월", "화", "수", "목", "금", "토", "일"].forEach((name, i) => {
     const trained = week.some((item) => item.workout_date === days[i]);
@@ -435,6 +550,8 @@ function openInfo(exercise, item = null) {
   const preset = item?.preset || presetOf(exercise);
   $("#info-title").textContent = exercise.name || preset?.name;
   $("#info-sub").textContent = preset ? [preset.name_en, ...preset.aliases].join(" · ") : "내 종목 · 프리셋과 연결되지 않아 근육 그림이 없어요";
+  const tracking = TRACKING[preset?.tracking] ? preset.tracking : "weight_reps";
+  $("#info-tracking").textContent = "기록 방식 · " + (state.catalog?.tracking?.[tracking] || "중량 × 횟수");
   const tags = $("#info-tags"); tags.replaceChildren();
   for (const tag of preset ? preset.tags : [exercise.body_part, exercise.category].filter(Boolean)) tags.append(node("span", tag, "tag"));
   $("#info-muscle").replaceChildren(preset ? FitAnatomy.figure(preset.muscles) : node("p", "근육 정보가 없어요.", "empty-state"));
@@ -444,10 +561,26 @@ function openInfo(exercise, item = null) {
   records.append(node("h3", "내 기록"));
   if (!sets.length) records.append(node("p", "최근 기록이 없어요.", "muted"));
   else {
-    const best = sets.reduce((a, b) => (b.weight ?? -1) > (a.weight ?? -1) ? b : a);
-    const latest = sets.reduce((a, b) => b.date > a.date ? b : a);
+    const latestDate = sets.reduce((a, b) => b.date > a.date ? b : a).date;
+    let cells;
+    if (TRACKING[tracking].cardio) {
+      // Cardio: per-day sessions (all intervals of a day together).
+      const days = [...sets.reduce((map, set) => map.set(set.date, [...(map.get(set.date) || []), set]), new Map()).values()];
+      const total = (day, f) => day.reduce((sum, set) => sum + (f(set) || 0), 0);
+      const far = days.reduce((a, b) => total(b, rowDistance) > total(a, rowDistance) ? b : a);
+      const long = days.reduce((a, b) => total(b, (s) => s.duration_seconds) > total(a, (s) => s.duration_seconds) ? b : a);
+      cells = [["최장 거리", total(far, rowDistance) ? number(total(far, rowDistance) / 1000) + "km" : "—"],
+        ["최장 시간", total(long, (s) => s.duration_seconds) ? clock(total(long, (s) => s.duration_seconds)) : "—"],
+        ["최근", cardioSummary(sets.filter((set) => set.date === latestDate)) || "—"]];
+    } else if (tracking === "hold") {
+      const best = sets.reduce((a, b) => (b.duration_seconds ?? -1) > (a.duration_seconds ?? -1) ? b : a);
+      cells = [["최장 시간", best.duration_seconds != null ? best.duration_seconds + "초" : "—"], ["최근", setText(sets.find((set) => set.date === latestDate), tracking)], ["완료 세트", sets.length + "세트"]];
+    } else {
+      const best = sets.reduce((a, b) => (b.weight ?? -1) > (a.weight ?? -1) ? b : a);
+      cells = [["최고 중량", setText(best, tracking)], ["최근", setText(sets.find((set) => set.date === latestDate), tracking)], ["완료 세트", sets.length + "세트"]];
+    }
     const grid = node("div", null, "record-grid");
-    for (const [label, value] of [["최고 중량", setText(best)], ["최근", setText(latest)], ["완료 세트", sets.length + "세트"]]) {
+    for (const [label, value] of cells) {
       const cell = node("p"); cell.append(node("span", label), node("strong", value)); grid.append(cell);
     }
     records.append(grid, node("p", "최근 불러온 운동 " + state.workouts.length + "회 기준", "hint"));

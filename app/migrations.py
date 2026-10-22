@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -373,7 +373,32 @@ def migrate_v4(engine: Engine) -> None:
             raise
 
 
-STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4}
+V5_SET_COLUMNS = (
+    "duration_seconds INTEGER CONSTRAINT ck_set_duration CHECK (duration_seconds IS NULL OR duration_seconds >= 0)",
+    "distance_m FLOAT CONSTRAINT ck_set_distance CHECK (distance_m IS NULL OR distance_m >= 0)",
+    "speed_kmh FLOAT CONSTRAINT ck_set_speed CHECK (speed_kmh IS NULL OR speed_kmh >= 0)",
+    "incline_pct FLOAT CONSTRAINT ck_set_incline CHECK (incline_pct IS NULL OR incline_pct BETWEEN -30 AND 60)",
+    "level FLOAT CONSTRAINT ck_set_level CHECK (level IS NULL OR level >= 0)",
+    "calories FLOAT CONSTRAINT ck_set_calories CHECK (calories IS NULL OR calories >= 0)",
+    "heart_rate INTEGER CONSTRAINT ck_set_heart_rate CHECK (heart_rate IS NULL OR heart_rate BETWEEN 20 AND 250)",
+)
+
+
+def migrate_v5(engine: Engine) -> None:
+    """Add cardio and timed-set columns to workout_sets. All are nullable; existing rows keep their values."""
+    with engine.connect() as c:
+        c.exec_driver_sql("BEGIN IMMEDIATE")
+        try:
+            for column in V5_SET_COLUMNS:
+                c.exec_driver_sql(f"ALTER TABLE workout_sets ADD COLUMN {column}")
+            c.exec_driver_sql("PRAGMA user_version=5")
+            c.commit()
+        except Exception:
+            c.rollback()
+            raise
+
+
+STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5}
 
 
 def finish_migration(engine: Engine) -> None:

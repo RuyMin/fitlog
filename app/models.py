@@ -1,4 +1,4 @@
-"""Schema v4; all timestamp values follow the UTC-naive storage convention.
+"""Schema v5; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -186,6 +186,14 @@ class WorkoutSet(Owned, SyncFields, Base):
         CheckConstraint("set_number > 0", name="ck_set_number"),
         CheckConstraint("weight IS NULL OR weight >= 0", name="ck_set_weight"),
         CheckConstraint("reps IS NULL OR reps >= 0", name="ck_set_reps"),
+        # Cardio and timed sets (schema v5); which ones a row uses depends on the exercise.
+        CheckConstraint("duration_seconds IS NULL OR duration_seconds >= 0", name="ck_set_duration"),
+        CheckConstraint("distance_m IS NULL OR distance_m >= 0", name="ck_set_distance"),
+        CheckConstraint("speed_kmh IS NULL OR speed_kmh >= 0", name="ck_set_speed"),
+        CheckConstraint("incline_pct IS NULL OR incline_pct BETWEEN -30 AND 60", name="ck_set_incline"),
+        CheckConstraint("level IS NULL OR level >= 0", name="ck_set_level"),
+        CheckConstraint("calories IS NULL OR calories >= 0", name="ck_set_calories"),
+        CheckConstraint("heart_rate IS NULL OR heart_rate BETWEEN 20 AND 250", name="ck_set_heart_rate"),
         # A set may only reference the same owner's workout and exercise.
         ForeignKeyConstraint(["workout_id", "user_id"], ["workouts.id", "workouts.user_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["exercise_id", "user_id"], ["exercises.id", "exercises.user_id"], ondelete="RESTRICT"),
@@ -204,6 +212,13 @@ class WorkoutSet(Owned, SyncFields, Base):
     exercise: Mapped[Exercise] = relationship(primaryjoin="Exercise.id == foreign(WorkoutSet.exercise_id)")
     rpe: Mapped[float | None] = mapped_column(Float)
     rir: Mapped[float | None] = mapped_column(Float)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    distance_m: Mapped[float | None] = mapped_column(Float)
+    speed_kmh: Mapped[float | None] = mapped_column(Float)
+    incline_pct: Mapped[float | None] = mapped_column(Float)
+    level: Mapped[float | None] = mapped_column(Float)
+    calories: Mapped[float | None] = mapped_column(Float)
+    heart_rate: Mapped[int | None] = mapped_column(Integer)
 
 
 class Meal(Owned, SyncFields, Base):
