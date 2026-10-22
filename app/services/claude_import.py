@@ -40,6 +40,8 @@ def extract(api_key: str, model: str, sheets: dict[str, list[list]], now: dateti
         params.update(betas=[claude_records.FALLBACK_BETA], fallbacks="default")
     response = call(lambda: client_for(api_key).beta.messages.create(**params))
     if response.stop_reason == "refusal":
+        details = getattr(response, "stop_details", None)
+        claude_records.log.warning("AI refused: category=%s explanation=%s", getattr(details, "category", None), getattr(details, "explanation", None))
         raise AssistantError("refused", 422)
     if response.stop_reason == "max_tokens":
         raise AssistantError("too_long", 422)
