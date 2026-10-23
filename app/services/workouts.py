@@ -8,7 +8,8 @@ from app.models import Exercise, Workout, WorkoutSet, utc_now
 from app.schemas import ExerciseInput, SetInput, WorkoutInput
 
 
-from app.services.persistence import RecordConflict, RecordNotFound, commit, owned
+from app.services import exercise_presets
+from app.services.persistence import RecordConflict, RecordInvalid, RecordNotFound, commit, owned
 
 
 def get_exercise(session: Session, user_id: int, exercise_id: int) -> Exercise:
@@ -87,7 +88,9 @@ def get_set(session: Session, user_id: int, workout_id: int, set_id: int) -> Wor
 def save_set(session: Session, user_id: int, workout_id: int, data: SetInput, set_id: int | None = None) -> WorkoutSet:
     workout = get_workout(session, user_id, workout_id)
     item = get_set(session, user_id, workout_id, set_id) if set_id is not None else WorkoutSet(workout_id=workout_id, user_id=user_id)
-    get_exercise(session, user_id, data.exercise_id)
+    exercise = get_exercise(session, user_id, data.exercise_id)
+    if data.variant is not None and data.variant not in exercise_presets.variant_ids(exercise.preset_id):
+        raise RecordInvalid("이 운동에서 고를 수 없는 그립·발 위치입니다.")
     for key, value in data.model_dump().items():
         setattr(item, key, value)
     workout.updated_at = utc_now()

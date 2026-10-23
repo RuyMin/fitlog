@@ -2,7 +2,7 @@
 // Workouts: this week's summary, today's session with inline set tables, past sessions,
 // the preset picker (search + body part / equipment tags) and an exercise sheet with the muscle figure.
 const $ = (selector) => document.querySelector(selector);
-const state = {workouts: [], offset: 0, exercises: [], presets: [], catalog: null, current: null, route: 0,
+const state = {variants: {}, workouts: [], offset: 0, exercises: [], presets: [], catalog: null, current: null, route: 0,
   editWorkout: null, editExercise: null, picker: {workout: null, part: "전체", gear: "전체", picked: new Map()}};
 const pageSize = 20;
 const SVG_CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
@@ -182,7 +182,7 @@ const userExercise = (exercise) => state.exercises.find((item) => item.id === ex
 
 // ---- session editor ------------------------------------------------------------------------------
 function setPayload(set, changes = {}) {
-  const payload = {exercise_id: set.exercise_id, set_number: set.set_number, weight: set.weight, reps: set.reps, completed: set.completed, memo: set.memo};
+  const payload = {exercise_id: set.exercise_id, set_number: set.set_number, weight: set.weight, reps: set.reps, completed: set.completed, memo: set.memo, variant: set.variant ?? null};
   for (const key of CARDIO_FIELDS) payload[key] = set[key] ?? null;
   return {...payload, ...changes};
 }
@@ -215,12 +215,17 @@ function fieldInput(workout, set, field, prev, label) {
   const cell = node("span", null, "set-cell"); cell.append(input);
   return cell;
 }
-function setRow(workout, set, prev, tracking) {
+function setRow(workout, set, prev, tracking, variant = null) {
   const config = TRACKING[tracking];
   const row = node("div", null, "set-line" + (set.completed ? " done" : ""));
   row.setAttribute("role", "row");
   row.append(node("span", String(set.set_number), "set-no"));
-  if (!config.cardio) row.append(node("span", prev ? setText(prev, tracking).replace(/kg/g, "").replace(/ × /g, "×") : "—", "set-prev"));
+  if (!config.cardio) {
+    const cell = node("span", null, "set-prev");
+    if (variant) cell.append(node("b", variant.label, "set-variant"));
+    cell.append(node("span", prev ? setText(prev, tracking).replace(/kg/g, "").replace(/ × /g, "×") : "—"));
+    row.append(cell);
+  }
   for (const name of config.fields) {
     const field = FIELDS[name];
     row.append(fieldInput(workout, set, field, prev, name === "weight" && config.weightLabel ? "추가 중량" : field.label));
@@ -265,20 +270,58 @@ function extrasRow(workout, first) {
   }
   return box;
 }
+// ---- grip / foot position / stance (preset "variants", optional per set) -------------------------------
+const variantOf = (preset, id) => preset?.variants?.find((item) => item.id === id) || null;
+// The variant picked for new sets of this exercise in this workout: the last choice, else the last set's.
+function pickedVariant(workout, exerciseId, sets) {
+  const key = workout.id + ":" + exerciseId;
+  return key in state.variants ? state.variants[key] : sets.at(-1)?.variant ?? null;
+}
+function variantChips(workout, exercise, preset, sets, picked) {
+  const box = node("div", null, "variant-box");
+  const groups = node("div", null, "variant-groups");
+  for (const group of [...new Set(preset.variants.map((item) => item.group))]) {
+    const column = node("div", null, "variant-group");
+    const row = node("div", null, "chips");
+    for (const item of preset.variants.filter((variant) => variant.group === group)) {
+      const on = item.id === picked;
+      const chip = button(item.label, (control) => mutate(control, async () => {
+        // Picking applies to new sets and to this exercise's sets not done yet; done sets keep theirs.
+        const next = on ? null : item.id;
+        state.variants[workout.id + ":" + exercise.id] = next;
+        for (const set of sets.filter((set) => !set.completed && (set.variant ?? null) !== next)) {
+          await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, {variant: next}));
+        }
+        await refreshWorkout(workout);
+      }), "chip" + (on ? " on" : ""));
+      chip.setAttribute("aria-pressed", String(on));
+      chip.setAttribute("aria-label", exercise.name + " " + group + " " + item.label);
+      row.append(chip);
+    }
+    column.append(row, node("span", group, "variant-group-label"));
+    groups.append(column);
+  }
+  const chosen = variantOf(preset, picked);
+  box.append(groups, node("p", chosen ? chosen.detail + " · " + chosen.note : "선택 안 함 · 기구의 기본 자극 부위로 표시해요", "variant-note"));
+  return box;
+}
+
 function exerciseBlock(workout, sets) {
   const exercise = userExercise(sets[0].exercise);
   const preset = presetOf(exercise);
   const tracking = trackingOf(exercise), config = TRACKING[tracking];
   const prev = previousSets(exercise.id, workout);
+  const picked = preset?.variants ? pickedVariant(workout, exercise.id, sets) : null;
   const block = node("article", null, "ex-block" + (config.cardio ? " cardio" : ""));
   const title = button("", () => openInfo(exercise), "ex-title");
-  title.append(thumb(preset?.muscles, exercise.name));
+  title.append(thumb(variantOf(preset, picked)?.muscles || preset?.muscles, exercise.name));
   const text = node("span", null, "ex-text");
   const last = prev.length ? (config.cardio ? " · 지난번 " + (cardioSummary(prev) || "기록 있음") : " · 지난번 " + setText(prev[0], tracking) + " × " + prev.length) : "";
   text.append(node("strong", exercise.name), node("span", describe(exercise) + last));
   title.append(text);
   title.insertAdjacentHTML("beforeend", SVG_CHEVRON);
   block.append(title);
+  if (preset?.variants) block.append(variantChips(workout, exercise, preset, sets, picked));
   const table = node("div", null, "set-table"); table.setAttribute("role", "table");
   table.setAttribute("aria-label", exercise.name + (config.cardio ? " 구간" : " 세트"));
   const header = node("div", null, "set-line set-header"); header.setAttribute("role", "row");
@@ -287,7 +330,10 @@ function exerciseBlock(workout, sets) {
   for (const label of labels) header.append(node("span", label));
   header.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
   table.append(header);
-  sets.forEach((set, index) => table.append(setRow(workout, set, prev[index], tracking)));
+  sets.forEach((set, index) => {
+    const same = prev.filter((item) => (item.variant ?? null) === (set.variant ?? null));
+    table.append(setRow(workout, set, (same.length ? same : prev)[same.length ? Math.min(index, same.length - 1) : index], tracking, variantOf(preset, set.variant)));
+  });
   block.append(table);
   if (config.cardio) {
     const summary = cardioSummary(sets);
@@ -299,7 +345,7 @@ function exerciseBlock(workout, sets) {
     const lastSet = sets.at(-1);
     const copy = Object.fromEntries(config.fields.map((name) => [FIELDS[name].key, lastSet[FIELDS[name].key] ?? null]));
     await api("/workouts/" + workout.id + "/sets", "POST", {...setPayload(lastSet, {}), ...Object.fromEntries(CARDIO_FIELDS.map((key) => [key, null])), ...copy,
-      set_number: Math.max(...sets.map((set) => set.set_number)) + 1, completed: false, memo: null});
+      set_number: Math.max(...sets.map((set) => set.set_number)) + 1, completed: false, memo: null, variant: picked});
     await refreshWorkout(workout);
   }), "dashed"), button("종목 빼기", (control) => {
     if (!confirm(exercise.name + "의 " + (config.cardio ? "기록" : "세트 " + sets.length + "개") + "를 이 운동에서 지울까요?")) return;
@@ -459,7 +505,8 @@ function candidates() {
     key: "p" + preset.id, preset, exercise: state.exercises.find((exercise) => exercise.preset_id === preset.id) || null,
     name: preset.name, names: [preset.name, preset.name_en, ...preset.aliases], part: preset.body_part, gear: preset.equipment,
     tags: preset.tags, muscles: preset.muscles,
-    meta: [preset.body_part, preset.equipment, {compound: "복합", isolation: "고립", cardio: "유산소"}[preset.kind]].join(" · ") + (preset.aliases.length ? " · " + preset.aliases[0] : "")}));
+    meta: [preset.body_part, preset.equipment, {compound: "복합", isolation: "고립", cardio: "유산소"}[preset.kind]].join(" · ")
+      + (preset.variants ? " · 그립·자세 " + preset.variants.length + "종" : preset.aliases.length ? " · " + preset.aliases[0] : "")}));
   return [...custom, ...presets];
 }
 function renderPicker() {
@@ -555,6 +602,21 @@ function openInfo(exercise, item = null) {
   const tags = $("#info-tags"); tags.replaceChildren();
   for (const tag of preset ? preset.tags : [exercise.body_part, exercise.category].filter(Boolean)) tags.append(node("span", tag, "tag"));
   $("#info-muscle").replaceChildren(preset ? FitAnatomy.figure(preset.muscles) : node("p", "근육 정보가 없어요.", "empty-state"));
+  // Variants: switch the figure between the default and each grip / foot position / stance.
+  const variants = $("#info-variants"); variants.replaceChildren(); variants.hidden = !preset?.variants;
+  if (preset?.variants) {
+    const note = node("p", "기본 · 그립을 고르지 않았을 때의 자극 부위", "variant-note");
+    const show = (item, chip) => {
+      $("#info-muscle").replaceChildren(FitAnatomy.figure(item ? item.muscles : preset.muscles));
+      note.textContent = item ? item.label + " · " + item.detail + " · " + item.note : "기본 · 그립을 고르지 않았을 때의 자극 부위";
+      variants.querySelectorAll(".chip").forEach((other) => { other.classList.toggle("on", other === chip); other.setAttribute("aria-pressed", String(other === chip)); });
+    };
+    const row = node("div", null, "chips");
+    const base = button("기본", (chip) => show(null, chip), "chip on"); base.setAttribute("aria-pressed", "true");
+    row.append(base);
+    for (const item of preset.variants) { const chip = button(item.label, (control) => show(item, control), "chip"); chip.setAttribute("aria-pressed", "false"); row.append(chip); }
+    variants.append(row, note);
+  }
   showTab(true);
   const records = $("#info-records"); records.replaceChildren();
   const sets = exercise.id ? state.workouts.flatMap((workout) => workout.sets.filter((set) => set.exercise_id === exercise.id && set.completed).map((set) => ({...set, date: workout.workout_date}))) : [];

@@ -21,6 +21,12 @@ def ids() -> frozenset[str]:
     return frozenset(preset["id"] for preset in catalog()["presets"])
 
 
+def variant_ids(preset_id: str | None) -> frozenset[str]:
+    """Grip / foot-position / stance options a preset offers; none for custom exercises."""
+    preset = next((p for p in catalog()["presets"] if p["id"] == preset_id), None) if preset_id else None
+    return frozenset(item["id"] for item in (preset or {}).get("variants", []))
+
+
 def normalize(name: str) -> str:
     return re.sub(r"\s+", "", name).lower()
 

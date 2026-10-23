@@ -9,6 +9,7 @@ window.FitAnatomy = (() => {
     "대흉근": ["pectoralis_major"], "대흉근 상부": ["pectoralis_major"], "대흉근 하부": ["pectoralis_major"],
     "광배근": ["latissimus_dorsi"], "승모근": ["trapezius_upper", "trapezius_middle", "trapezius_lower"],
     "능형근": ["trapezius_middle"], "척추기립근": [],
+    "승모근 상부": ["trapezius_upper"], "승모근 중부": ["trapezius_middle"], "승모근 하부": ["trapezius_lower"],
     "전면 삼각근": ["anterior_deltoid"], "측면 삼각근": ["lateral_deltoid"], "후면 삼각근": ["posterior_deltoid"],
     "이두근": ["biceps_brachii_caput_longum", "biceps_brachii_caput_breve"],
     "삼두근": ["triceps_brachii_caput_longum", "triceps_brachii_caput_laterale", "triceps_brachii_caput_mediale", "anconeus"],

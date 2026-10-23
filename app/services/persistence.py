@@ -12,6 +12,10 @@ class RecordNotFound(Exception):
     pass
 
 
+class RecordInvalid(Exception):
+    """A value that passes the schema but not the record's own rules (422)."""
+
+
 class RecordConflict(Exception):
     pass
 

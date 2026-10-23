@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -398,7 +398,20 @@ def migrate_v5(engine: Engine) -> None:
             raise
 
 
-STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5}
+def migrate_v6(engine: Engine) -> None:
+    """Add workout_sets.variant (grip, foot position or stance). Nullable; existing rows mean the default."""
+    with engine.connect() as c:
+        c.exec_driver_sql("BEGIN IMMEDIATE")
+        try:
+            c.exec_driver_sql("ALTER TABLE workout_sets ADD COLUMN variant VARCHAR(40)")
+            c.exec_driver_sql("PRAGMA user_version=6")
+            c.commit()
+        except Exception:
+            c.rollback()
+            raise
+
+
+STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6}
 
 
 def finish_migration(engine: Engine) -> None:
