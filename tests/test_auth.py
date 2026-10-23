@@ -237,6 +237,21 @@ class SecurityPolicyTests(unittest.TestCase):
                 self.assertEqual(headers["referrer-policy"], "same-origin")
         self.assertEqual(self.client.get("/api/health").headers["cache-control"], "no-store")
 
+    def test_pages_link_hashed_assets_that_cache_for_good(self) -> None:
+        """Pages rewrite ?v= to the file's content hash; only that exact address is cached long-term."""
+        import re
+        page = self.client.get("/").text
+        links = re.findall(r'"(/static/[^"?]+)\?v=([0-9a-f]{12})"', page)
+        self.assertTrue(links)
+        for path, digest in links:
+            response = self.client.get(f"{path}?v={digest}")
+            self.assertEqual(response.status_code, 200, path)
+            self.assertEqual(response.headers["cache-control"], "public, max-age=31536000, immutable", path)
+        self.assertEqual(self.client.get(links[0][0] + "?v=000000000000").headers["cache-control"], "no-cache")
+        self.assertEqual(self.client.get("/static/js/nope.js?v=000000000000").headers["cache-control"], "no-cache")
+        self.assertEqual(self.client.get("/login").headers["cache-control"], "no-store")
+        self.assertRegex(self.client.get("/login").text, r"/static/css/app\.css\?v=[0-9a-f]{12}")
+
     def test_static_assets_are_revalidated_and_pages_load_current_ones(self) -> None:
         """A stale settings.js under a new settings page left the AI card stuck at '확인 중'."""
         import re

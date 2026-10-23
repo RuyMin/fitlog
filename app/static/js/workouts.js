@@ -481,9 +481,10 @@ function renderWeek() {
     item.append(node("span", name)); bars.append(item);
   });
 }
-async function loadList(append = false) {
+const listRequest = (offset = 0) => api("/workouts?" + new URLSearchParams({limit: pageSize, offset}));
+async function loadList(append = false, request = null) {
   const route = state.route;
-  const items = await api("/workouts?" + new URLSearchParams({limit: pageSize, offset: append ? state.offset : 0}));
+  const items = await (request || listRequest(append ? state.offset : 0));
   if (route !== state.route) return;
   state.workouts = append ? [...state.workouts, ...items] : items;
   state.offset = state.workouts.length;
@@ -501,8 +502,11 @@ async function showRoute() {
   $("#list-view").hidden = Boolean(hash);
   $("#detail-view").hidden = !hash;
   try {
+    // All of these at once: over a slow link each round trip costs about half a second.
+    const listing = hash ? null : listRequest();
+    listing?.catch(() => {});
     await Promise.all([loadCatalog(), loadExercises()]);
-    if (!hash) { await loadList(); return; }
+    if (!hash) { await loadList(false, listing); return; }
     $("#workout-detail").replaceChildren(node("p", "기록을 불러오는 중…", "empty-state"));
     if (!/^\d+$/.test(hash)) throw new Error("잘못된 운동 주소입니다.");
     if (!state.workouts.length) state.workouts = await api("/workouts?limit=" + pageSize);
