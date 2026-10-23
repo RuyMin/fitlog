@@ -77,6 +77,10 @@ class SetInput(InputModel):
     variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
 
 
+class VariantInput(InputModel):
+    variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
+
+
 class SetResponse(SetInput):
     model_config = ConfigDict(from_attributes=True)
     id: int

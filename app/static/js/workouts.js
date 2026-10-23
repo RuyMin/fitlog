@@ -187,11 +187,30 @@ function setPayload(set, changes = {}) {
   return {...payload, ...changes};
 }
 async function refreshWorkout(workout) {
-  const fresh = await api("/workouts/" + workout.id);
+  applyWorkout(workout, await api("/workouts/" + workout.id));
+}
+// Use a workout the server returned (after creating sets) in place of the shown one.
+function applyWorkout(workout, fresh) {
   Object.assign(workout, fresh);
   const index = state.workouts.findIndex((item) => item.id === fresh.id);
-  if (index >= 0) state.workouts[index] = fresh;
+  if (index >= 0) state.workouts[index] = workout;
   renderCurrent();
+}
+// Edits show at once and save in the background, one request per action. Saves for a workout run in
+// order so a quick second tap never lands before the first; a failed save reloads the server's copy.
+const queues = new Map();
+function save(workout, request) {
+  const run = (queues.get(workout.id) || Promise.resolve()).then(request);
+  queues.set(workout.id, run.catch(() => {}));
+  return run.catch(async (error) => {
+    notice(error.message + " 서버의 기록으로 되돌렸어요.", true);
+    await refreshWorkout(workout).catch(() => {});
+  });
+}
+function instant(workout, change, request) {
+  change();
+  renderCurrent();
+  return save(workout, request);
 }
 function renderCurrent() {
   if (state.current) renderSession(state.current, $("#workout-detail"), true);
@@ -205,13 +224,18 @@ function fieldInput(workout, set, field, prev, label) {
   else { input.min = field.key === "incline_pct" ? "-30" : "0"; input.step = field.mode === "numeric" ? "1" : "any"; input.inputMode = field.mode === "numeric" ? "numeric" : "decimal"; input.placeholder = prev ? fieldValue(field, prev) : ""; }
   input.value = fieldValue(field, set);
   input.setAttribute("aria-label", set.exercise.name + " " + set.set_number + " " + label);
-  input.addEventListener("change", () => mutate(input, async () => {
+  input.addEventListener("change", () => {
     const value = readField(field, input.value);
-    if (Number.isNaN(value)) { input.value = fieldValue(field, set); throw new Error(label + " 값을 확인해 주세요." + (field.mode === "time" ? " 예: 30 (분), 30:15, 1:05:00" : "")); }
-    await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, {[field.key]: value}));
+    if (Number.isNaN(value)) {
+      input.value = fieldValue(field, set);
+      notice(label + " 값을 확인해 주세요." + (field.mode === "time" ? " 예: 30 (분), 30:15, 1:05:00" : ""), true);
+      return;
+    }
     set[field.key] = value;
-    if (TRACKING[trackingOf(userExercise(set.exercise))].cardio) await refreshWorkout(workout);
-  }));
+    // Cardio rows feed the summary line, so redraw; strength rows already show what was typed.
+    if (TRACKING[trackingOf(userExercise(set.exercise))].cardio) renderCurrent();
+    save(workout, () => api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set)));
+  });
   const cell = node("span", null, "set-cell"); cell.append(input);
   return cell;
 }
@@ -234,20 +258,18 @@ function setRow(workout, set, prev, tracking, variant = null) {
   done.innerHTML = SVG_CHECK;
   done.setAttribute("aria-pressed", String(set.completed));
   done.setAttribute("aria-label", set.exercise.name + " " + set.set_number + (config.cardio ? "구간 " : "세트 ") + (set.completed ? "완료 취소" : "완료"));
-  done.addEventListener("click", () => mutate(done, async () => {
+  done.addEventListener("click", () => {
     // Completing an empty row adopts the previous session's numbers, like most workout loggers.
     const changes = {completed: !set.completed};
     const keys = [...new Set(config.fields.map((name) => FIELDS[name].key))];
     if (!set.completed && prev && keys.every((key) => set[key] == null)) for (const key of keys) changes[key] = prev[key] ?? null;
-    await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, changes));
-    await refreshWorkout(workout);
-  }));
+    instant(workout, () => Object.assign(set, changes), () => api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set)));
+  });
   const remove = node("button", "×", "set-remove"); remove.type = "button";
   remove.setAttribute("aria-label", set.exercise.name + " " + set.set_number + (config.cardio ? "구간" : "세트") + " 삭제");
-  remove.addEventListener("click", () => mutate(remove, async () => {
-    await api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE");
-    await refreshWorkout(workout);
-  }));
+  remove.addEventListener("click", () => instant(workout,
+    () => { workout.sets = workout.sets.filter((item) => item.id !== set.id); },
+    () => api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE")));
   row.append(done, remove);
   // Strength rows: number, previous, fields, done, remove. Cardio rows have no "previous" column.
   row.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
@@ -261,11 +283,10 @@ function extrasRow(workout, first) {
     wrap.append(node("span", label));
     const input = node("input"); input.type = "number"; input.min = key === "heart_rate" ? "20" : "0"; input.step = "1"; input.inputMode = "numeric";
     input.value = first[key] ?? ""; input.placeholder = "선택";
-    input.addEventListener("change", () => mutate(input, async () => {
-      const value = input.value === "" ? null : Math.round(Number(input.value));
-      await api("/workouts/" + workout.id + "/sets/" + first.id, "PUT", setPayload(first, {[key]: value}));
-      first[key] = value;
-    }));
+    input.addEventListener("change", () => {
+      first[key] = input.value === "" ? null : Math.round(Number(input.value));
+      save(workout, () => api("/workouts/" + workout.id + "/sets/" + first.id, "PUT", setPayload(first)));
+    });
     wrap.append(input); box.append(wrap);
   }
   return box;
@@ -285,15 +306,14 @@ function variantChips(workout, exercise, preset, sets, picked) {
     const row = node("div", null, "chips");
     for (const item of preset.variants.filter((variant) => variant.group === group)) {
       const on = item.id === picked;
-      const chip = button(item.label, (control) => mutate(control, async () => {
+      const chip = button(item.label, () => {
         // Picking applies to new sets and to this exercise's sets not done yet; done sets keep theirs.
         const next = on ? null : item.id;
-        state.variants[workout.id + ":" + exercise.id] = next;
-        for (const set of sets.filter((set) => !set.completed && (set.variant ?? null) !== next)) {
-          await api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set, {variant: next}));
-        }
-        await refreshWorkout(workout);
-      }), "chip" + (on ? " on" : ""));
+        instant(workout, () => {
+          state.variants[workout.id + ":" + exercise.id] = next;
+          for (const set of sets) if (!set.completed) set.variant = next;
+        }, () => api("/workouts/" + workout.id + "/exercises/" + exercise.id + "/variant", "PUT", {variant: next}));
+      }, "chip" + (on ? " on" : ""));
       chip.setAttribute("aria-pressed", String(on));
       chip.setAttribute("aria-label", exercise.name + " " + group + " " + item.label);
       row.append(chip);
@@ -344,15 +364,14 @@ function exerciseBlock(workout, sets) {
   actions.append(button(config.cardio ? "+ 구간 추가" : "+ 세트 추가", (control) => mutate(control, async () => {
     const lastSet = sets.at(-1);
     const copy = Object.fromEntries(config.fields.map((name) => [FIELDS[name].key, lastSet[FIELDS[name].key] ?? null]));
-    await api("/workouts/" + workout.id + "/sets", "POST", {...setPayload(lastSet, {}), ...Object.fromEntries(CARDIO_FIELDS.map((key) => [key, null])), ...copy,
-      set_number: Math.max(...sets.map((set) => set.set_number)) + 1, completed: false, memo: null, variant: picked});
-    await refreshWorkout(workout);
-  }), "dashed"), button("종목 빼기", (control) => {
+    const created = await save(workout, () => api("/workouts/" + workout.id + "/sets", "POST", {...setPayload(lastSet, {}),
+      ...Object.fromEntries(CARDIO_FIELDS.map((key) => [key, null])), ...copy,
+      set_number: Math.max(...sets.map((set) => set.set_number)) + 1, completed: false, memo: null, variant: picked}));
+    if (created?.id) { workout.sets.push(created); renderCurrent(); }
+  }), "dashed"), button("종목 빼기", () => {
     if (!confirm(exercise.name + "의 " + (config.cardio ? "기록" : "세트 " + sets.length + "개") + "를 이 운동에서 지울까요?")) return;
-    mutate(control, async () => {
-      for (const set of sets) await api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE");
-      await refreshWorkout(workout);
-    });
+    instant(workout, () => { workout.sets = workout.sets.filter((item) => item.exercise_id !== exercise.id); },
+      () => api("/workouts/" + workout.id + "/exercises/" + exercise.id, "DELETE"));
   }, "link-button danger"));
   block.append(actions);
   return block;
@@ -367,11 +386,12 @@ function renderSession(workout, root, detail = false) {
   titles.append(node("p", status, running ? "session-status running" : "session-status"), node("h2", workout.title));
   head.append(titles);
   const tools = node("div", null, "session-tools");
-  if (running) tools.append(button("운동 끝내기", (control) => mutate(control, async () => {
-    await api("/workouts/" + workout.id, "PUT", {workout_date: workout.workout_date, title: workout.title, body_part: workout.body_part,
-      memo: workout.memo, started_at: workout.started_at, ended_at: new Date().toISOString()});
-    await refreshWorkout(workout); notice("운동을 마쳤습니다. 수고했어요!");
-  })));
+  if (running) tools.append(button("운동 끝내기", () => {
+    notice("운동을 마쳤습니다. 수고했어요!");
+    instant(workout, () => { workout.ended_at = new Date().toISOString(); },
+      () => api("/workouts/" + workout.id, "PUT", {workout_date: workout.workout_date, title: workout.title, body_part: workout.body_part,
+        memo: workout.memo, started_at: workout.started_at, ended_at: workout.ended_at}));
+  }));
   tools.append(button("수정", () => openWorkout(workout)));
   if (detail) tools.append(button("삭제", (control) => {
     if (!confirm("이 운동과 모든 세트를 삭제할까요?")) return;
@@ -429,13 +449,14 @@ async function repeat(source) {
   }
   const used = new Map();
   for (const set of today.sets) used.set(set.exercise_id, Math.max(used.get(set.exercise_id) || 0, set.set_number));
-  for (const set of [...source.sets].sort((a, b) => a.id - b.id)) {
+  const copies = [...source.sets].sort((a, b) => a.id - b.id).map((set) => {
     const next = (used.get(set.exercise_id) || 0) + 1; used.set(set.exercise_id, next);
     // Plans copy over; outcomes (calories, heart rate) do not.
-    await api("/workouts/" + today.id + "/sets", "POST", setPayload(set, {set_number: next, completed: false, memo: null, calories: null, heart_rate: null}));
-  }
+    return setPayload(set, {set_number: next, completed: false, memo: null, calories: null, heart_rate: null});
+  });
+  Object.assign(today, await api("/workouts/" + today.id + "/sets/batch", "POST", copies));
   notice("‘" + source.title + "’ 구성을 오늘 운동에 불러왔어요.");
-  if (location.hash) location.hash = ""; else await showRoute();
+  if (location.hash) location.hash = ""; else { renderWeek(); renderCurrent(); }
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 function renderWeek() {
@@ -575,15 +596,16 @@ async function ensureExercise(item) {
 }
 async function addPicked(items) {
   const workout = state.picker.workout;
-  for (const item of items) {
-    const exercise = await ensureExercise(item);
+  const additions = [];
+  // New exercises are created side by side; then one request adds all the sets.
+  const exercises = await Promise.all(items.map(ensureExercise));
+  for (const exercise of exercises) {
     const sets = workout.sets.filter((set) => set.exercise_id === exercise.id);
-    const created = await api("/workouts/" + workout.id + "/sets", "POST", {exercise_id: exercise.id,
-      set_number: Math.max(0, ...sets.map((set) => set.set_number)) + 1, weight: null, reps: null, completed: false, memo: null});
-    workout.sets.push(created);
+    additions.push({exercise_id: exercise.id, set_number: Math.max(0, ...sets.map((set) => set.set_number)) + 1,
+      weight: null, reps: null, completed: false, memo: null});
   }
+  applyWorkout(workout, await api("/workouts/" + workout.id + "/sets/batch", "POST", additions));
   $("#picker-dialog").close();
-  await refreshWorkout(workout);
   notice(items.length + "개 운동을 추가했어요. 세트 표에 중량과 횟수를 적어 주세요.");
 }
 

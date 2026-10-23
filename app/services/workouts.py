@@ -104,3 +104,44 @@ def delete_set(session: Session, user_id: int, workout_id: int, set_id: int) -> 
     session.delete(get_set(session, user_id, workout_id, set_id))
     workout.updated_at = utc_now()
     commit(session)
+
+
+# Batch edits for the workout screen: one request per user action over a slow link.
+def add_sets(session: Session, user_id: int, workout_id: int, items: list[SetInput]) -> Workout:
+    """Add several sets in one transaction (repeat a past workout, add picked exercises)."""
+    workout = get_workout(session, user_id, workout_id)
+    exercises = {}
+    for data in items:
+        if data.exercise_id not in exercises:
+            exercises[data.exercise_id] = get_exercise(session, user_id, data.exercise_id)
+        if data.variant is not None and data.variant not in exercise_presets.variant_ids(exercises[data.exercise_id].preset_id):
+            raise RecordInvalid("이 운동에서 고를 수 없는 그립·발 위치입니다.")
+        session.add(WorkoutSet(workout_id=workout_id, user_id=user_id, **data.model_dump()))
+    workout.updated_at = utc_now()
+    commit(session)
+    return get_workout(session, user_id, workout_id)
+
+
+def set_exercise_variant(session: Session, user_id: int, workout_id: int, exercise_id: int, variant: str | None) -> Workout:
+    """Give the exercise's unfinished sets in this workout one variant (None = default). Finished sets keep theirs."""
+    workout = get_workout(session, user_id, workout_id)
+    exercise = get_exercise(session, user_id, exercise_id)
+    if variant is not None and variant not in exercise_presets.variant_ids(exercise.preset_id):
+        raise RecordInvalid("이 운동에서 고를 수 없는 그립·발 위치입니다.")
+    for item in workout.sets:
+        if item.exercise_id == exercise_id and not item.completed:
+            item.variant = variant
+    workout.updated_at = utc_now()
+    commit(session)
+    return get_workout(session, user_id, workout_id)
+
+
+def remove_exercise(session: Session, user_id: int, workout_id: int, exercise_id: int) -> Workout:
+    """Delete every set of one exercise from this workout."""
+    workout = get_workout(session, user_id, workout_id)
+    get_exercise(session, user_id, exercise_id)
+    for item in [item for item in workout.sets if item.exercise_id == exercise_id]:
+        session.delete(item)
+    workout.updated_at = utc_now()
+    commit(session)
+    return get_workout(session, user_id, workout_id)

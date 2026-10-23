@@ -1,13 +1,13 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.database import get_session
 from app.models import Exercise, Workout, WorkoutSet
-from app.schemas import DeleteResponse, ExerciseInput, ExerciseResponse, SetInput, SetResponse, WorkoutInput, WorkoutResponse
+from app.schemas import DeleteResponse, ExerciseInput, ExerciseResponse, SetInput, SetResponse, VariantInput, WorkoutInput, WorkoutResponse
 from app.services import exercise_presets, workouts as service
 
 router = APIRouter(prefix="/api", tags=["workouts"])
@@ -100,3 +100,18 @@ def update_set(workout_id: int, set_id: int, data: SetInput, db: DB, user: Curre
 def delete_set(workout_id: int, set_id: int, db: DB, user: CurrentUser) -> DeleteResponse:
     service.delete_set(db, user.id, workout_id, set_id)
     return DeleteResponse()
+
+
+@router.post("/workouts/{workout_id}/sets/batch", response_model=WorkoutResponse, status_code=201)
+def create_sets(workout_id: int, data: Annotated[list[SetInput], Body(min_length=1, max_length=300)], db: DB, user: CurrentUser) -> Workout:
+    return service.add_sets(db, user.id, workout_id, data)
+
+
+@router.put("/workouts/{workout_id}/exercises/{exercise_id}/variant", response_model=WorkoutResponse)
+def set_exercise_variant(workout_id: int, exercise_id: int, data: VariantInput, db: DB, user: CurrentUser) -> Workout:
+    return service.set_exercise_variant(db, user.id, workout_id, exercise_id, data.variant)
+
+
+@router.delete("/workouts/{workout_id}/exercises/{exercise_id}", response_model=WorkoutResponse)
+def remove_exercise(workout_id: int, exercise_id: int, db: DB, user: CurrentUser) -> Workout:
+    return service.remove_exercise(db, user.id, workout_id, exercise_id)
