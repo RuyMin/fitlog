@@ -1,4 +1,4 @@
-"""Schema v5; all timestamp values follow the UTC-naive storage convention.
+"""Schema v6; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -219,6 +219,8 @@ class WorkoutSet(Owned, SyncFields, Base):
     level: Mapped[float | None] = mapped_column(Float)
     calories: Mapped[float | None] = mapped_column(Float)
     heart_rate: Mapped[int | None] = mapped_column(Integer)
+    # Grip, foot position or stance from the exercise's preset (schema v6); empty means the default.
+    variant: Mapped[str | None] = mapped_column(String(40))
 
 
 class Meal(Owned, SyncFields, Base):

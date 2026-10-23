@@ -74,6 +74,7 @@ class SetInput(InputModel):
     level: Annotated[float, Field(ge=0, le=100)] | None = None
     calories: Annotated[float, Field(ge=0, le=20000)] | None = None
     heart_rate: Annotated[int, Field(ge=20, le=250, strict=True)] | None = None
+    variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
 
 
 class SetResponse(SetInput):

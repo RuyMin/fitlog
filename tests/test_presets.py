@@ -29,6 +29,11 @@ class PresetCatalogTests(unittest.TestCase):
             self.assertIn(preset["equipment"], data["equipment"], preset["id"])
             self.assertIn(preset["tracking"], data["tracking"], preset["id"])
             self.assertTrue(preset["muscles"], preset["id"])
+            variants = preset.get("variants", [])
+            self.assertEqual(len({v["id"] for v in variants}), len(variants), preset["id"])
+            for variant in variants:
+                self.assertTrue(variant["muscles"] and variant["label"] and variant["group"], (preset["id"], variant["id"]))
+                self.assertLessEqual(len(variant["id"]), 40)
 
     def test_name_matching(self) -> None:
         self.assertEqual(exercise_presets.match_name("바벨 벤치프레스"), "bench_press")
@@ -98,6 +103,33 @@ class CardioSetApiTests(unittest.TestCase):
                 self.assertEqual(self.post(set_number=1, **fields).status_code, 422)
 
 
+class VariantSetApiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.client = TestClient(app)
+        self.client.__enter__()
+        fresh_owner()
+        self.workout = self.client.post("/api/workouts", json={"workout_date": "2026-10-23", "title": "등"}).json()
+
+    def tearDown(self) -> None:
+        self.client.__exit__(None, None, None)
+
+    def add(self, exercise, **fields):
+        return self.client.post(f"/api/workouts/{self.workout['id']}/sets", json={"exercise_id": exercise["id"], "set_number": 1, **fields})
+
+    def test_variant_must_belong_to_the_exercise_preset(self) -> None:
+        pulldown = self.client.post("/api/exercises", json={"name": "랫풀다운", "preset_id": "lat_pulldown"}).json()
+        custom = self.client.post("/api/exercises", json={"name": "내 운동"}).json()
+        created = self.add(pulldown, variant="parallel", weight=50, reps=10)
+        self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(created.json()["variant"], "parallel")
+        self.assertEqual(self.add(pulldown, set_number=2).json()["variant"], None)
+        self.assertEqual(self.add(pulldown, set_number=3, variant="feet_high").status_code, 422)
+        self.assertEqual(self.add(custom, variant="wide").status_code, 422)
+        updated = self.client.put(f"/api/workouts/{self.workout['id']}/sets/{created.json()['id']}",
+                                  json={"exercise_id": pulldown["id"], "set_number": 1, "variant": None})
+        self.assertIsNone(updated.json()["variant"])
+
+
 class MigrationV4Tests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
@@ -125,10 +157,10 @@ INSERT INTO workout_sets (id, workout_id, exercise_id, set_number, weight, reps,
         with patch.dict(os.environ, env, clear=True):
             migrate(self.engine, self.path)
         with closing(sqlite3.connect(self.path)) as c:
-            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 5)
+            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 6)
             linked = dict(c.execute("SELECT id, preset_id FROM exercises ORDER BY id").fetchall())
             # v5: the strength set keeps its values and gains empty cardio columns.
-            self.assertEqual(c.execute("SELECT weight, reps, duration_seconds, distance_m, heart_rate FROM workout_sets").fetchone(), (60.0, 8, None, None, None))
+            self.assertEqual(c.execute("SELECT weight, reps, duration_seconds, distance_m, heart_rate, variant FROM workout_sets").fetchone(), (60.0, 8, None, None, None, None))
         # 스쿼트 is an alias of the back squat; the second back-squat row stays unlinked (one per user and preset).
         self.assertEqual(linked, {1: "back_squat", 2: None, 3: "lateral_raise", 4: None})
 

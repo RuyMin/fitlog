@@ -17,7 +17,7 @@ from app.api.health import router as health_router
 from app.api.workouts import router as workouts_router
 from app.api.records import router as records_router
 from app.api.statistics import router as statistics_router
-from app.services.persistence import RecordConflict, RecordNotFound
+from app.services.persistence import RecordConflict, RecordInvalid, RecordNotFound
 from sqlalchemy.exc import OperationalError
 from app.database import SessionLocal, engine, initialize_database
 from app.services.accounts import ensure_owner
@@ -54,6 +54,11 @@ async def not_found(_: Request, error: RecordNotFound) -> JSONResponse:
 @app.exception_handler(RecordConflict)
 async def conflict(_: Request, error: RecordConflict) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(error)})
+
+
+@app.exception_handler(RecordInvalid)
+async def invalid(_: Request, error: RecordInvalid) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": str(error)})
 
 
 @app.exception_handler(OperationalError)

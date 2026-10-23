@@ -106,3 +106,13 @@ dialog .info-tabs button[aria-selected=true]{background:var(--surface);color:var
 .extra-field{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--muted)}
 .extra-field span{white-space:nowrap}.extra-field input{margin:0;min-height:36px;padding:4px 8px;text-align:center}
 .info-tracking{font-size:12px;color:var(--muted);margin:0}
+.variant-box{display:flex;flex-direction:column;gap:6px}
+.variant-groups{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start}
+.variant-group{display:flex;flex-direction:column;gap:4px}
+.variant-group .chips{gap:4px}
+main .variant-group button.chip{min-height:32px;padding:0 10px;border-radius:16px;font-size:12px;background:var(--surface);white-space:nowrap}
+main .variant-group button.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.variant-group-label{font-size:10px;color:var(--muted);border-top:1.5px solid var(--line);padding-top:2px;text-align:center}
+.variant-note{font-size:12px;color:var(--muted);margin:0}
+.set-prev{display:flex;flex-direction:column;line-height:1.25}.set-variant{font-size:10px;color:var(--accent);white-space:normal;word-break:keep-all}
+.info-variants{display:flex;flex-direction:column;gap:6px}
