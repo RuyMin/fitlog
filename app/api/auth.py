@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.pages import page
 from app.api.deps import (
     CurrentUser, clear_oauth_cookie, clear_session_cookie, cookie_name, oauth_cookie_name, set_oauth_cookie,
     set_session_cookie,
@@ -19,7 +20,6 @@ from app.services import accounts
 
 router = APIRouter(tags=["auth"])
 DB = Annotated[Session, Depends(get_session)]
-STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
 # Per client address, in process: one Uvicorn worker serves the whole app.
 RATE_WINDOW, RATE_LIMIT = 60.0, 20
 _hits: dict[str, deque[float]] = defaultdict(deque)
@@ -50,14 +50,14 @@ def to_login(error: str) -> RedirectResponse:
 
 
 @router.get("/login", include_in_schema=False)
-def login_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "login.html", headers={"Cache-Control": "no-store"})
+def login_page() -> HTMLResponse:
+    return page("login.html", "no-store")
 
 
 @router.get("/invite/{token}", include_in_schema=False)
-def invite_page(token: str) -> FileResponse:
+def invite_page(token: str) -> HTMLResponse:
     # The token is only checked on submit; the page itself reveals nothing.
-    return FileResponse(STATIC_DIR / "invite.html", headers={"Cache-Control": "no-store"})
+    return page("invite.html", "no-store")
 
 
 @router.get("/auth/google/start", include_in_schema=False)

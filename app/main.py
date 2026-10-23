@@ -4,12 +4,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from app import config
+from app.pages import IMMUTABLE, asset_hash, page
 from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
@@ -97,47 +98,50 @@ async def security_policy(request: Request, call_next: RequestResponseEndpoint) 
     if request.url.path.startswith(("/api/", "/auth/")):
         response.headers["Cache-Control"] = "no-store"
     elif request.url.path.startswith("/static/"):
-        # Revalidate every time (cheap 304 via ETag). Without this, browsers reuse
-        # a stale script heuristically after an update, while the page is new.
-        response.headers["Cache-Control"] = "no-cache"
+        # Pages link assets as ?v=<content hash> (app/pages.py): that exact address never changes,
+        # so it is cached for good. Anything else is revalidated every time (cheap 304 via ETag);
+        # otherwise browsers reuse a stale script heuristically after an update.
+        current = request.query_params.get("v")
+        fresh = response.status_code == 200 and current is not None and current == asset_hash(request.url.path)
+        response.headers["Cache-Control"] = IMMUTABLE if fresh else "no-cache"
     response.headers.update(SECURITY_HEADERS)
     return response
 
 
 @app.get("/meals", include_in_schema=False)
-def meals_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "meals.html", headers={"Cache-Control": "no-cache"})
+def meals_page() -> HTMLResponse:
+    return page("meals.html")
 
 
 @app.get("/body", include_in_schema=False)
-def body_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "body.html", headers={"Cache-Control": "no-cache"})
+def body_page() -> HTMLResponse:
+    return page("body.html")
 
 
 @app.get("/body-metrics", include_in_schema=False)
 @app.get("/sleep", include_in_schema=False)
-def records_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "records.html", headers={"Cache-Control": "no-cache"})
+def records_page() -> HTMLResponse:
+    return page("records.html")
 
 
 @app.get("/settings", include_in_schema=False)
-def settings_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "settings.html", headers={"Cache-Control": "no-cache"})
+def settings_page() -> HTMLResponse:
+    return page("settings.html")
 
 
 @app.get("/statistics", include_in_schema=False)
-def statistics_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "statistics.html", headers={"Cache-Control": "no-cache"})
+def statistics_page() -> HTMLResponse:
+    return page("statistics.html")
 
 
 @app.get("/workouts", include_in_schema=False)
-def workouts_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "workouts.html", headers={"Cache-Control": "no-cache"})
+def workouts_page() -> HTMLResponse:
+    return page("workouts.html")
 
 
 @app.get("/", include_in_schema=False)
-def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
+def index() -> HTMLResponse:
+    return page("index.html")
 
 
 @app.get("/manifest.json", include_in_schema=False)
