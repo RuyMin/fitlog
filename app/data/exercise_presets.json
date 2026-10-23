@@ -1896,7 +1896,7 @@
   {
    "id": "leg_press",
    "name": "레그 프레스",
-   "name_en": "Leg Press",
+   "name_en": "45° Leg Press",
    "body_part": "하체",
    "muscles": [
     "대퇴사두근",
@@ -1906,12 +1906,45 @@
    "kind": "compound",
    "tracking": "weight_reps",
    "aliases": [
-    "레그프레스"
+    "레그프레스",
+    "45도 레그 프레스",
+    "인클라인 레그 프레스"
    ],
    "tags": [
     "하체",
     "대퇴사두근",
     "둔근",
+    "머신",
+    "기구",
+    "복합"
+   ]
+  },
+  {
+   "id": "seated_leg_press",
+   "name": "시티드 레그 프레스",
+   "name_en": "Seated Leg Press",
+   "body_part": "하체",
+   "muscles": [
+    "대퇴사두근",
+    "둔근",
+    "햄스트링",
+    "내전근"
+   ],
+   "equipment": "머신",
+   "kind": "compound",
+   "tracking": "weight_reps",
+   "aliases": [
+    "시티드 레그프레스",
+    "앉아서 레그 프레스",
+    "호리즌탈 레그 프레스",
+    "수평 레그 프레스"
+   ],
+   "tags": [
+    "하체",
+    "대퇴사두근",
+    "둔근",
+    "햄스트링",
+    "내전근",
     "머신",
     "기구",
     "복합"
@@ -2338,6 +2371,38 @@
    "tags": [
     "하체",
     "내전근",
+    "머신",
+    "기구",
+    "고립"
+   ]
+  },
+  {
+   "id": "total_hip",
+   "name": "토탈 힙 머신",
+   "name_en": "Total Hip Machine",
+   "body_part": "하체",
+   "muscles": [
+    "둔근",
+    "중둔근",
+    "내전근",
+    "햄스트링"
+   ],
+   "equipment": "머신",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "토탈 힙",
+    "멀티 힙",
+    "멀티힙 머신",
+    "스탠딩 힙 머신",
+    "힙 익스텐션 머신"
+   ],
+   "tags": [
+    "하체",
+    "둔근",
+    "중둔근",
+    "내전근",
+    "햄스트링",
     "머신",
     "기구",
     "고립"
