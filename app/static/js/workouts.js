@@ -84,8 +84,14 @@ async function loadExercises() {
   }
   state.exercises = exercises;
 }
+// The catalog is a static file linked by content hash (preloaded by the page), so after the first visit
+// it comes from the phone's cache instead of a server round trip.
 async function loadCatalog() {
-  if (!state.catalog) { state.catalog = await api("/exercise-presets"); state.presets = state.catalog.presets; }
+  if (state.catalog) return;
+  const href = document.getElementById("preset-catalog")?.getAttribute("href");
+  const response = href ? await fetch(href, {credentials: "same-origin"}).catch(() => null) : null;
+  state.catalog = response?.ok ? await response.json() : await api("/exercise-presets");
+  state.presets = state.catalog.presets;
 }
 const presetOf = (exercise) => exercise?.preset_id ? state.presets.find((preset) => preset.id === exercise.preset_id) : null;
 function thumb(muscles, label) {
@@ -99,7 +105,7 @@ function describe(exercise) {
   return [preset?.body_part || exercise.body_part, preset?.equipment || exercise.category].filter(Boolean).join(" · ") || "부위·장비 미지정";
 }
 // ---- set fields by tracking type -----------------------------------------------------------------
-// Each preset says how it is recorded (app/data/exercise_presets.json "tracking"); custom exercises use weight × reps.
+// Each preset says how it is recorded (app/static/data/exercise_presets.json "tracking"); custom exercises use weight × reps.
 const CARDIO_FIELDS = ["duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate"];
 const FIELDS = {
   weight: {key: "weight", label: "kg", mode: "decimal"},

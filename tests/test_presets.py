@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -64,6 +65,15 @@ class PresetApiTests(unittest.TestCase):
         custom = self.client.post("/api/exercises", json={"name": "내 운동"})
         self.assertEqual(custom.status_code, 201)
         self.assertIsNone(custom.json()["preset_id"])
+
+    def test_workout_page_links_catalog_by_content_hash(self) -> None:
+        page = self.client.get("/workouts").text
+        match = re.search(r'id="preset-catalog" href="(/static/data/exercise_presets\.json\?v=([0-9a-f]{12}))"', page)
+        self.assertIsNotNone(match, "workouts page must preload the catalog by content hash")
+        response = self.client.get(match[1])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["cache-control"], "public, max-age=31536000, immutable")
+        self.assertEqual(response.json(), self.client.get("/api/exercise-presets").json())
 
 
 class CardioSetApiTests(unittest.TestCase):
