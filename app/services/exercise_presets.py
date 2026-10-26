@@ -1,6 +1,7 @@
-"""Built-in exercise presets (app/data/exercise_presets.json): names, aliases and body-part/equipment/muscle tags.
+"""Built-in exercise presets (app/static/data/exercise_presets.json): names, aliases and body-part/equipment/muscle tags.
 
-The file is read-only reference data shared by every user. A user's own Exercise row links to a
+The file is read-only reference data shared by every user. It lives under /static/ so the workout page
+can link it by content hash and phones keep it until it changes (the API route stays for older pages). A user's own Exercise row links to a
 preset through `preset_id`; the preset never changes what the user has stored.
 """
 import json
@@ -8,7 +9,7 @@ import re
 from functools import cache
 from pathlib import Path
 
-PATH = Path(__file__).resolve().parents[1] / "data" / "exercise_presets.json"
+PATH = Path(__file__).resolve().parents[1] / "static" / "data" / "exercise_presets.json"
 
 
 @cache
