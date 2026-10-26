@@ -103,7 +103,8 @@ async def security_policy(request: Request, call_next: RequestResponseEndpoint) 
         response = await call_next(request)
     if request.url.path.startswith(("/api/", "/auth/")):
         response.headers["Cache-Control"] = "no-store"
-    if request.url.path.startswith("/api/") and request.url.path != "/api/metrics":
+    # /api/health is polled by the container healthcheck and every page; it would drown the rest.
+    if request.url.path.startswith("/api/") and request.url.path != "/api/health":
         # Server time for the speed statistics; the phone subtracts it from what it waited.
         server_ms = (time.perf_counter() - started) * 1000
         response.headers["Server-Timing"] = f"app;dur={server_ms:.1f}"

@@ -37,7 +37,7 @@ class PerfStatsTests(unittest.TestCase):
         self.assertFalse(any("secret" in route or str(workout["id"]) in route for _, route, _ in routes))
         self.assertEqual(self.client.get("/static/css/app.css").headers.get("server-timing"), None)
 
-    def test_phone_reports_are_stored_but_not_timed_themselves(self) -> None:
+    def test_phone_reports_are_stored_and_health_checks_are_not_timed(self) -> None:
         sent = self.client.post("/api/metrics", json=[
             {"kind": "client", "at": now_iso(), "page": "/workouts", "route": "/api/workouts/12/sets/40", "method": "PUT",
              "status": 200, "total_ms": 640, "server_ms": 4.2},
@@ -48,7 +48,9 @@ class PerfStatsTests(unittest.TestCase):
         stored = self.events(source="client")
         self.assertEqual([(e.route, e.total_ms, e.server_ms, e.user_id) for e in stored], [("/api/workouts/{id}/sets/{id}", 640, 4.2, self.owner.id)])
         self.assertEqual(len(self.events(source="page")), 1)
-        self.assertFalse(any(e.route == "/api/metrics" for e in self.events()))
+        self.assertEqual([(e.route, e.status) for e in self.events(source="server") if e.route == "/api/metrics"], [("/api/metrics", 202)])
+        self.client.get("/api/health")
+        self.assertFalse(any(e.route == "/api/health" for e in self.events(source="server")))
         bad = self.client.post("/api/metrics", json=[{"kind": "server", "at": now_iso(), "route": "/api/x", "total_ms": 1}])
         self.assertEqual(bad.status_code, 422)
 

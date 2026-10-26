@@ -9,7 +9,7 @@
     "PUT /api/workouts/{workout_id}/sets/{set_id}": "세트 저장 (완료·값 입력)", "POST /api/workouts/{workout_id}/sets": "세트 추가",
     "DELETE /api/workouts/{workout_id}/sets/{set_id}": "세트 삭제", "POST /api/workouts/{workout_id}/sets/batch": "세트 여러 개 추가",
     "PUT /api/workouts/{workout_id}/exercises/{exercise_id}/variant": "그립 선택", "DELETE /api/workouts/{workout_id}/exercises/{exercise_id}": "종목 빼기",
-    "GET /api/exercises": "내 종목", "GET /api/exercise-presets": "운동 프리셋", "GET /api/me": "계정 정보", "GET /api/health": "서버 상태",
+    "GET /api/exercises": "내 종목", "GET /api/exercise-presets": "운동 프리셋", "GET /api/me": "계정 정보", "GET /api/health": "서버 상태 (왕복 확인)", "POST /api/metrics": "통계 전송",
     "GET /api/assistant/status": "AI 상태", "POST /api/assistant/draft": "AI 초안", "POST /api/assistant/commit": "AI 저장",
     "GET /api/meals": "식단 목록", "GET /api/body-metrics": "체중·신체 목록", "GET /api/sleep": "수면 목록", "GET /api/statistics": "통계",
   };
