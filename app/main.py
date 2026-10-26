@@ -1,4 +1,5 @@
 import os
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,10 +12,13 @@ from starlette.responses import Response
 
 from app import config
 from app.pages import IMMUTABLE, asset_hash, page
+from app.services import perf
+from starlette.concurrency import run_in_threadpool
 from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
 from app.api.health import router as health_router
+from app.api.perf import router as perf_router
 from app.api.workouts import router as workouts_router
 from app.api.records import router as records_router
 from app.api.statistics import router as statistics_router
@@ -42,6 +46,7 @@ app.include_router(auth_router)
 app.include_router(assistant_router)
 app.include_router(excel_router)
 app.include_router(health_router)
+app.include_router(perf_router)
 app.include_router(workouts_router)
 app.include_router(records_router)
 app.include_router(statistics_router)
@@ -91,12 +96,24 @@ def cross_origin(request: Request) -> bool:
 
 @app.middleware("http")
 async def security_policy(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    started = time.perf_counter()
     if request.method in UNSAFE_METHODS and cross_origin(request):
         response: Response = JSONResponse(status_code=403, content={"detail": "다른 사이트에서 보낸 요청은 처리할 수 없습니다."})
     else:
         response = await call_next(request)
     if request.url.path.startswith(("/api/", "/auth/")):
         response.headers["Cache-Control"] = "no-store"
+    if request.url.path.startswith("/api/") and request.url.path != "/api/metrics":
+        # Server time for the speed statistics; the phone subtracts it from what it waited.
+        server_ms = (time.perf_counter() - started) * 1000
+        response.headers["Server-Timing"] = f"app;dur={server_ms:.1f}"
+        route = getattr(request.scope.get("route"), "path_format", None) or perf.template(request.url.path)
+        size = response.headers.get("content-length")
+        try:
+            await run_in_threadpool(perf.record_server, getattr(request.state, "user_id", None), request.method, route,
+                                    response.status_code, server_ms, int(size) if size else None)
+        except Exception:
+            pass  # statistics must never break a request
     elif request.url.path.startswith("/static/"):
         # Pages link assets as ?v=<content hash> (app/pages.py): that exact address never changes,
         # so it is cached for good. Anything else is revalidated every time (cheap 304 via ETag);

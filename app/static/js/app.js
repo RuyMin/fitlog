@@ -4,8 +4,49 @@
 // every page script's own fetch wrapper.
 const nativeFetch = window.fetch.bind(window);
 let leavingForLogin = false;
+
+// Speed statistics (app/services/perf.py): how long the phone waited for each API request, with the
+// server's own share from the Server-Timing header, and how long each screen took to show its data.
+// Only the path shape, status and durations are sent; never what was saved or shown.
+const perfQueue = [];
+function perfRecord(event) {
+  if (perfQueue.length < 300) perfQueue.push({at: new Date().toISOString(), page: location.pathname, ...event});
+}
+function serverMs(response) {
+  const match = /app;dur=([\d.]+)/.exec(response.headers.get("Server-Timing") || "");
+  return match ? Number(match[1]) : null;
+}
+function perfFlush(leaving = false) {
+  if (!perfQueue.length) return;
+  const body = JSON.stringify(perfQueue.splice(0));
+  if (leaving && navigator.sendBeacon) navigator.sendBeacon("/api/metrics", new Blob([body], {type: "application/json"}));
+  else nativeFetch("/api/metrics", {method: "POST", headers: {"Content-Type": "application/json"}, body, keepalive: true}).catch(() => {});
+}
+setInterval(perfFlush, 30000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") perfFlush(true); });
+// One "page" event per screen: page ready (from cache or network), then the first data shown.
+window.addEventListener("load", () => setTimeout(() => {
+  const nav = performance.getEntriesByType("navigation")[0];
+  const first = performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/") && !entry.name.includes("/api/metrics") && entry.startTime < 3000);
+  if (!nav || !first.length) return;
+  perfRecord({kind: "page", route: location.pathname, total_ms: Math.round(Math.max(...first.map((entry) => entry.responseEnd))),
+    html_ms: Math.round(nav.responseEnd), cached: nav.transferSize === 0});
+}, 5000));
+
 window.fetch = async (...args) => {
-  const response = await nativeFetch(...args);
+  const started = performance.now();
+  const target = new URL(args[0] instanceof Request ? args[0].url : String(args[0]), location.href);
+  const method = (args[1]?.method || (args[0] instanceof Request ? args[0].method : "GET")).toUpperCase();
+  const measured = target.origin === location.origin && target.pathname.startsWith("/api/") && target.pathname !== "/api/metrics";
+  let response;
+  try {
+    response = await nativeFetch(...args);
+  } catch (error) {
+    if (measured) perfRecord({kind: "client", route: target.pathname, method, status: 0, total_ms: Math.round(performance.now() - started)});
+    throw error;
+  }
+  if (measured) perfRecord({kind: "client", route: target.pathname, method, status: response.status,
+    total_ms: Math.round(performance.now() - started), server_ms: serverMs(response)});
   if (response.status === 401 && new URL(response.url || location.href).pathname.startsWith("/api/") && !leavingForLogin) {
     leavingForLogin = true;
     location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search + location.hash));

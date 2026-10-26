@@ -1,4 +1,4 @@
-"""Schema v6; all timestamp values follow the UTC-naive storage convention.
+"""Schema v7; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -117,6 +117,36 @@ class AiUsage(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     day: Mapped[date] = mapped_column(Date, primary_key=True)
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class PerfEvent(Base):
+    """Request timing for the operator's speed statistics (schema v7). Kept 14 days.
+
+    Only technical facts: when, which route template (ids as {id}), status and durations.
+    No record contents, query values or request bodies.
+    """
+    __tablename__ = "perf_events"
+    __table_args__ = (
+        CheckConstraint("source IN ('server', 'client', 'page')", name="ck_perf_source"),
+        CheckConstraint("total_ms >= 0", name="ck_perf_total"),
+        Index("ix_perf_events_at", "at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    # server: one API request as the app handled it; client: the same request as the phone waited for it;
+    # page: opening a screen (html_ms = page ready, total_ms = first data shown).
+    source: Mapped[str] = mapped_column(String(10))
+    page: Mapped[str | None] = mapped_column(String(60))
+    route: Mapped[str] = mapped_column(String(160))
+    method: Mapped[str | None] = mapped_column(String(8))
+    status: Mapped[int | None] = mapped_column(Integer)
+    total_ms: Mapped[float] = mapped_column(Float)
+    server_ms: Mapped[float | None] = mapped_column(Float)
+    html_ms: Mapped[float | None] = mapped_column(Float)
+    cached: Mapped[bool | None] = mapped_column(Boolean(create_constraint=True))
+    bytes: Mapped[int | None] = mapped_column(Integer)
 
 
 class Owned:
