@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -411,7 +411,14 @@ def migrate_v6(engine: Engine) -> None:
             raise
 
 
-STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6}
+def migrate_v7(engine: Engine) -> None:
+    """Speed statistics. perf_events is a new table with no existing rows, so create_all builds it
+    (like ai_usage and the auth tables in v3); this step only records the version."""
+    with engine.begin() as c:
+        c.exec_driver_sql("PRAGMA user_version=7")
+
+
+STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7}
 
 
 def finish_migration(engine: Engine) -> None:

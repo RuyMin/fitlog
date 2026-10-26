@@ -46,6 +46,7 @@ def current_user(request: Request, db: Annotated[Session, Depends(get_session)])
     user = resolve_session(db, request.cookies.get(cookie_name()))
     if user is None:
         raise HTTPException(401, "로그인이 필요합니다.")
+    request.state.user_id = user.id  # for the speed statistics (app.services.perf)
     return user
 
 

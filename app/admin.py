@@ -30,6 +30,8 @@ def main(argv: list[str] | None = None) -> int:
     remove = commands.add_parser("delete-user", help="delete a member and every record they own")
     remove.add_argument("email")
     remove.add_argument("--yes", action="store_true", help="confirm permanent deletion")
+    speed = commands.add_parser("perf", help="request speed statistics (phone wait vs server time)")
+    speed.add_argument("--days", type=int, default=1, choices=range(1, 15), metavar="1-14")
     args = parser.parse_args(argv)
 
     from app.database import SessionLocal, initialize_database
@@ -57,6 +59,18 @@ def main(argv: list[str] | None = None) -> int:
                     return 2
                 accounts.set_status(session, user.id, "disabled" if args.command == "disable" else "active")
                 print(f"{user.email}: {args.command}d")
+            elif args.command == "perf":
+                from app.services import perf
+                data = perf.summary(session, args.days)
+                fmt = lambda s: f"{s['p50']}/{s['p90']}ms x{s['count']}" if s.get("count") else "-"
+                print(f"since {data['since']}  phone {fmt(data['overall']['client'])}  server {fmt(data['overall']['server'])}  (median/p90)")
+                print("pages:")
+                for p in data["pages"]:
+                    print(f"  {p['page']:<14} data {fmt(p['data']):<24} html {fmt(p['html']):<24} cached {p['cached_share']:.0%}")
+                print("requests:")
+                for r in data["routes"]:
+                    net = "-" if r["network_p50"] is None else f"{r['network_p50']}ms"
+                    print(f"  {r['method']:<6} {r['route']:<58} phone {fmt(r['client']):<22} server {fmt(r['server']):<20} network {net} errors {r['errors']}")
             else:
                 if not args.yes:
                     print("Permanent. Re-run with --yes. Earlier backup files still contain this user's data.", file=sys.stderr)

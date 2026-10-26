@@ -157,7 +157,7 @@ INSERT INTO workout_sets (id, workout_id, exercise_id, set_number, weight, reps,
         with patch.dict(os.environ, env, clear=True):
             migrate(self.engine, self.path)
         with closing(sqlite3.connect(self.path)) as c:
-            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 6)
+            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 7)
             linked = dict(c.execute("SELECT id, preset_id FROM exercises ORDER BY id").fetchall())
             # v5: the strength set keeps its values and gains empty cardio columns.
             self.assertEqual(c.execute("SELECT weight, reps, duration_seconds, distance_m, heart_rate, variant FROM workout_sets").fetchone(), (60.0, 8, None, None, None, None))
