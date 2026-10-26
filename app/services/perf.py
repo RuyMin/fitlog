@@ -66,7 +66,9 @@ def percentile(values: list[float], share: float) -> float:
 def summary(session: Session, days: int) -> dict:
     """Aggregates for the settings card and the admin CLI."""
     since = utc_now() - timedelta(days=days)
-    rows = session.scalars(select(PerfEvent).where(PerfEvent.at >= since)).all()
+    # Server-side health checks (container healthcheck) were recorded before 1.2.3's fix; leave them out.
+    rows = [row for row in session.scalars(select(PerfEvent).where(PerfEvent.at >= since))
+            if not (row.source == "server" and row.route == "/api/health")]
     emails = dict(session.execute(select(User.id, User.email)).all())
 
     def stats(values):

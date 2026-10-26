@@ -16,22 +16,44 @@ function serverMs(response) {
   const match = /app;dur=([\d.]+)/.exec(response.headers.get("Server-Timing") || "");
   return match ? Number(match[1]) : null;
 }
+// Moving between screens in a few seconds is normal, and phones do not reliably send anything while a
+// page goes away. So: send every 10 s, try a beacon on leaving, and keep what could not be handed over
+// in localStorage for the next screen to send.
+const PERF_KEY = "fitlog-perf-pending";
 function perfFlush(leaving = false) {
   if (!perfQueue.length) return;
-  const body = JSON.stringify(perfQueue.splice(0));
-  if (leaving && navigator.sendBeacon) navigator.sendBeacon("/api/metrics", new Blob([body], {type: "application/json"}));
-  else nativeFetch("/api/metrics", {method: "POST", headers: {"Content-Type": "application/json"}, body, keepalive: true}).catch(() => {});
+  const events = perfQueue.splice(0);
+  const body = JSON.stringify(events);
+  if (leaving) {
+    const sent = navigator.sendBeacon?.("/api/metrics", new Blob([body], {type: "application/json"}));
+    if (!sent) { try { localStorage.setItem(PERF_KEY, body); } catch { /* storage unavailable: drop */ } }
+    return;
+  }
+  nativeFetch("/api/metrics", {method: "POST", headers: {"Content-Type": "application/json"}, body, keepalive: true})
+    .then((response) => { if (!response.ok && response.status !== 422) perfQueue.unshift(...events.slice(0, 300 - perfQueue.length)); })
+    .catch(() => perfQueue.unshift(...events.slice(0, 300 - perfQueue.length)));
 }
-setInterval(perfFlush, 30000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") perfFlush(true); });
+try {
+  const pending = JSON.parse(localStorage.getItem(PERF_KEY) || "[]");
+  localStorage.removeItem(PERF_KEY);
+  if (Array.isArray(pending)) perfQueue.push(...pending.slice(0, 300));
+} catch { /* storage unavailable or damaged: start empty */ }
+setInterval(perfFlush, 10000);
 // One "page" event per screen: page ready (from cache or network), then the first data shown.
-window.addEventListener("load", () => setTimeout(() => {
+let pageRecorded = false;
+function recordPage() {
+  if (pageRecorded) return;
   const nav = performance.getEntriesByType("navigation")[0];
-  const first = performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/") && !entry.name.includes("/api/metrics") && entry.startTime < 3000);
+  const first = performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/") && !entry.name.includes("/api/metrics") && entry.startTime < 3000 && entry.responseEnd > 0);
   if (!nav || !first.length) return;
+  pageRecorded = true;
   perfRecord({kind: "page", route: location.pathname, total_ms: Math.round(Math.max(...first.map((entry) => entry.responseEnd))),
     html_ms: Math.round(nav.responseEnd), cached: nav.transferSize === 0});
-}, 5000));
+}
+window.addEventListener("load", () => setTimeout(recordPage, 4000));
+const leave = () => { recordPage(); perfFlush(true); };
+window.addEventListener("pagehide", leave);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") leave(); });
 
 window.fetch = async (...args) => {
   const started = performance.now();
