@@ -663,6 +663,32 @@
    ]
   },
   {
+   "id": "dead_hang",
+   "name": "철봉 매달리기",
+   "name_en": "Dead Hang",
+   "body_part": "등",
+   "muscles": [
+    "전완근",
+    "광배근"
+   ],
+   "equipment": "맨몸",
+   "kind": "compound",
+   "tracking": "hold",
+   "aliases": [
+    "데드 행",
+    "데드행",
+    "매달리기",
+    "철봉 버티기"
+   ],
+   "tags": [
+    "등",
+    "전완근",
+    "광배근",
+    "맨몸",
+    "복합"
+   ]
+  },
+  {
    "id": "assisted_pull_up",
    "name": "어시스티드 풀업",
    "name_en": "Assisted Pull-up",
