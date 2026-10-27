@@ -1,7 +1,7 @@
 /* Home: today's goals, quick record, summary tiles, week strip and the record sheet. */
 .home{display:flex;flex-direction:column;gap:16px}
 .home .topbar{margin-bottom:4px;align-items:flex-end}
-.home .status:not(.error){display:none}
+.home .status:not(.error):not(.loading){display:none}
 .home .main-footer{margin-top:8px}
 
 .goals{background:var(--brand);color:var(--brand-ink);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:16px}

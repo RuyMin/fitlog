@@ -1,7 +1,7 @@
 /* Meals by day: date stepper, intake ring and macro bars, the day's meals, 7-day calories. */
 .meals-page{display:flex;flex-direction:column;gap:16px}
 .meals-page .topbar{margin-bottom:0;align-items:flex-end}
-.meals-page .status:not(.error){display:none}
+.meals-page .status:not(.error):not(.loading){display:none}
 .meals-page #notice:empty{display:none}
 
 .day-stepper{align-self:flex-start;justify-self:start;display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:2px}

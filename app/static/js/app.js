@@ -82,17 +82,45 @@ store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PRE
   try { if (!fresh(JSON.parse(storage.getItem(key)))) storage.removeItem(key); } catch { storage.removeItem(key); }
 }));
 
+// Corner indicator: the server pill in the top bar says "불러오는 중" / "저장 중" while an API request has
+// been waiting longer than BUSY_DELAY (quick answers do not make it flicker), then shows the
+// connection state again.
+const BUSY_DELAY = 300;
+const busy = {reads: 0, writes: 0, shown: false, timer: 0};
+let serverState = null; // {text, className} once known; the page's own "서버 확인 중" until then
+function paintStatus() {
+  const status = document.querySelector("#server-status");
+  if (!status) return;
+  if (busy.shown) { status.textContent = busy.writes ? "저장 중" : "불러오는 중"; status.className = "status loading"; }
+  else if (serverState) { status.textContent = serverState.text; status.className = serverState.className; }
+}
+function busyStart(write) {
+  busy[write ? "writes" : "reads"]++;
+  if (busy.shown) paintStatus();
+  else if (!busy.timer) busy.timer = setTimeout(() => { busy.timer = 0; if (busy.reads + busy.writes) { busy.shown = true; paintStatus(); } }, BUSY_DELAY);
+}
+function busyEnd(write) {
+  busy[write ? "writes" : "reads"]--;
+  if (busy.reads + busy.writes) { if (busy.shown) paintStatus(); return; }
+  clearTimeout(busy.timer); busy.timer = 0;
+  if (busy.shown) { busy.shown = false; paintStatus(); }
+}
+
 window.fetch = async (...args) => {
   const started = performance.now();
   const target = new URL(args[0] instanceof Request ? args[0].url : String(args[0]), location.href);
   const method = (args[1]?.method || (args[0] instanceof Request ? args[0].method : "GET")).toUpperCase();
   const measured = target.origin === location.origin && target.pathname.startsWith("/api/") && target.pathname !== "/api/metrics";
+  const write = method !== "GET";
   let response;
+  if (measured) busyStart(write);
   try {
     response = await nativeFetch(...args);
   } catch (error) {
     if (measured) perfRecord({kind: "client", route: target.pathname, method, status: 0, total_ms: Math.round(performance.now() - started)});
     throw error;
+  } finally {
+    if (measured) busyEnd(write);
   }
   if (measured) perfRecord({kind: "client", route: target.pathname, method, status: response.status,
     total_ms: Math.round(performance.now() - started), server_ms: serverMs(response)});
@@ -120,9 +148,8 @@ today.textContent = new Intl.DateTimeFormat("ko-KR", {
 }).format(new Date());
 
 function showServer(ok, version) {
-  const status = document.querySelector("#server-status");
-  status.textContent = ok ? "● 서버 연결됨" : "서버 연결을 확인해 주세요";
-  status.className = ok ? "status ok" : "status error";
+  serverState = ok ? {text: "● 서버 연결됨", className: "status ok"} : {text: "서버 연결을 확인해 주세요", className: "status error"};
+  paintStatus();
   // The home footer and settings footer carry this element; other pages skip it.
   const label = document.querySelector("#app-version");
   if (label && version) label.textContent = "v" + version;
@@ -145,9 +172,8 @@ async function checkHealth() {
 }
 window.addEventListener("online", checkHealth);
 window.addEventListener("offline", () => {
-  const status = document.querySelector("#server-status");
-  status.textContent = "오프라인 · 저장된 화면";
-  status.className = "status error";
+  serverState = {text: "오프라인 · 저장된 화면", className: "status error"};
+  paintStatus();
 });
 const pwaNote = document.querySelector("#pwa-note");
 if ("serviceWorker" in navigator && window.isSecureContext) {

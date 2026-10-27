@@ -1,7 +1,7 @@
 /* 몸·추이: period switch, body composition range bars, trend lines, 7-night sleep chart. */
 .body-page{display:flex;flex-direction:column;gap:16px}
 .body-page .topbar{margin-bottom:0;align-items:flex-end}
-.body-page .status:not(.error){display:none}
+.body-page .status:not(.error):not(.loading){display:none}
 .body-page #notice:empty{display:none}
 .body-page .card{display:flex;flex-direction:column;gap:14px}
 .body-page .section-heading{margin-bottom:0}
