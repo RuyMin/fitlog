@@ -36,6 +36,7 @@
   });
   $("logout").addEventListener("click", async () => {
     $("logout").disabled = true;
+    window.fitlogCache.clear();
     try { await fetch("/auth/logout", {method: "POST", cache: "no-store", signal: AbortSignal.timeout(10000)}); } catch { /* the session cookie is cleared on the next successful request */ }
     location.replace("/login");
   });

@@ -12,7 +12,7 @@ const metrics = [
   {key: "skeletal_muscle", label: "골격근량", unit: "kg"},
   {key: "body_fat", label: "체지방률", unit: "%"},
 ];
-const state = {days: 90, request: 0, sleepGoal: null};
+const state = {days: 90, request: 0, sleepGoal: null, sleep: null};
 
 function element(tag, text, className) {
   const item = document.createElement(tag);
@@ -144,13 +144,21 @@ async function load() {
   const to = new Date(), from = new Date(to);
   from.setDate(from.getDate() - state.days);
   const sleepFrom = new Date(to); sleepFrom.setHours(0, 0, 0, 0); sleepFrom.setDate(sleepFrom.getDate() - 6);
+  const show = ({records, sleep}) => {
+    state.sleep = sleep;
+    $("trend-title").textContent = {30: "1개월", 90: "3개월", 365: "1년"}[state.days] + " 변화";
+    $("trend-range").textContent = shortDate(from) + " ~ 오늘";
+    renderComposition(records); renderTrends(records, from, to); renderSleep(sleep);
+  };
+  // Show what this phone saved last time for this period (app.js show-then-refresh), then the server's copy.
+  const key = "body:" + state.days + ":" + keyOf(to), cached = window.fitlogCache.get(key);
+  if (cached) show(cached);
   try {
     const [records, sleep] = await Promise.all([all("/body-metrics", from, to), all("/sleep", sleepFrom, to)]);
     if (request !== state.request) return;
     notice("");
-    $("trend-title").textContent = {30: "1개월", 90: "3개월", 365: "1년"}[state.days] + " 변화";
-    $("trend-range").textContent = shortDate(from) + " ~ 오늘";
-    renderComposition(records); renderTrends(records, from, to); renderSleep(sleep);
+    window.fitlogCache.set(key, {records, sleep});
+    show({records, sleep});
   } catch (error) { if (request === state.request) notice(error.message); }
 }
 
@@ -161,4 +169,11 @@ for (const button of document.querySelectorAll(".period button")) {
     load();
   });
 }
-api("/dashboard?timezone=" + encodeURIComponent(zone)).then((data) => { state.sleepGoal = data.sleep_goal_minutes; load(); }).catch(() => load());
+// The sleep goal only adds the dotted line, so the records do not wait for it.
+state.sleepGoal = window.fitlogCache.get("dashboard:" + zone)?.sleep_goal_minutes ?? null;
+load();
+api("/dashboard?timezone=" + encodeURIComponent(zone)).then((data) => {
+  window.fitlogCache.set("dashboard:" + zone, data);
+  state.sleepGoal = data.sleep_goal_minutes;
+  if (state.sleep) renderSleep(state.sleep);
+}).catch(() => {});

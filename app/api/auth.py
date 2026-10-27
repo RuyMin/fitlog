@@ -15,6 +15,7 @@ from app.api.deps import (
     set_session_cookie,
 )
 from app.auth import google
+from app.config import APP_VERSION
 from app.database import get_session
 from app.services import accounts
 
@@ -106,7 +107,8 @@ def google_callback(request: Request, db: DB, state: str = "", code: str = "", e
 
 @router.get("/api/me")
 def me(user: CurrentUser) -> dict:
-    return {"id": user.id, "email": user.email, "display_name": user.display_name, "role": user.role}
+    # The version rides along so pages need no separate /api/health call to show it.
+    return {"id": user.id, "email": user.email, "display_name": user.display_name, "role": user.role, "version": APP_VERSION}
 
 
 def utc_iso(value):

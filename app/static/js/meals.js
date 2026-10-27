@@ -38,8 +38,12 @@ async function api(path, method = "GET", body) {
 }
 
 // Every meal from 6 days before the chosen day through its end, paging past the API's 100 limit.
+// Today's week is kept on this phone (app.js show-then-refresh) and shown read-only until the
+// server's copy arrives, so an edit is never made on an old copy.
 async function loadWeek() {
   const request = ++state.request;
+  const key = state.day === todayKey() ? "meals:" + state.day : null, cached = key && window.fitlogCache.get(key);
+  if (cached && !state.meals.length) { state.meals = cached; render(); $("meal-list").inert = true; }
   const from = dateOf(shift(state.day, -6)), to = dateOf(shift(state.day, 1));
   const meals = [];
   for (let offset = 0; ; offset += 100) {
@@ -49,6 +53,8 @@ async function loadWeek() {
   }
   if (request !== state.request) return;
   state.meals = meals.map((meal) => ({...meal, day: keyOf(new Date(meal.eaten_at))}));
+  if (key) window.fitlogCache.set(key, state.meals);
+  $("meal-list").inert = false;
   render();
 }
 
@@ -210,5 +216,10 @@ $("day-input").addEventListener("change", (event) => { if (event.target.value) s
 const requested = new URLSearchParams(location.search).get("date");
 if (requested && /^\d{4}-\d{2}-\d{2}$/.test(requested)) state.day = requested > todayKey() ? todayKey() : requested;
 renderDay();
-api("/dashboard?timezone=" + encodeURIComponent(zone)).then((data) => { state.goals = data; render(); }).catch(() => {});
-loadWeek().catch((error) => { notice(error.message, true); $("meal-list").replaceChildren(element("p", "식단을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.", "empty-state")); });
+state.goals = window.fitlogCache.get("dashboard:" + zone);
+api("/dashboard?timezone=" + encodeURIComponent(zone)).then((data) => { state.goals = data; window.fitlogCache.set("dashboard:" + zone, data); render(); }).catch(() => {});
+loadWeek().catch((error) => {
+  notice(error.message, true);
+  if ($("meal-list").inert) { $("meal-list").inert = false; return; } // keep the saved copy on screen
+  $("meal-list").replaceChildren(element("p", "식단을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
+});
