@@ -183,6 +183,19 @@ class SessionTests(unittest.TestCase):
         settings = (static / "settings.html").read_text(encoding="utf-8")
         self.assertIn(accounts.CONSENT_VERSIONS["ai_transfer"], settings)
 
+    def test_page_scripts_do_not_redeclare_globals(self) -> None:
+        # Classic scripts share one global scope: a top-level name declared twice on a page is a
+        # SyntaxError that stops the second script entirely (1.2.3: `busy` in app.js and meals.js).
+        static = Path(__file__).resolve().parents[1] / "app" / "static"
+        declared = re.compile(r"^(?:async\s+)?(?:const|let|var|function\*?|class)\s+([A-Za-z_$][\w$]*)", re.M)
+        for page in sorted(static.glob("*.html")):
+            owners: dict[str, str] = {}
+            for src in re.findall(r'<script[^>]*src="/static/(js/[\w-]+\.js)', page.read_text(encoding="utf-8")):
+                for name in declared.findall((static / src).read_text(encoding="utf-8")):
+                    if name in owners:
+                        self.fail(f"{page.name}: {name} is declared in both {owners[name]} and {src}")
+                    owners[name] = src
+
     def test_member_session_cannot_use_admin_routes(self) -> None:
         login(self.client, create_user("member@example.com", "member"))
         self.assertEqual(self.client.get("/api/me").json()["role"], "member")

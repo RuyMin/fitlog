@@ -86,24 +86,24 @@ store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PRE
 // been waiting longer than BUSY_DELAY (quick answers do not make it flicker), then shows the
 // connection state again.
 const BUSY_DELAY = 300;
-const busy = {reads: 0, writes: 0, shown: false, timer: 0};
+const inFlight = {reads: 0, writes: 0, shown: false, timer: 0};
 let serverState = null; // {text, className} once known; the page's own "서버 확인 중" until then
 function paintStatus() {
   const status = document.querySelector("#server-status");
   if (!status) return;
-  if (busy.shown) { status.textContent = busy.writes ? "저장 중" : "불러오는 중"; status.className = "status loading"; }
+  if (inFlight.shown) { status.textContent = inFlight.writes ? "저장 중" : "불러오는 중"; status.className = "status loading"; }
   else if (serverState) { status.textContent = serverState.text; status.className = serverState.className; }
 }
 function busyStart(write) {
-  busy[write ? "writes" : "reads"]++;
-  if (busy.shown) paintStatus();
-  else if (!busy.timer) busy.timer = setTimeout(() => { busy.timer = 0; if (busy.reads + busy.writes) { busy.shown = true; paintStatus(); } }, BUSY_DELAY);
+  inFlight[write ? "writes" : "reads"]++;
+  if (inFlight.shown) paintStatus();
+  else if (!inFlight.timer) inFlight.timer = setTimeout(() => { inFlight.timer = 0; if (inFlight.reads + inFlight.writes) { inFlight.shown = true; paintStatus(); } }, BUSY_DELAY);
 }
 function busyEnd(write) {
-  busy[write ? "writes" : "reads"]--;
-  if (busy.reads + busy.writes) { if (busy.shown) paintStatus(); return; }
-  clearTimeout(busy.timer); busy.timer = 0;
-  if (busy.shown) { busy.shown = false; paintStatus(); }
+  inFlight[write ? "writes" : "reads"]--;
+  if (inFlight.reads + inFlight.writes) { if (inFlight.shown) paintStatus(); return; }
+  clearTimeout(inFlight.timer); inFlight.timer = 0;
+  if (inFlight.shown) { inFlight.shown = false; paintStatus(); }
 }
 
 window.fetch = async (...args) => {
