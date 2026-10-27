@@ -1,7 +1,7 @@
 /* Workouts: week card, session editor with set tables, past list, preset picker and exercise sheet. */
 .workouts-page{display:flex;flex-direction:column;gap:16px}
 .workouts-page .topbar{margin-bottom:0;align-items:flex-end}
-.workouts-page .status:not(.error){display:none}
+.workouts-page .status:not(.error):not(.loading){display:none}
 .workouts-page #notice:empty{display:none}
 .workouts-list-view{display:flex;flex-direction:column;gap:16px}
 .anatomy-sprite{position:absolute;width:0;height:0;overflow:hidden}
