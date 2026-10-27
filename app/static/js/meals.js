@@ -87,6 +87,7 @@ function renderIntake(meals) {
     const left = goals.calorie_goal_kcal - (kcal || 0);
     $("remaining-label").textContent = left >= 0 ? "남은 열량" : "목표보다 더 먹은 열량";
     $("kcal-remaining").textContent = number(Math.round(Math.abs(left)));
+    $("goal-link").textContent = {auto: "자동 계산한 내 목표", manual: "직접 정한 목표", default: "기본 목표 · 내 몸에 맞게 설정하기"}[goals.goal_source] + " ›";
   }
   for (const [name, key, goal] of [["protein", "protein", "protein_goal_grams"], ["carb", "carbohydrates", "carbohydrate_goal_grams"], ["fat", "fat", "fat_goal_grams"]]) {
     const grams = sum(meals, key);

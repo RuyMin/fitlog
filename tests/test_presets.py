@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 
 from app.main import app
-from app.migrations import migrate
+from app.migrations import SCHEMA_VERSION, migrate
 from app.services import exercise_presets
 
 SCHEMA_V2 = (Path(__file__).parent / "fixtures" / "schema_v2.sql").read_text(encoding="utf-8")
@@ -167,7 +167,7 @@ INSERT INTO workout_sets (id, workout_id, exercise_id, set_number, weight, reps,
         with patch.dict(os.environ, env, clear=True):
             migrate(self.engine, self.path)
         with closing(sqlite3.connect(self.path)) as c:
-            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 7)
+            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
             linked = dict(c.execute("SELECT id, preset_id FROM exercises ORDER BY id").fetchall())
             # v5: the strength set keeps its values and gains empty cardio columns.
             self.assertEqual(c.execute("SELECT weight, reps, duration_seconds, distance_m, heart_rate, variant FROM workout_sets").fetchone(), (60.0, 8, None, None, None, None))

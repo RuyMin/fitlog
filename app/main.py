@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
+from app.api.goals import router as goals_router
 from app.api.health import router as health_router
 from app.api.perf import router as perf_router
 from app.api.workouts import router as workouts_router
@@ -45,6 +46,7 @@ app = FastAPI(title="FitLog", version=config.APP_VERSION, lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(assistant_router)
 app.include_router(excel_router)
+app.include_router(goals_router)
 app.include_router(health_router)
 app.include_router(perf_router)
 app.include_router(workouts_router)
