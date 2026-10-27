@@ -86,52 +86,67 @@ function weekStrip(data) {
   $home("week-note").textContent = "운동 " + data.week.filter((d) => d.workout).length + "일 · 기록 " + data.week.filter((d) => d.logged).length + "일";
 }
 
+const homeToday = new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
+
+function showSummary(data) {
+  const met = [
+    ring("protein", data.protein_grams, data.protein_goal_grams, formatNumber(data.protein_grams), formatNumber(data.protein_goal_grams) + "g"),
+    ring("kcal", data.calories, data.calorie_goal_kcal, formatNumber(Math.round(data.calories)), formatNumber(data.calorie_goal_kcal)),
+    ring("sleep", data.sleep_minutes, data.sleep_goal_minutes, hoursText(data.sleep_minutes), hoursText(data.sleep_goal_minutes)),
+  ].filter(Boolean).length;
+  $home("goals-note").textContent = "3개 중 " + met + "개 달성";
+  $home("today-sets").textContent = data.total_sets;
+  $home("today-workouts").textContent = !data.workouts_count ? "오늘은 아직 운동 기록이 없어요"
+    : data.workout_titles.slice(0, 2).join(" · ") + (data.volume_kg ? " · 볼륨 " + formatNumber(Math.round(data.volume_kg)) + "kg" : "");
+  weightTile(data); mealTile(data); sleepTile(data); weekStrip(data);
+}
+// Yesterday's copy would show yesterday as today, so a cached summary is used only on its own day.
 async function loadSummary() {
+  const key = "dashboard:" + homeZone, cached = window.fitlogCache.get(key);
+  if (cached?.date === homeToday) showSummary(cached);
   try {
     const data = await homeGet("/api/dashboard?timezone=" + encodeURIComponent(homeZone));
-    const met = [
-      ring("protein", data.protein_grams, data.protein_goal_grams, formatNumber(data.protein_grams), formatNumber(data.protein_goal_grams) + "g"),
-      ring("kcal", data.calories, data.calorie_goal_kcal, formatNumber(Math.round(data.calories)), formatNumber(data.calorie_goal_kcal)),
-      ring("sleep", data.sleep_minutes, data.sleep_goal_minutes, hoursText(data.sleep_minutes), hoursText(data.sleep_goal_minutes)),
-    ].filter(Boolean).length;
-    $home("goals-note").textContent = "3개 중 " + met + "개 달성";
-    $home("today-sets").textContent = data.total_sets;
-    $home("today-workouts").textContent = !data.workouts_count ? "오늘은 아직 운동 기록이 없어요"
-      : data.workout_titles.slice(0, 2).join(" · ") + (data.volume_kg ? " · 볼륨 " + formatNumber(Math.round(data.volume_kg)) + "kg" : "");
-    weightTile(data); mealTile(data); sleepTile(data); weekStrip(data);
+    window.fitlogCache.set(key, data);
+    showSummary(data);
   } catch {
+    if (cached?.date === homeToday) return;
     $home("goals-note").textContent = "연결 후 새로고침해 주세요";
     for (const id of ["today-workouts", "weight-note", "protein-note", "sleep-note"]) $home(id).textContent = "연결 후 새로고침해 주세요";
   }
 }
 
-async function loadRecent() {
+function showRecent(recent) {
   const target = $home("recent-workouts");
+  target.replaceChildren();
+  if (!recent.length) {
+    const empty = document.createElement("p"); empty.className = "empty";
+    empty.textContent = "아직 운동 기록이 없습니다. 첫 운동을 남겨보세요."; target.append(empty);
+  }
+  for (const workout of recent) {
+    const link = document.createElement("a"); link.href = "/workouts#" + workout.id;
+    link.className = "recent-item" + (workout.workout_date === homeToday ? " is-today" : "");
+    const date = document.createElement("span"); date.className = "recent-date";
+    const day = document.createElement("b"); day.textContent = Number(workout.workout_date.slice(8));
+    date.append(Number(workout.workout_date.slice(5, 7)) + "월", day);
+    const text = document.createElement("span"); text.className = "recent-text";
+    const title = document.createElement("strong"); title.textContent = workout.title;
+    const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
+    const detail = document.createElement("span");
+    detail.textContent = [names.slice(0, 3).join(" · ") + (names.length > 3 ? " 외" : ""), workout.sets.length + "세트"].filter(Boolean).join(" · ");
+    text.append(title, detail);
+    link.append(date, text);
+    link.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>');
+    target.append(link);
+  }
+}
+async function loadRecent() {
+  const cached = window.fitlogCache.get("workouts:recent");
+  if (cached) showRecent(cached);
   try {
     const recent = await homeGet("/api/workouts?limit=3");
-    target.replaceChildren();
-    if (!recent.length) {
-      const empty = document.createElement("p"); empty.className = "empty";
-      empty.textContent = "아직 운동 기록이 없습니다. 첫 운동을 남겨보세요."; target.append(empty);
-    }
-    const todayKey = new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
-    for (const workout of recent) {
-      const link = document.createElement("a"); link.href = "/workouts#" + workout.id;
-      link.className = "recent-item" + (workout.workout_date === todayKey ? " is-today" : "");
-      const date = document.createElement("span"); date.className = "recent-date";
-      const day = document.createElement("b"); day.textContent = Number(workout.workout_date.slice(8));
-      date.append(Number(workout.workout_date.slice(5, 7)) + "월", day);
-      const text = document.createElement("span"); text.className = "recent-text";
-      const title = document.createElement("strong"); title.textContent = workout.title;
-      const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
-      const detail = document.createElement("span");
-      detail.textContent = [names.slice(0, 3).join(" · ") + (names.length > 3 ? " 외" : ""), workout.sets.length + "세트"].filter(Boolean).join(" · ");
-      text.append(title, detail);
-      link.append(date, text);
-      link.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>');
-      target.append(link);
-    }
-  } catch { target.textContent = "운동 기록을 불러오지 못했습니다. 연결 후 새로고침해 주세요."; }
+    window.fitlogCache.set("workouts:recent", recent);
+    showRecent(recent);
+  } catch { if (!cached) $home("recent-workouts").textContent = "운동 기록을 불러오지 못했습니다. 연결 후 새로고침해 주세요."; }
 }
 
 // The record sheet opens from the ＋ menu item (/#record), the quick-record bar and the photo button.

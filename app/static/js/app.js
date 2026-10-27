@@ -55,6 +55,33 @@ const leave = () => { recordPage(); perfFlush(true); };
 window.addEventListener("pagehide", leave);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") leave(); });
 
+// Show-then-refresh: the last copy of a screen's data stays on this phone for the signed-in account, is
+// shown at once on the next visit and then replaced by the server's copy. It is health data, so it is
+// tied to one account, dropped after CACHE_DAYS, and cleared on logout, on a 401 and when another
+// account signs in (the settings page says so).
+const CACHE_PREFIX = "fitlog-cache:", CACHE_USER = "fitlog-cache-user", CACHE_DAYS = 7;
+const store = (action) => { try { return action(localStorage); } catch { return null; } };
+const fresh = (entry) => entry && Date.now() - entry.at < CACHE_DAYS * 86400000;
+window.fitlogCache = {
+  get(key) {
+    return store((storage) => {
+      const entry = JSON.parse(storage.getItem(CACHE_PREFIX + key) || "null");
+      return fresh(entry) && entry.user === storage.getItem(CACHE_USER) ? entry.data : null;
+    });
+  },
+  set(key, data) {
+    window.fitlogMe.then((me) => me && store((storage) => {
+      storage.setItem(CACHE_PREFIX + key, JSON.stringify({user: String(me.id), at: Date.now(), data}));
+    }));
+  },
+  clear() {
+    store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PREFIX) || key === CACHE_USER).forEach((key) => storage.removeItem(key)));
+  },
+};
+store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PREFIX)).forEach((key) => {
+  try { if (!fresh(JSON.parse(storage.getItem(key)))) storage.removeItem(key); } catch { storage.removeItem(key); }
+}));
+
 window.fetch = async (...args) => {
   const started = performance.now();
   const target = new URL(args[0] instanceof Request ? args[0].url : String(args[0]), location.href);
@@ -71,12 +98,16 @@ window.fetch = async (...args) => {
     total_ms: Math.round(performance.now() - started), server_ms: serverMs(response)});
   if (response.status === 401 && new URL(response.url || location.href).pathname.startsWith("/api/") && !leavingForLogin) {
     leavingForLogin = true;
+    window.fitlogCache.clear();
     location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search + location.hash));
   }
   return response;
 };
 // The signed-in account, shared by page scripts: {id, email, display_name, role}.
 window.fitlogMe = fetch("/api/me", {cache: "no-store"}).then((r) => r.ok ? r.json() : null).catch(() => null);
+window.fitlogMe.then((me) => me && store((storage) => {
+  if (storage.getItem(CACHE_USER) !== String(me.id)) { window.fitlogCache.clear(); storage.setItem(CACHE_USER, String(me.id)); }
+}));
 
 // Mark the current section in the shared menu (the same markup on every page).
 for (const link of document.querySelectorAll(".navigation [data-nav]")) {
@@ -88,8 +119,18 @@ today.textContent = new Intl.DateTimeFormat("ko-KR", {
   month: "long", day: "numeric", weekday: "long"
 }).format(new Date());
 
-async function checkHealth() {
+function showServer(ok, version) {
   const status = document.querySelector("#server-status");
+  status.textContent = ok ? "● 서버 연결됨" : "서버 연결을 확인해 주세요";
+  status.className = ok ? "status ok" : "status error";
+  // The home footer and settings footer carry this element; other pages skip it.
+  const label = document.querySelector("#app-version");
+  if (label && version) label.textContent = "v" + version;
+}
+// Every page already asks for /api/me; its answer doubles as the connection check, so pages make one
+// round trip fewer. /api/health is used only when the phone comes back online.
+window.fitlogMe.then((me) => showServer(Boolean(me), me?.version));
+async function checkHealth() {
   try {
     const response = await fetch("/api/health", {
       cache: "no-store", signal: AbortSignal.timeout(5000)
@@ -97,17 +138,11 @@ async function checkHealth() {
     if (!response.ok) throw new Error("Server unavailable");
     const result = await response.json();
     if (result.status !== "ok") throw new Error("Health check failed");
-    status.textContent = "● 서버 연결됨";
-    status.className = "status ok";
-    // The home footer and settings footer carry this element; other pages skip it.
-    const version = document.querySelector("#app-version");
-    if (version && result.version) version.textContent = "v" + result.version;
+    showServer(true, result.version);
   } catch {
-    status.textContent = "서버 연결을 확인해 주세요";
-    status.className = "status error";
+    showServer(false);
   }
 }
-checkHealth();
 window.addEventListener("online", checkHealth);
 window.addEventListener("offline", () => {
   const status = document.querySelector("#server-status");

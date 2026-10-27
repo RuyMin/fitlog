@@ -21,6 +21,8 @@ function showAuthError(code) {
 const authQuery = new URLSearchParams(location.search);
 showAuthError(authQuery.get("error"));
 
+// Screen data kept for show-then-refresh (app.js) belongs to whoever was signed in: drop it here.
+try { Object.keys(localStorage).filter((key) => key.startsWith("fitlog-cache")).forEach((key) => localStorage.removeItem(key)); } catch { /* storage unavailable */ }
 // After login, return to the page that sent us here (the server re-validates the path).
 const loginLink = document.querySelector('a[href="/auth/google/start"]');
 const returnPath = authQuery.get("next");

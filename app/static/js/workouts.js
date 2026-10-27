@@ -83,6 +83,7 @@ async function loadExercises() {
     if (page.length < 100) break;
   }
   state.exercises = exercises;
+  window.fitlogCache.set("exercises", exercises);
 }
 // The catalog is a static file linked by content hash (preloaded by the page), so after the first visit
 // it comes from the phone's cache instead of a server round trip.
@@ -492,6 +493,10 @@ async function loadList(append = false, request = null) {
   const route = state.route;
   const items = await (request || listRequest(append ? state.offset : 0));
   if (route !== state.route) return;
+  if (!append) window.fitlogCache.set("workouts:list", items);
+  showList(items, append);
+}
+function showList(items, append = false) {
   state.workouts = append ? [...state.workouts, ...items] : items;
   state.offset = state.workouts.length;
   const past = state.workouts.filter((item) => item.workout_date !== localDate());
@@ -507,12 +512,27 @@ async function showRoute() {
   state.current = null;
   $("#list-view").hidden = Boolean(hash);
   $("#detail-view").hidden = !hash;
+  let showedCache = false;
   try {
     // All of these at once: over a slow link each round trip costs about half a second.
     const listing = hash ? null : listRequest();
     listing?.catch(() => {});
-    await Promise.all([loadCatalog(), loadExercises()]);
-    if (!hash) { await loadList(false, listing); return; }
+    const exercises = loadExercises();
+    exercises.catch(() => {});
+    if (!state.exercises.length) state.exercises = window.fitlogCache.get("exercises") || [];
+    await loadCatalog(); // a static file from the phone's cache after the first visit
+    if (route !== state.route) return;
+    if (!hash) {
+      // Each set carries its exercise, so the list needs neither /exercises (the picker loads it) nor
+      // anything else. Until the server's copy arrives, show the one this phone saved last time,
+      // read-only: an edit made on an old copy could be overwritten by the fresh render.
+      const cached = window.fitlogCache.get("workouts:list");
+      if (cached) { showList(cached); $("#list-view").inert = showedCache = true; }
+      await loadList(false, listing);
+      $("#list-view").inert = false;
+      return;
+    }
+    await exercises;
     $("#workout-detail").replaceChildren(node("p", "기록을 불러오는 중…", "empty-state"));
     if (!/^\d+$/.test(hash)) throw new Error("잘못된 운동 주소입니다.");
     if (!state.workouts.length) state.workouts = await api("/workouts?limit=" + pageSize);
@@ -521,7 +541,9 @@ async function showRoute() {
     state.current = workout; renderSession(workout, $("#workout-detail"), true);
   } catch (error) {
     if (route !== state.route) return;
+    $("#list-view").inert = false;
     notice(error.message, true);
+    if (showedCache) return; // keep the saved copy on screen rather than an empty error
     (hash ? $("#workout-detail") : $("#workout-list")).replaceChildren(node("p", "기록을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
   }
 }
