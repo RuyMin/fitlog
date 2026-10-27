@@ -150,10 +150,16 @@ async function load() {
     $("trend-range").textContent = shortDate(from) + " ~ 오늘";
     renderComposition(records); renderTrends(records, from, to); renderSleep(sleep);
   };
-  // Show what this phone saved last time for this period (app.js show-then-refresh), then the server's copy.
-  const key = "body:" + state.days + ":" + keyOf(to), cached = window.fitlogCache.get(key);
-  if (cached) show(cached);
   try {
+    // The default 3 months comes through app.js (fitlogShow), which the bulk sync fills; the other
+    // periods show this phone's last copy, then fetch.
+    if (state.days === 90) {
+      await window.fitlogShow(window.fitlogData.body, (data) => { if (request === state.request) show(data); });
+      if (request === state.request) notice("");
+      return;
+    }
+    const key = "body:" + state.days + ":" + keyOf(to), cached = window.fitlogCache.get(key);
+    if (cached) show(cached);
     const [records, sleep] = await Promise.all([all("/body-metrics", from, to), all("/sleep", sleepFrom, to)]);
     if (request !== state.request) return;
     notice("");
@@ -170,10 +176,12 @@ for (const button of document.querySelectorAll(".period button")) {
   });
 }
 // The sleep goal only adds the dotted line, so the records do not wait for it.
-state.sleepGoal = window.fitlogCache.get("dashboard:" + zone)?.sleep_goal_minutes ?? null;
-load();
-api("/dashboard?timezone=" + encodeURIComponent(zone)).then((data) => {
-  window.fitlogCache.set("dashboard:" + zone, data);
-  state.sleepGoal = data.sleep_goal_minutes;
-  if (state.sleep) renderSleep(state.sleep);
-}).catch(() => {});
+function loadAll() {
+  load();
+  window.fitlogShow(window.fitlogData.dashboard, (data) => {
+    state.sleepGoal = data.sleep_goal_minutes;
+    if (state.sleep) renderSleep(state.sleep);
+  }).catch(() => {});
+}
+window.fitlogOnSync = loadAll;
+loadAll();

@@ -1,10 +1,5 @@
 "use strict";
 const $home = (id) => document.getElementById(id);
-async function homeGet(path) {
-  const response = await fetch(path, {cache: "no-store", signal: AbortSignal.timeout(10000)});
-  if (!response.ok) throw new Error("기록을 불러오지 못했습니다.");
-  return response.json();
-}
 const formatNumber = (value) => new Intl.NumberFormat("ko-KR", {maximumFractionDigits:1}).format(value);
 const hoursText = (minutes) => Math.floor(minutes / 60) + ":" + String(Math.round(minutes % 60)).padStart(2, "0");
 const homeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul";
@@ -100,16 +95,13 @@ function showSummary(data) {
     : data.workout_titles.slice(0, 2).join(" · ") + (data.volume_kg ? " · 볼륨 " + formatNumber(Math.round(data.volume_kg)) + "kg" : "");
   weightTile(data); mealTile(data); sleepTile(data); weekStrip(data);
 }
-// Yesterday's copy would show yesterday as today, so a cached summary is used only on its own day.
+// Data comes through app.js (fitlogShow): the saved copy first, then the current one.
 async function loadSummary() {
-  const key = "dashboard:" + homeZone, cached = window.fitlogCache.get(key);
-  if (cached?.date === homeToday) showSummary(cached);
+  let shown = false;
   try {
-    const data = await homeGet("/api/dashboard?timezone=" + encodeURIComponent(homeZone));
-    window.fitlogCache.set(key, data);
-    showSummary(data);
+    await window.fitlogShow(window.fitlogData.dashboard, (data) => { showSummary(data); shown = true; });
   } catch {
-    if (cached?.date === homeToday) return;
+    if (shown) return;
     $home("goals-note").textContent = "연결 후 새로고침해 주세요";
     for (const id of ["today-workouts", "weight-note", "protein-note", "sleep-note"]) $home(id).textContent = "연결 후 새로고침해 주세요";
   }
@@ -140,13 +132,9 @@ function showRecent(recent) {
   }
 }
 async function loadRecent() {
-  const cached = window.fitlogCache.get("workouts:recent");
-  if (cached) showRecent(cached);
-  try {
-    const recent = await homeGet("/api/workouts?limit=3");
-    window.fitlogCache.set("workouts:recent", recent);
-    showRecent(recent);
-  } catch { if (!cached) $home("recent-workouts").textContent = "운동 기록을 불러오지 못했습니다. 연결 후 새로고침해 주세요."; }
+  let shown = false;
+  try { await window.fitlogShow(window.fitlogData.recent, (recent) => { showRecent(recent); shown = true; }); }
+  catch { if (!shown) $home("recent-workouts").textContent = "운동 기록을 불러오지 못했습니다. 연결 후 새로고침해 주세요."; }
 }
 
 // The record sheet opens from the ＋ menu item (/#record), the quick-record bar and the photo button.
@@ -159,5 +147,6 @@ $home("quick-photo").addEventListener("click", () => { openSheet(); if (!$home("
 window.addEventListener("hashchange", () => { if (location.hash === "#record") openSheet(); });
 if (location.hash === "#record") openSheet();
 
+window.fitlogOnSync = () => { loadSummary(); loadRecent(); };
 loadSummary();
 loadRecent();

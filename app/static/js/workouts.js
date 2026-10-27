@@ -489,11 +489,10 @@ function renderWeek() {
   });
 }
 const listRequest = (offset = 0) => api("/workouts?" + new URLSearchParams({limit: pageSize, offset}));
-async function loadList(append = false, request = null) {
+async function loadList(append = false) {
   const route = state.route;
-  const items = await (request || listRequest(append ? state.offset : 0));
+  const items = await listRequest(append ? state.offset : 0);
   if (route !== state.route) return;
-  if (!append) window.fitlogCache.set("workouts:list", items);
   showList(items, append);
 }
 function showList(items, append = false) {
@@ -514,22 +513,21 @@ async function showRoute() {
   $("#detail-view").hidden = !hash;
   let showedCache = false;
   try {
-    // All of these at once: over a slow link each round trip costs about half a second.
-    const listing = hash ? null : listRequest();
-    listing?.catch(() => {});
-    const exercises = loadExercises();
+    // The list and exercises come through app.js (fitlogShow): the saved copy at once, read-only until
+    // the current one is in (an edit made on an old copy could be overwritten by it), and a request
+    // only when the bulk sync has no current copy. Each set carries its exercise, so the list does not
+    // wait for /exercises (the picker does).
+    const exercises = window.fitlogShow(window.fitlogData.exercises, (items) => { state.exercises = items; });
     exercises.catch(() => {});
-    if (!state.exercises.length) state.exercises = window.fitlogCache.get("exercises") || [];
     await loadCatalog(); // a static file from the phone's cache after the first visit
     if (route !== state.route) return;
     if (!hash) {
-      // Each set carries its exercise, so the list needs neither /exercises (the picker loads it) nor
-      // anything else. Until the server's copy arrives, show the one this phone saved last time,
-      // read-only: an edit made on an old copy could be overwritten by the fresh render.
-      const cached = window.fitlogCache.get("workouts:list");
-      if (cached) { showList(cached); $("#list-view").inert = showedCache = true; }
-      await loadList(false, listing);
-      $("#list-view").inert = false;
+      await window.fitlogShow(window.fitlogData.workouts, (items, stale) => {
+        if (route !== state.route) return;
+        showList(items);
+        $("#list-view").inert = stale;
+        if (stale) showedCache = true;
+      });
       return;
     }
     await exercises;
@@ -778,5 +776,6 @@ $("#manage-exercises").addEventListener("click", async () => {
 $("#reset-exercise").addEventListener("click", resetExercise);
 $("#load-more").addEventListener("click", (event) => mutate(event.currentTarget, () => loadList(true)));
 window.addEventListener("hashchange", showRoute);
+window.fitlogOnSync = showRoute;
 FitAnatomy.load().catch(() => {});
 showRoute();
