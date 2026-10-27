@@ -59,23 +59,28 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 // shown at once on the next visit and then replaced by the server's copy. It is health data, so it is
 // tied to one account, dropped after CACHE_DAYS, and cleared on logout, on a 401 and when another
 // account signs in (the settings page says so).
-const CACHE_PREFIX = "fitlog-cache:", CACHE_USER = "fitlog-cache-user", CACHE_DAYS = 7;
+// A copy is "current" when it was fetched after CACHE_EPOCH: the last time the app was opened or
+// brought back (bulk sync below) and the last successful save, whichever is later.
+const CACHE_PREFIX = "fitlog-cache:", CACHE_USER = "fitlog-cache-user", CACHE_EPOCH = "fitlog-cache-epoch", CACHE_DAYS = 7;
 const store = (action) => { try { return action(localStorage); } catch { return null; } };
 const fresh = (entry) => entry && Date.now() - entry.at < CACHE_DAYS * 86400000;
+const entryOf = (storage, key) => {
+  const entry = JSON.parse(storage.getItem(CACHE_PREFIX + key) || "null");
+  return fresh(entry) && entry.user === storage.getItem(CACHE_USER) ? entry : null;
+};
 window.fitlogCache = {
-  get(key) {
-    return store((storage) => {
-      const entry = JSON.parse(storage.getItem(CACHE_PREFIX + key) || "null");
-      return fresh(entry) && entry.user === storage.getItem(CACHE_USER) ? entry.data : null;
-    });
-  },
-  set(key, data) {
-    window.fitlogMe.then((me) => me && store((storage) => {
-      storage.setItem(CACHE_PREFIX + key, JSON.stringify({user: String(me.id), at: Date.now(), data}));
+  get(key) { return store((storage) => entryOf(storage, key)?.data ?? null); },
+  current(key) { return Boolean(store((storage) => (entryOf(storage, key)?.at ?? -1) >= Number(storage.getItem(CACHE_EPOCH) || 0))); },
+  // `at` is when the request started, so an answer that raced a save is not taken as current.
+  set(key, data, at = Date.now()) {
+    return window.fitlogMe.then((me) => me && store((storage) => {
+      storage.setItem(CACHE_PREFIX + key, JSON.stringify({user: String(me.id), at, data}));
     }));
   },
+  outdate() { store((storage) => storage.setItem(CACHE_EPOCH, String(Date.now()))); },
   clear() {
-    store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PREFIX) || key === CACHE_USER).forEach((key) => storage.removeItem(key)));
+    store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PREFIX) || key === CACHE_USER || key === CACHE_EPOCH)
+      .forEach((key) => storage.removeItem(key)));
   },
 };
 store((storage) => Object.keys(storage).filter((key) => key.startsWith(CACHE_PREFIX)).forEach((key) => {
@@ -124,6 +129,9 @@ window.fetch = async (...args) => {
   }
   if (measured) perfRecord({kind: "client", route: target.pathname, method, status: response.status,
     total_ms: Math.round(performance.now() - started), server_ms: serverMs(response)});
+  // A save can change what any tab shows (a set moves the home summary too), so every saved copy is
+  // fetched again the next time its tab opens.
+  if (measured && write && response.ok) window.fitlogCache.outdate();
   if (response.status === 401 && new URL(response.url || location.href).pathname.startsWith("/api/") && !leavingForLogin) {
     leavingForLogin = true;
     window.fitlogCache.clear();
@@ -136,6 +144,91 @@ window.fitlogMe = fetch("/api/me", {cache: "no-store"}).then((r) => r.ok ? r.jso
 window.fitlogMe.then((me) => me && store((storage) => {
   if (storage.getItem(CACHE_USER) !== String(me.id)) { window.fitlogCache.clear(); storage.setItem(CACHE_USER, String(me.id)); }
 }));
+
+// In a block: page scripts share the global scope and declare names such as `zone` themselves.
+{
+  // Each tab's main data, in the shape its page renders, under the key its saved copy uses.
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul";
+  const dayKey = (date) => date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+  async function getJSON(path) {
+    const response = await fetch(path, {cache: "no-store", signal: AbortSignal.timeout(15000)});
+    if (!response.ok) throw new Error("기록을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.");
+    return response.json();
+  }
+  async function paged(path, params = {}) { // every row, past the API's 100-per-page limit
+    const items = [];
+    for (let offset = 0; ; offset += 100) {
+      const page = await getJSON(path + "?" + new URLSearchParams({...params, limit: 100, offset}));
+      items.push(...page);
+      if (page.length < 100) return items;
+    }
+  }
+  const midnight = (daysFromToday) => { const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + daysFromToday); return date; };
+  const today = dayKey(new Date());
+  window.fitlogData = {
+    dashboard: {key: "dashboard:" + zone + ":" + today, load: () => getJSON("/api/dashboard?timezone=" + encodeURIComponent(zone))},
+    recent: {key: "workouts:recent", load: () => getJSON("/api/workouts?limit=3")},
+    workouts: {key: "workouts:list", load: () => getJSON("/api/workouts?limit=20&offset=0")},
+    exercises: {key: "exercises", load: () => paged("/api/exercises")},
+    // Meals: the 7 days ending today, each tagged with its local day.
+    meals: {key: "meals:" + today, load: async () => (await paged("/api/meals", {from_at: midnight(-6).toISOString(), to_at: midnight(1).toISOString()}))
+      .map((meal) => ({...meal, day: dayKey(new Date(meal.eaten_at))}))},
+    // 몸·추이 at its default 3 months, plus the last 7 nights of sleep; both oldest first.
+    body: {key: "body:90:" + today, load: async () => {
+      const to = new Date(), from = new Date(to); from.setDate(from.getDate() - 90);
+      const [records, sleep] = await Promise.all([paged("/api/body-metrics", {from_at: from.toISOString(), to_at: to.toISOString()}),
+        paged("/api/sleep", {from_at: midnight(-6).toISOString(), to_at: to.toISOString()})]);
+      return {records: records.reverse(), sleep: sleep.reverse()};
+    }},
+  };
+
+  // Bulk sync: when the app is opened, or brought back after AWAY_MS in another app, every tab's data is
+  // fetched at once behind a dim layer, so moving between tabs afterwards needs no waiting. Each page
+  // renders through fitlogShow and re-renders on window.fitlogOnSync.
+  const AWAY_MS = 5000, DIM_DELAY = 150, SYNC_LIMIT = 12000;
+  let syncing = Promise.resolve();
+  function dim(on) {
+    clearTimeout(dim.timer);
+    if (!on) { document.getElementById("sync-dim")?.remove(); document.body.removeAttribute("aria-busy"); return; }
+    dim.timer = setTimeout(() => {
+      if (document.getElementById("sync-dim")) return;
+      const layer = document.createElement("div"); layer.id = "sync-dim"; layer.className = "sync-dim";
+      const label = document.createElement("span"); label.className = "sync-pill"; label.setAttribute("role", "status");
+      label.textContent = "최신 기록을 불러오는 중";
+      layer.append(label); document.body.append(layer); document.body.setAttribute("aria-busy", "true");
+    }, DIM_DELAY);
+  }
+  function syncAll() {
+    window.fitlogCache.outdate();
+    const started = Date.now();
+    dim(true);
+    const work = Promise.allSettled(Object.values(window.fitlogData).map(async (dataset) => window.fitlogCache.set(dataset.key, await dataset.load(), started)));
+    // A stuck request must not leave the app dimmed; tabs then fetch what is still missing themselves.
+    syncing = Promise.race([work, new Promise((resolve) => setTimeout(resolve, SYNC_LIMIT))]).finally(() => dim(false));
+    return syncing;
+  }
+  // One tab's data: the saved copy at once (stale = true: the page keeps it read-only), then the current
+  // copy, from the bulk sync when it has one, otherwise fetched now.
+  window.fitlogShow = async (dataset, show) => {
+    const saved = window.fitlogCache.get(dataset.key);
+    if (saved) show(saved, true);
+    await syncing;
+    if (window.fitlogCache.current(dataset.key)) { show(window.fitlogCache.get(dataset.key), false); return; }
+    const started = Date.now();
+    const data = await dataset.load();
+    await window.fitlogCache.set(dataset.key, data, started);
+    show(data, false);
+  };
+  try {
+    if (!sessionStorage.getItem("fitlog-opened")) { sessionStorage.setItem("fitlog-opened", "1"); syncAll(); }
+  } catch { /* no session storage: tabs load their own data */ }
+  let hiddenAt = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+    if (hiddenAt && Date.now() - hiddenAt >= AWAY_MS && !leavingForLogin) syncAll().then(() => window.fitlogOnSync?.());
+    hiddenAt = 0;
+  });
+}
 
 // Mark the current section in the shared menu (the same markup on every page).
 for (const link of document.querySelectorAll(".navigation [data-nav]")) {
