@@ -6,7 +6,7 @@
 
 .goals{background:var(--brand);color:var(--brand-ink);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:16px}
 .goals-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.goals-head span{font-size:12px;color:var(--brand-muted)}
+.goals-head span{font-size:12px;color:var(--brand-muted)}.goals-edit{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .goal-rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .goal{display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1.35}
 .ring{position:relative;width:76px;height:76px;margin-bottom:8px}

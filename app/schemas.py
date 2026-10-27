@@ -198,6 +198,62 @@ class WeightPoint(BaseModel):
     weight: float
 
 
+class GoalProfileInput(InputModel):
+    """내 목표: `auto` computes calories and macros from the body details and the latest weight; `manual` uses
+    the four numbers. Sleep is set by hand in both (None: the default)."""
+    mode: Literal["auto", "manual"] = "auto"
+    sex: Literal["male", "female"] | None = None
+    birth_year: Annotated[int, Field(strict=True)] | None = None
+    height_cm: Annotated[float, Field(ge=100, le=250)] | None = None
+    activity: Literal["sedentary", "light", "moderate", "active", "very_active"] = "light"
+    aim: Literal["lose", "maintain", "gain"] = "maintain"
+    calorie_kcal: Annotated[float, Field(ge=800, le=6000)] | None = None
+    protein_g: Annotated[float, Field(ge=10, le=400)] | None = None
+    carbohydrate_g: Annotated[float, Field(ge=0, le=1000)] | None = None
+    fat_g: Annotated[float, Field(ge=0, le=400)] | None = None
+    sleep_minutes: Annotated[int, Field(ge=180, le=720, strict=True)] | None = None
+
+    @model_validator(mode="after")
+    def complete(self) -> Self:
+        if self.birth_year is not None and not 15 <= date.today().year - self.birth_year <= 100:
+            raise ValueError("출생연도를 확인해 주세요. 만 15세~100세 기준으로 계산합니다.")
+        if self.mode == "manual" and None in (self.calorie_kcal, self.protein_g, self.carbohydrate_g, self.fat_g):
+            raise ValueError("직접 입력에서는 열량·단백질·탄수화물·지방을 모두 적어 주세요.")
+        return self
+
+
+class GoalValues(BaseModel):
+    calorie_kcal: float
+    protein_g: float
+    carbohydrate_g: float
+    fat_g: float
+    sleep_minutes: float
+    source: Literal["default", "auto", "manual"]
+
+
+class GoalEstimate(BaseModel):
+    age: int
+    weight: float
+    bmr: float
+    activity_factor: float
+    adjustment_kcal: float
+    calorie_kcal: float
+    protein_g: float
+    carbohydrate_g: float
+    fat_g: float
+
+
+class GoalsResponse(BaseModel):
+    saved: bool
+    profile: GoalProfileInput
+    weight: float | None
+    weight_measured_at: UTCDateTime | None
+    estimate: GoalEstimate | None
+    missing: list[str]
+    goals: GoalValues
+    defaults: GoalValues
+
+
 class DashboardResponse(BaseModel):
     date: date
     timezone: str
@@ -220,6 +276,7 @@ class DashboardResponse(BaseModel):
     carbohydrate_goal_grams: float
     fat_goal_grams: float
     sleep_goal_minutes: float
+    goal_source: Literal["default", "auto", "manual"]
     main_sleep_start: UTCDateTime | None
     main_sleep_end: UTCDateTime | None
     week: list[WeekDay]

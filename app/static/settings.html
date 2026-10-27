@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#183f35"><title>FitLog · 설정</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/settings.css?v=20261023.2">
-<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/settings.js?v=20261023.2" defer></script><script src="/static/js/perf-stats.js?v=1" defer></script><script src="/static/js/excel-import.js?v=20261023.2" defer></script>
+<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/settings.js?v=20261023.2" defer></script><script src="/static/js/goals.js?v=1" defer></script><script src="/static/js/perf-stats.js?v=1" defer></script><script src="/static/js/excel-import.js?v=20261023.2" defer></script>
 </head><body class="settings-page">
 <a class="skip" href="#main">본문으로 이동</a>
 <aside class="sidebar">
@@ -23,6 +23,47 @@
 <main id="main">
 <header class="topbar"><span class="eyebrow">MY SETTINGS</span><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
 <section class="page-heading"><div><p id="today" class="date"></p><h1>설정과 데이터</h1><p class="muted">계정과 동의 내역을 확인하고 기존 기록을 가져옵니다.</p></div></section>
+<section class="card goals-card" id="goals" aria-labelledby="goals-heading"><h2 id="goals-heading">내 목표</h2>
+<p class="muted">홈의 목표 링, 식단의 열량·영양소 막대, 몸·추이의 수면 점선이 이 목표를 따릅니다.</p>
+<div id="goal-now" class="goal-now" aria-live="polite"></div>
+<form id="goals-form" novalidate>
+<fieldset class="goal-mode"><legend>열량·영양소 목표를 정하는 방식</legend>
+<label class="mode-option"><input type="radio" name="mode" value="auto" checked><span><strong>자동 계산</strong><small>신체 정보와 최근 체중으로 계산해요. 체중을 새로 기록하면 목표도 따라 바뀝니다.</small></span></label>
+<label class="mode-option"><input type="radio" name="mode" value="manual"><span><strong>직접 입력</strong><small>적은 숫자를 그대로 써요. 체중이 바뀌어도 바뀌지 않습니다.</small></span></label>
+</fieldset>
+<div id="goal-auto">
+<p class="goal-note" role="note"><strong>선택 입력이에요.</strong> 성별·출생연도·키는 목표 계산에만 쓰고, 다른 기록처럼 이 계정에만 보이며 운영자 NAS에 저장됩니다. 입력하지 않으면 기본 목표를 쓰고, 아래 ‘입력한 목표 정보 지우기’로 언제든 지울 수 있어요.</p>
+<div class="goal-grid">
+<label>성별<select name="sex"><option value="">선택 안 함</option><option value="female">여성</option><option value="male">남성</option></select></label>
+<label>출생연도<input name="birth_year" type="number" inputmode="numeric" step="1" placeholder="예: 1994"></label>
+<label>키 (cm)<input name="height_cm" type="number" inputmode="decimal" min="100" max="250" step="0.1" placeholder="예: 170"></label>
+<div class="goal-weight"><span>체중</span><strong id="goal-weight">—</strong></div>
+<label class="goal-wide">평소 활동량<select name="activity">
+<option value="sedentary">거의 앉아서 지냄 · 운동 거의 안 함</option>
+<option value="light">가벼운 활동 · 주 1~3회 운동</option>
+<option value="moderate">보통 · 주 3~5회 운동</option>
+<option value="active">활발 · 주 6~7회 운동</option>
+<option value="very_active">매우 활발 · 매일 고강도 운동이나 육체노동</option>
+</select></label>
+<label class="goal-wide">목표<select name="aim"><option value="lose">체중 감량 · 유지 열량에서 하루 400kcal 덜</option><option value="maintain">지금 체중 유지</option><option value="gain">근육·체중 늘리기 · 유지 열량에서 하루 300kcal 더</option></select></label>
+</div>
+<div id="goal-result" class="goal-result" aria-live="polite"></div>
+</div>
+<div id="goal-manual" hidden>
+<div class="goal-grid">
+<label>하루 열량 (kcal)<input name="calorie_kcal" type="number" inputmode="numeric" min="800" max="6000" step="10"></label>
+<label>단백질 (g)<input name="protein_g" type="number" inputmode="numeric" min="10" max="400" step="1"></label>
+<label>탄수화물 (g)<input name="carbohydrate_g" type="number" inputmode="numeric" min="0" max="1000" step="1"></label>
+<label>지방 (g)<input name="fat_g" type="number" inputmode="numeric" min="0" max="400" step="1"></label>
+</div>
+<p id="manual-check" class="hint"></p>
+</div>
+<label class="goal-sleep">수면 목표<select name="sleep_minutes"></select></label>
+<p class="goal-note goal-caution" role="note">자동 계산값은 일반 성인용 공식(Mifflin-St Jeor)으로 낸 <strong>추정치</strong>이며 의학적 처방이 아닙니다. 임신·수유 중이거나 질환이 있거나 식단 제한이 필요하다면 의사·영양사와 상의해 ‘직접 입력’으로 정해 주세요. 만 15세 미만은 자동 계산을 지원하지 않습니다.</p>
+<p class="form-error" role="alert"></p>
+<div class="settings-actions"><button type="submit" class="primary" id="goals-save">목표 저장</button><button type="button" id="goals-delete" hidden>입력한 목표 정보 지우기</button></div>
+<p id="goals-message" role="status" aria-live="polite"></p>
+</form></section>
 <section class="card account-card" aria-labelledby="account-heading"><h2 id="account-heading">계정</h2>
 <dl class="sync-details"><dt>Google 계정</dt><dd id="account-email">확인 중</dd><dt>권한</dt><dd id="account-role">—</dd>
 <dt>서비스 이용</dt><dd id="consent-service">—</dd><dt>AI 외부 전송</dt><dd id="consent-ai">—</dd></dl>

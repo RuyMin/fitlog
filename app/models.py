@@ -1,4 +1,4 @@
-"""Schema v7; all timestamp values follow the UTC-naive storage convention.
+"""Schema v8; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -117,6 +117,41 @@ class AiUsage(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     day: Mapped[date] = mapped_column(Date, primary_key=True)
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class GoalProfile(Base):
+    """A user's daily goals (schema v8). `auto` computes calories and macros from the body details here and
+    the latest recorded weight; `manual` uses the four numbers here. Sleep is always set by hand (NULL:
+    the server default). Deleting the row returns the user to the server defaults."""
+    __tablename__ = "goal_profiles"
+    __table_args__ = (
+        CheckConstraint("mode IN ('auto', 'manual')", name="ck_goal_mode"),
+        CheckConstraint("sex IS NULL OR sex IN ('male', 'female')", name="ck_goal_sex"),
+        CheckConstraint("birth_year IS NULL OR birth_year BETWEEN 1900 AND 2100", name="ck_goal_birth_year"),
+        CheckConstraint("height_cm IS NULL OR height_cm BETWEEN 100 AND 250", name="ck_goal_height"),
+        CheckConstraint("activity IN ('sedentary', 'light', 'moderate', 'active', 'very_active')", name="ck_goal_activity"),
+        CheckConstraint("aim IN ('lose', 'maintain', 'gain')", name="ck_goal_aim"),
+        CheckConstraint("calorie_kcal IS NULL OR calorie_kcal BETWEEN 800 AND 6000", name="ck_goal_calories"),
+        CheckConstraint("protein_g IS NULL OR protein_g BETWEEN 10 AND 400", name="ck_goal_protein"),
+        CheckConstraint("carbohydrate_g IS NULL OR carbohydrate_g BETWEEN 0 AND 1000", name="ck_goal_carbohydrate"),
+        CheckConstraint("fat_g IS NULL OR fat_g BETWEEN 0 AND 400", name="ck_goal_fat"),
+        CheckConstraint("mode = 'auto' OR (calorie_kcal IS NOT NULL AND protein_g IS NOT NULL AND carbohydrate_g IS NOT NULL AND fat_g IS NOT NULL)", name="ck_goal_manual"),
+        CheckConstraint("sleep_minutes IS NULL OR sleep_minutes BETWEEN 180 AND 720", name="ck_goal_sleep"),
+    )
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    mode: Mapped[str] = mapped_column(String(10), default="auto")
+    sex: Mapped[str | None] = mapped_column(String(10))
+    birth_year: Mapped[int | None] = mapped_column(Integer)
+    height_cm: Mapped[float | None] = mapped_column(Float)
+    activity: Mapped[str] = mapped_column(String(20), default="light")
+    aim: Mapped[str] = mapped_column(String(10), default="maintain")
+    calorie_kcal: Mapped[float | None] = mapped_column(Float)
+    protein_g: Mapped[float | None] = mapped_column(Float)
+    carbohydrate_g: Mapped[float | None] = mapped_column(Float)
+    fat_g: Mapped[float | None] = mapped_column(Float)
+    sleep_minutes: Mapped[int | None] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
 
 
 class PerfEvent(Base):

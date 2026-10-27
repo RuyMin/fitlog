@@ -4,9 +4,9 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
-from app.config import CALORIE_GOAL_KCAL, CARBOHYDRATE_GOAL_GRAMS, FAT_GOAL_GRAMS, PROTEIN_GOAL_GRAMS, SLEEP_GOAL_MINUTES
 from app.models import BodyMetric, Meal, SleepRecord, Workout, WorkoutSet
 from app.schemas import BodyMetricResponse, DashboardResponse, WeekDay, WeightPoint
+from app.services import goals as goal_service
 from app.services.records import utc_naive
 
 WEIGHT_DAYS = 30  # the home sparkline's window
@@ -40,17 +40,19 @@ def get_dashboard(session: Session, user_id: int, day: date, zone: ZoneInfo) -> 
         BodyMetric.user_id == user_id, BodyMetric.weight.is_not(None),
         BodyMetric.measured_at >= end - timedelta(days=WEIGHT_DAYS), BodyMetric.measured_at < end,
     ).order_by(BodyMetric.measured_at, BodyMetric.id))
+    # Goals follow the weight as of this day, so a past day keeps the target it had.
+    goals = goal_service.resolve(goal_service.get_profile(session, user_id), latest.weight if latest else None, day)
     return DashboardResponse(
         date=day, timezone=zone.key, workouts_count=workouts_count or 0,
         total_sets=total_sets, completed_sets=completed_sets or 0,
         latest_weight=BodyMetricResponse.model_validate(latest) if latest else None,
         meals_count=meals_count, protein_known_count=known_count, protein_grams=protein,
-        protein_goal_grams=PROTEIN_GOAL_GRAMS,
+        protein_goal_grams=goals.protein_g,
         sleep_records_count=sleep_count, sleep_minutes=sleep_minutes,
         volume_kg=volume, workout_titles=titles,
-        calories=calories, carbohydrates_grams=carbohydrates, fat_grams=fat, calorie_goal_kcal=CALORIE_GOAL_KCAL,
-        carbohydrate_goal_grams=CARBOHYDRATE_GOAL_GRAMS, fat_goal_grams=FAT_GOAL_GRAMS,
-        sleep_goal_minutes=SLEEP_GOAL_MINUTES,
+        calories=calories, carbohydrates_grams=carbohydrates, fat_grams=fat, calorie_goal_kcal=goals.calorie_kcal,
+        carbohydrate_goal_grams=goals.carbohydrate_g, fat_goal_grams=goals.fat_g,
+        sleep_goal_minutes=goals.sleep_minutes, goal_source=goals.source,
         main_sleep_start=last_sleep.sleep_start if last_sleep else None,
         main_sleep_end=last_sleep.sleep_end if last_sleep else None,
         week=week(session, user_id, day, zone),

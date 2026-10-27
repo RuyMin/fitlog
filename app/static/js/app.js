@@ -131,7 +131,8 @@ window.fetch = async (...args) => {
     total_ms: Math.round(performance.now() - started), server_ms: serverMs(response)});
   // A save can change what any tab shows (a set moves the home summary too), so every saved copy is
   // fetched again the next time its tab opens.
-  if (measured && write && response.ok) window.fitlogCache.outdate();
+  // A preview (내 목표's live result) computes without saving.
+  if (measured && write && response.ok && !target.pathname.endsWith("/preview")) window.fitlogCache.outdate();
   if (response.status === 401 && new URL(response.url || location.href).pathname.startsWith("/api/") && !leavingForLogin) {
     leavingForLogin = true;
     window.fitlogCache.clear();

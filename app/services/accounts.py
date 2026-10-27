@@ -217,7 +217,7 @@ def set_status(session: Session, user_id: int, status: str) -> None:
 
 def delete_user(session: Session, user_id: int) -> dict[str, int]:
     """Every row the user owns, in one transaction. Backups made earlier still hold copies."""
-    from app.models import BodyMetric, ExcelPreview, Exercise, ImportArchive, Meal, PerfEvent, SleepRecord, SyncState, Workout, WorkoutSet
+    from app.models import BodyMetric, ExcelPreview, Exercise, GoalProfile, ImportArchive, Meal, PerfEvent, SleepRecord, SyncState, Workout, WorkoutSet
     session.execute(text("BEGIN IMMEDIATE"))
     try:
         user = session.get(User, user_id)
@@ -232,6 +232,7 @@ def delete_user(session: Session, user_id: int) -> dict[str, int]:
         session.execute(delete(Consent).where(Consent.user_id == user_id))
         session.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
         session.execute(delete(PerfEvent).where(PerfEvent.user_id == user_id))
+        session.execute(delete(GoalProfile).where(GoalProfile.user_id == user_id))
         session.delete(user)
         session.commit()
         return counts
