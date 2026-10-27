@@ -34,9 +34,12 @@
 <p class="week-cardio" id="week-cardio"></p>
 </section>
 <section id="today-card" class="session-card" aria-live="polite"></section>
-<section class="past-section" aria-labelledby="past-title">
-<div class="section-heading"><h2 id="past-title">지난 운동</h2><button type="button" id="manage-exercises" class="link-button">내 종목 관리</button></div>
-<div id="workout-list" class="past-list" aria-live="polite"></div><button id="load-more" type="button" hidden>더 보기</button>
+<section class="calendar-card" aria-labelledby="past-title">
+<div class="section-heading"><h2 id="past-title">운동 캘린더</h2><div class="heading-links"><button type="button" id="browse-exercises" class="link-button">종목 둘러보기</button><button type="button" id="manage-exercises" class="link-button">내 종목 관리</button></div></div>
+<div class="cal-head"><button type="button" id="cal-prev" class="icon-button" aria-label="이전 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><h3 id="cal-title" aria-live="polite"></h3><button type="button" id="cal-next" class="icon-button" aria-label="다음 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></div>
+<ol class="cal-weekdays" aria-hidden="true"><li>월</li><li>화</li><li>수</li><li>목</li><li>금</li><li>토</li><li>일</li></ol>
+<div id="cal-grid" class="cal-grid" role="group" aria-labelledby="cal-title"></div>
+<div id="cal-day" class="cal-day" aria-live="polite"></div>
 </section>
 </section>
 
@@ -65,7 +68,7 @@
 <p class="picker-count" id="picker-count"></p>
 <div class="picker-results" id="picker-results"></div>
 <button type="button" id="picker-custom" class="picker-custom" hidden></button>
-<div class="picker-foot"><span id="picker-selected">0개 선택</span><button type="button" id="picker-add" class="primary" disabled>운동에 추가</button></div>
+<div class="picker-foot" id="picker-foot"><span id="picker-selected">0개 선택</span><button type="button" id="picker-add" class="primary" disabled>운동에 추가</button></div>
 </div>
 </dialog>
 

@@ -169,6 +169,12 @@ window.fitlogMe.then((me) => me && store((storage) => {
     dashboard: {key: "dashboard:" + zone + ":" + today, load: () => getJSON("/api/dashboard?timezone=" + encodeURIComponent(zone))},
     recent: {key: "workouts:recent", load: () => getJSON("/api/workouts?limit=3")},
     workouts: {key: "workouts:list", load: () => getJSON("/api/workouts?limit=20&offset=0")},
+    // The workout calendar's current month (운동 tab); other months load when the user moves to them.
+    calendar: {key: "workouts:month:" + today.slice(0, 7), load: () => {
+      const start = new Date(); start.setDate(1);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      return paged("/api/workouts", {date_from: dayKey(start), date_to: dayKey(end)});
+    }},
     exercises: {key: "exercises", load: () => paged("/api/exercises")},
     // Meals: the 7 days ending today, each tagged with its local day.
     meals: {key: "meals:" + today, load: async () => (await paged("/api/meals", {from_at: midnight(-6).toISOString(), to_at: midnight(1).toISOString()}))

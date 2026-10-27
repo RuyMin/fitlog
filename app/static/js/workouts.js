@@ -1,9 +1,10 @@
 "use strict";
-// Workouts: this week's summary, today's session with inline set tables, past sessions,
+// Workouts: this week's summary, today's session with inline set tables, a month calendar of past sessions,
 // the preset picker (search + body part / equipment tags) and an exercise sheet with the muscle figure.
 const $ = (selector) => document.querySelector(selector);
-const state = {variants: {}, workouts: [], offset: 0, exercises: [], presets: [], catalog: null, current: null, route: 0,
-  editWorkout: null, editExercise: null, picker: {workout: null, part: "전체", gear: "전체", picked: new Map()}};
+const state = {variants: {}, workouts: [], exercises: [], presets: [], catalog: null, current: null, route: 0,
+  editWorkout: null, editExercise: null, picker: {workout: null, part: "전체", gear: "전체", picked: new Map()},
+  calendar: {month: null, day: null, months: new Map(), stale: false}};
 const pageSize = 20;
 const SVG_CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
 const SVG_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
@@ -437,12 +438,11 @@ function renderToday(today) {
 function pastItem(workout) {
   const item = node("div", null, "past-item");
   const link = node("a", null, "past-link"); link.href = "/workouts#" + workout.id;
-  const date = node("span", null, "past-date");
-  date.append(node("span", Number(workout.workout_date.slice(5, 7)) + "월"), node("b", String(Number(workout.workout_date.slice(8)))));
   const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
   const text = node("span", null, "past-text");
   text.append(node("strong", workout.title), node("span", (names.slice(0, 3).join(" · ") || "세트 없음") + (names.length > 3 ? " 외" : "") + " · " + workout.sets.length + "세트"));
-  link.append(date, text);
+  link.append(text);
+  link.insertAdjacentHTML("beforeend", SVG_CHEVRON);
   item.append(link);
   if (workout.sets.length) item.append(button("다시 하기", (control) => mutate(control, () => repeat(workout)), "small"));
   return item;
@@ -463,7 +463,7 @@ async function repeat(source) {
   });
   Object.assign(today, await api("/workouts/" + today.id + "/sets/batch", "POST", copies));
   notice("‘" + source.title + "’ 구성을 오늘 운동에 불러왔어요.");
-  if (location.hash) location.hash = ""; else { renderWeek(); renderCurrent(); }
+  if (location.hash) location.hash = ""; else { renderWeek(); renderCurrent(); renderCalendar(); }
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 function renderWeek() {
@@ -488,22 +488,88 @@ function renderWeek() {
     item.append(node("span", name)); bars.append(item);
   });
 }
-const listRequest = (offset = 0) => api("/workouts?" + new URLSearchParams({limit: pageSize, offset}));
-async function loadList(append = false) {
-  const route = state.route;
-  const items = await listRequest(append ? state.offset : 0);
-  if (route !== state.route) return;
-  showList(items, append);
-}
-function showList(items, append = false) {
-  state.workouts = append ? [...state.workouts, ...items] : items;
-  state.offset = state.workouts.length;
-  const past = state.workouts.filter((item) => item.workout_date !== localDate());
-  $("#workout-list").replaceChildren(...past.map(pastItem));
-  if (!past.length) $("#workout-list").append(node("p", "지난 운동 기록이 아직 없어요.", "empty-state"));
-  $("#load-more").hidden = items.length < pageSize;
+function showList(items) {
+  state.workouts = items;
   renderWeek();
   renderToday(state.workouts.find((item) => item.workout_date === localDate()));
+  renderCalendar();
+}
+
+// ---- calendar -----------------------------------------------------------------------------------
+// A month grid with a dot on each day with a workout; tapping a day lists that day's sessions below.
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const monthOf = (day) => day.slice(0, 7);
+function shiftMonth(month, by) {
+  const [year, index] = month.split("-").map(Number);
+  return localDate(new Date(year, index - 1 + by, 1)).slice(0, 7);
+}
+// The month's sessions as fetched, with the recent list's copies (edited on this page) taking their place.
+function monthWorkouts(month) {
+  const byId = new Map((state.calendar.months.get(month) || []).map((item) => [item.id, item]));
+  for (const item of state.workouts) if (monthOf(item.workout_date) === month) byId.set(item.id, item);
+  return [...byId.values()].sort((a, b) => b.workout_date.localeCompare(a.workout_date) || b.id - a.id);
+}
+function renderCalendar() {
+  const calendar = state.calendar, today = localDate();
+  calendar.month ??= monthOf(today);
+  const month = calendar.month, items = monthWorkouts(month);
+  // Until a day is picked, show the latest session before today (today's is the card above).
+  if (!calendar.day || monthOf(calendar.day) !== month) {
+    calendar.day = items.find((item) => item.workout_date < today)?.workout_date || (month === monthOf(today) ? today : month + "-01");
+  }
+  const [year, index] = month.split("-").map(Number);
+  $("#cal-title").textContent = year + "년 " + index + "월";
+  $("#cal-next").disabled = month >= monthOf(today);
+  const counts = items.reduce((map, item) => map.set(item.workout_date, (map.get(item.workout_date) || 0) + 1), new Map());
+  const first = new Date(year, index - 1, 1), length = new Date(year, index, 0).getDate();
+  const cells = Array.from({length: (first.getDay() + 6) % 7}, () => node("span", null, "cal-blank"));
+  for (let date = 1; date <= length; date++) {
+    const day = month + "-" + String(date).padStart(2, "0"), count = counts.get(day) || 0;
+    const cell = button(String(date), () => { calendar.day = day; renderCalendar(); },
+      "cal-date" + (count ? " on" : "") + (day === today ? " today" : "") + (day > today ? " future" : ""));
+    cell.setAttribute("aria-pressed", String(day === calendar.day));
+    cell.setAttribute("aria-label", index + "월 " + date + "일" + (day === today ? " 오늘" : "") + (count ? ", 운동 " + count + "회" : ""));
+    cells.push(cell);
+  }
+  $("#cal-grid").replaceChildren(...cells);
+  const picked = items.filter((item) => item.workout_date === calendar.day);
+  const date = new Date(calendar.day + "T12:00:00");
+  const panel = $("#cal-day");
+  const head = node("p", null, "cal-day-head");
+  head.append(node("strong", (date.getMonth() + 1) + "월 " + date.getDate() + "일 " + WEEKDAYS[date.getDay()] + "요일"),
+    node("span", picked.length ? "운동 " + picked.length + "회" : ""));
+  panel.replaceChildren(head);
+  if (picked.length) { const list = node("div", null, "past-list"); list.append(...picked.map(pastItem)); panel.append(list); }
+  else panel.append(node("p", calendar.day > today ? "아직 오지 않은 날이에요." : state.calendar.months.has(month) ? "이 날은 운동 기록이 없어요." : "기록을 불러오는 중…", "empty-state"));
+  // A saved copy is read-only (다시 하기 writes) until the month's current copy is in.
+  panel.inert = calendar.stale;
+}
+// This month comes through app.js (fitlogShow, filled by the bulk sync); others show this phone's
+// copy, then fetch.
+async function loadMonth(month) {
+  const show = (items, stale) => {
+    state.calendar.months.set(month, items);
+    if (state.calendar.month !== month) return;
+    state.calendar.stale = stale;
+    renderCalendar();
+  };
+  if (month === monthOf(localDate())) { await window.fitlogShow(window.fitlogData.calendar, show); return; }
+  const key = "workouts:month:" + month, cached = window.fitlogCache.get(key);
+  if (cached) show(cached, true);
+  const items = [];
+  for (let offset = 0; ; offset += 100) {
+    const page = await api("/workouts?" + new URLSearchParams({date_from: month + "-01", date_to: localDate(new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0)), limit: 100, offset}));
+    items.push(...page);
+    if (page.length < 100) break;
+  }
+  window.fitlogCache.set(key, items);
+  show(items, false);
+}
+function moveMonth(by) {
+  state.calendar.month = shiftMonth(state.calendar.month, by);
+  state.calendar.day = null; state.calendar.stale = false;
+  renderCalendar();
+  loadMonth(state.calendar.month).catch((error) => notice(error.message, true));
 }
 async function showRoute() {
   const route = ++state.route;
@@ -522,6 +588,8 @@ async function showRoute() {
     await loadCatalog(); // a static file from the phone's cache after the first visit
     if (route !== state.route) return;
     if (!hash) {
+      state.calendar.month ??= monthOf(localDate());
+      loadMonth(state.calendar.month).catch((error) => { if (route === state.route) notice(error.message, true); });
       await window.fitlogShow(window.fitlogData.workouts, (items, stale) => {
         if (route !== state.route) return;
         showList(items);
@@ -561,7 +629,7 @@ function candidates() {
   return [...custom, ...presets];
 }
 function renderPicker() {
-  const picker = state.picker;
+  const picker = state.picker, browse = !picker.workout; // browse: look exercises up without adding them
   const query = squash($("#picker-query").value);
   const chips = (root, values, current, pick) => {
     root.replaceChildren(...values.map((value) => {
@@ -593,21 +661,24 @@ function renderPicker() {
     toggle.setAttribute("aria-pressed", String(on));
     toggle.setAttribute("aria-label", item.name + (on ? " 선택 해제" : " 선택"));
     toggle.addEventListener("click", () => { if (on) picker.picked.delete(item.key); else picker.picked.set(item.key, item); renderPicker(); });
-    row.append(info, toggle);
+    row.append(info);
+    if (!browse) row.append(toggle);
     return row;
   }));
   if (!hits.length) results.append(node("p", "조건에 맞는 운동이 없어요.", "empty-state"));
   const typed = $("#picker-query").value.trim();
   const exact = candidates().some((item) => item.names.some((name) => squash(name) === query));
-  $("#picker-custom").hidden = !typed || exact;
+  $("#picker-custom").hidden = browse || !typed || exact;
   $("#picker-custom").textContent = "‘" + typed + "’ 내 종목으로 만들기" + (picker.part !== "전체" ? " · " + picker.part : "") + (!["전체", "기구"].includes(picker.gear) ? " · " + picker.gear : "");
   $("#picker-selected").textContent = picker.picked.size + "개 선택";
   $("#picker-add").disabled = !picker.picked.size;
 }
-async function openPicker(workout) {
+async function openPicker(workout = null) {
   try {
     await Promise.all([loadCatalog(), loadExercises()]);
     Object.assign(state.picker, {workout, picked: new Map()});
+    $("#picker-title").textContent = workout ? "운동 추가" : "운동 종목";
+    $("#picker-foot").hidden = !workout;
     $("#picker-query").value = "";
     renderPicker();
     $("#picker-dialog").showModal();
@@ -774,7 +845,9 @@ $("#manage-exercises").addEventListener("click", async () => {
   catch (error) { notice(error.message, true); }
 });
 $("#reset-exercise").addEventListener("click", resetExercise);
-$("#load-more").addEventListener("click", (event) => mutate(event.currentTarget, () => loadList(true)));
+$("#browse-exercises").addEventListener("click", () => openPicker());
+$("#cal-prev").addEventListener("click", () => moveMonth(-1));
+$("#cal-next").addEventListener("click", () => moveMonth(1));
 window.addEventListener("hashchange", showRoute);
 window.fitlogOnSync = showRoute;
 FitAnatomy.load().catch(() => {});
