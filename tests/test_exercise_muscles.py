@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -19,6 +20,18 @@ class PresetMuscleTests(unittest.TestCase):
             with self.subTest(preset=preset["id"]):
                 self.assertTrue(set(preset["muscles"]) - UNDRAWN, "the figure would be blank")
                 self.assertTrue(set(preset["muscles"]) <= set(preset["tags"]), "muscles are searchable")
+
+    def test_every_muscle_tag_maps_to_the_artwork(self) -> None:
+        static = Path(__file__).resolve().parents[1] / "app" / "static"
+        script = (static / "js" / "anatomy.js").read_text(encoding="utf-8")
+        tags = set(re.findall(r'"([^"]+)": [\[A-Z]', script[script.index("const TAGS"):script.index("const FRONT")]))
+        drawn = set(re.findall(r'class="m-([a-z_]+)"', (static / "img" / "anatomy.svg").read_text(encoding="utf-8")))
+        named = set(re.findall(r'"([a-z_]+)"', script[script.index("const FLEXORS"):script.index("const FRONT")]))
+        self.assertEqual(named - drawn, set(), "artwork keys the sprite does not have")
+        used = {m for p in PRESETS["presets"] for m in [*p["muscles"], *(x for v in p.get("variants", []) for x in v.get("muscles", []))]}
+        self.assertEqual(used - tags - {"심폐"}, set(), "muscle tags without a figure mapping")
+        for name in ["대흉근 상부", "대흉근 하부", "삼두근 장두", "이두근 단두", "상완요골근", "대퇴직근", "극하근", "전경골근", "목"]:
+            self.assertIn(name, used, "every finer tag is used by some preset, so admins and users can pick it")
 
     def test_similar_names(self) -> None:
         cases = {"해머 스트렝스 인클라인 프레스": "인클라인 바벨 벤치프레스", "머신 랫풀다운 원암": "랫풀다운",

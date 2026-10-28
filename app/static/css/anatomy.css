@@ -24,11 +24,13 @@
 .m-gluteus_maximus{fill:var(--m-gluteus_maximus,var(--a-rest))}
 .m-gluteus_medius{fill:var(--m-gluteus_medius,var(--a-rest))}
 .m-gracilis{fill:var(--m-gracilis,var(--a-rest))}
+.m-infraspinatus{fill:var(--m-infraspinatus,var(--a-rest))}
 .m-lateral_deltoid{fill:var(--m-lateral_deltoid,var(--a-rest))}
 .m-latissimus_dorsi{fill:var(--m-latissimus_dorsi,var(--a-rest))}
 .m-palmaris_longus{fill:var(--m-palmaris_longus,var(--a-rest))}
 .m-pectineus{fill:var(--m-pectineus,var(--a-rest))}
-.m-pectoralis_major{fill:var(--m-pectoralis_major,var(--a-rest))}
+.m-pectoralis_lower{fill:var(--m-pectoralis_lower,var(--a-rest))}
+.m-pectoralis_upper{fill:var(--m-pectoralis_upper,var(--a-rest))}
 .m-posterior_deltoid{fill:var(--m-posterior_deltoid,var(--a-rest))}
 .m-pronator_quadratus{fill:var(--m-pronator_quadratus,var(--a-rest))}
 .m-pronator_teres{fill:var(--m-pronator_teres,var(--a-rest))}
@@ -36,6 +38,8 @@
 .m-rectus_femoris{fill:var(--m-rectus_femoris,var(--a-rest))}
 .m-semimembranosus{fill:var(--m-semimembranosus,var(--a-rest))}
 .m-semitendinosus{fill:var(--m-semitendinosus,var(--a-rest))}
+.m-sternocleidomastoid{fill:var(--m-sternocleidomastoid,var(--a-rest))}
+.m-tibialis_anterior{fill:var(--m-tibialis_anterior,var(--a-rest))}
 .m-trapezius_lower{fill:var(--m-trapezius_lower,var(--a-rest))}
 .m-trapezius_middle{fill:var(--m-trapezius_middle,var(--a-rest))}
 .m-trapezius_upper{fill:var(--m-trapezius_upper,var(--a-rest))}

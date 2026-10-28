@@ -6,30 +6,41 @@ window.FitAnatomy = (() => {
   const SPRITE = document.getElementById("anatomy-sprite")?.getAttribute("href") || "/static/img/anatomy.svg";
   const VIEW_BOX = {front: "0 0 587 1137", back: "0 0 596 1133"};
   // Preset muscle tags → artwork muscles.
+  const FLEXORS = ["flexor_digitorum_superficialis", "pronator_quadratus", "palmaris_longus", "flexor_carpi_radialis", "pronator_teres", "flexor_carpi_ulnaris"];
+  const EXTENSORS = ["extensor_carpi_radialis_longus", "extensor_carpi_ulnaris", "extensor_digitorum"];
   const TAGS = {
-    "대흉근": ["pectoralis_major"], "대흉근 상부": ["pectoralis_major"], "대흉근 하부": ["pectoralis_major"],
+    "대흉근": ["pectoralis_upper", "pectoralis_lower"], "대흉근 상부": ["pectoralis_upper"], "대흉근 하부": ["pectoralis_lower"],
     "광배근": ["latissimus_dorsi"], "승모근": ["trapezius_upper", "trapezius_middle", "trapezius_lower"],
-    "능형근": ["trapezius_middle"], "척추기립근": [],
+    "능형근": ["trapezius_middle"], "척추기립근": [], "극하근": ["infraspinatus"], "목": ["sternocleidomastoid"],
     "승모근 상부": ["trapezius_upper"], "승모근 중부": ["trapezius_middle"], "승모근 하부": ["trapezius_lower"],
     "전면 삼각근": ["anterior_deltoid"], "측면 삼각근": ["lateral_deltoid"], "후면 삼각근": ["posterior_deltoid"],
     "이두근": ["biceps_brachii_caput_longum", "biceps_brachii_caput_breve"],
+    "이두근 장두": ["biceps_brachii_caput_longum"], "이두근 단두": ["biceps_brachii_caput_breve"],
     "삼두근": ["triceps_brachii_caput_longum", "triceps_brachii_caput_laterale", "triceps_brachii_caput_mediale", "anconeus"],
-    "전완근": ["brachioradialis", "flexor_digitorum_superficialis", "pronator_quadratus", "extensor_carpi_radialis_longus",
-      "palmaris_longus", "flexor_carpi_radialis", "pronator_teres", "extensor_carpi_ulnaris", "extensor_digitorum", "flexor_carpi_ulnaris"],
+    "삼두근 장두": ["triceps_brachii_caput_longum"], "삼두근 외측두": ["triceps_brachii_caput_laterale"],
+    "삼두근 내측두": ["triceps_brachii_caput_mediale", "anconeus"],
+    "전완근": ["brachioradialis", ...FLEXORS, ...EXTENSORS], "상완요골근": ["brachioradialis"],
+    "전완 굴곡근": FLEXORS, "전완 신전근": EXTENSORS,
     "대퇴사두근": ["rectus_femoris", "vastus_lateralis", "vastus_medialis"],
+    "대퇴직근": ["rectus_femoris"], "외측광근": ["vastus_lateralis"], "내측광근": ["vastus_medialis"],
     "햄스트링": ["biceps_femoris", "semitendinosus", "semimembranosus"],
+    "햄스트링 바깥쪽": ["biceps_femoris"], "햄스트링 안쪽": ["semitendinosus", "semimembranosus"],
     "둔근": ["gluteus_maximus"], "중둔근": ["gluteus_medius"],
     "내전근": ["adductor_longus", "adductor_magnus", "pectineus", "gracilis"],
-    "종아리": ["gastrocnemius"], "복직근": ["rectus_abdominis"], "복사근": ["external_oblique"],
+    "종아리": ["gastrocnemius"], "전경골근": ["tibialis_anterior"],
+    "복직근": ["rectus_abdominis"], "복사근": ["external_oblique"],
     "코어": ["rectus_abdominis", "external_oblique"],
   };
   // Muscles best seen from the front; a thumbnail of anything else shows the back.
-  const FRONT = new Set(["pectoralis_major", "anterior_deltoid", "lateral_deltoid", "biceps_brachii_caput_longum",
+  const FRONT = new Set(["pectoralis_upper", "pectoralis_lower", "anterior_deltoid", "lateral_deltoid", "biceps_brachii_caput_longum",
     "biceps_brachii_caput_breve", "rectus_abdominis", "external_oblique", "rectus_femoris", "vastus_lateralis",
-    "vastus_medialis", "adductor_longus", "pectineus", "gracilis", "brachioradialis", "flexor_digitorum_superficialis"]);
+    "vastus_medialis", "adductor_longus", "pectineus", "gracilis", "brachioradialis", "flexor_digitorum_superficialis",
+    "tibialis_anterior", "sternocleidomastoid"]);
   // Thumbnails crop to the half of the body where the primary muscle is, so the color stays visible.
   const LOWER = new Set(["rectus_femoris", "vastus_lateralis", "vastus_medialis", "biceps_femoris", "semitendinosus",
-    "semimembranosus", "gluteus_maximus", "gluteus_medius", "adductor_longus", "adductor_magnus", "pectineus", "gracilis", "gastrocnemius"]);
+    "semimembranosus", "gluteus_maximus", "gluteus_medius", "adductor_longus", "adductor_magnus", "pectineus", "gracilis",
+    "gastrocnemius", "tibialis_anterior"]);
+  const CALF = new Set(["gastrocnemius", "tibialis_anterior"]);
   const CROP = {upper: "93 90 400 400", lower: "113 480 360 360", calf: "143 720 300 300"};
   const PRIMARY = "#e8772e", SECONDARY = "#f5c394";
   let loading = null;
@@ -65,7 +76,7 @@ window.FitAnatomy = (() => {
     for (const side of sides) {
       const item = document.createElement("figure");
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      const area = main.length && main.every((key) => key === "gastrocnemius") ? "calf"
+      const area = main.length && main.every((key) => CALF.has(key)) ? "calf"
         : main.length && main.every((key) => LOWER.has(key)) ? "lower" : "upper";
       svg.setAttribute("viewBox", view === "both" ? VIEW_BOX[side] : CROP[area]);
       svg.setAttribute("aria-hidden", "true");
