@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.database import get_session
-from app.models import Exercise, Workout, WorkoutSet
-from app.schemas import DeleteResponse, ExerciseInput, ExerciseResponse, MergeInput, SetInput, SetResponse, VariantInput, WorkoutInput, WorkoutResponse
+from app.models import Exercise, Routine, Workout, WorkoutSet
+from app.schemas import (DeleteResponse, ExerciseInput, ExerciseResponse, MergeInput, RoutineInput, RoutineOrder, RoutineResponse, SetInput,
+                         SetResponse, VariantInput, WorkoutInput, WorkoutResponse)
 from app.services import exercise_presets, workouts as service
 
 router = APIRouter(prefix="/api", tags=["workouts"])
@@ -137,3 +138,30 @@ def set_exercise_variant(workout_id: int, exercise_id: int, data: VariantInput, 
 @router.delete("/workouts/{workout_id}/exercises/{exercise_id}", response_model=WorkoutResponse)
 def remove_exercise(workout_id: int, exercise_id: int, db: DB, user: CurrentUser) -> Workout:
     return service.remove_exercise(db, user.id, workout_id, exercise_id)
+
+
+@router.get("/routines", response_model=list[RoutineResponse])
+def list_routines(db: DB, user: CurrentUser) -> list[Routine]:
+    return service.list_routines(db, user.id)
+
+
+@router.post("/routines", response_model=RoutineResponse, status_code=201)
+def create_routine(data: RoutineInput, db: DB, user: CurrentUser) -> Routine:
+    return service.save_routine(db, user.id, data)
+
+
+# Before /routines/{routine_id} so "order" is not read as an id.
+@router.put("/routines/order", response_model=list[RoutineResponse])
+def order_routines(data: RoutineOrder, db: DB, user: CurrentUser) -> list[Routine]:
+    return service.order_routines(db, user.id, data.ids)
+
+
+@router.put("/routines/{routine_id}", response_model=RoutineResponse)
+def update_routine(routine_id: int, data: RoutineInput, db: DB, user: CurrentUser) -> Routine:
+    return service.save_routine(db, user.id, data, routine_id)
+
+
+@router.delete("/routines/{routine_id}", response_model=DeleteResponse)
+def delete_routine(routine_id: int, db: DB, user: CurrentUser) -> DeleteResponse:
+    service.delete_routine(db, user.id, routine_id)
+    return DeleteResponse()

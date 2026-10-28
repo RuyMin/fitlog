@@ -62,6 +62,8 @@ class WorkoutInput(InputModel):
     started_at: AwareDatetime | None = None
     ended_at: AwareDatetime | None = None
     memo: Memo | None = None
+    # Left out of an update, the session keeps the routine it was started from.
+    routine_id: Annotated[int, Field(gt=0, strict=True)] | None = None
 
     @model_validator(mode="after")
     def validate_times(self) -> Self:
@@ -122,9 +124,30 @@ class WorkoutResponse(BaseModel):
     started_at: UTCDateTime | None
     ended_at: UTCDateTime | None
     memo: str | None
+    routine_id: int | None = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
     sets: list[SetResponse]
+
+
+class RoutineItem(InputModel):
+    exercise_id: Annotated[int, Field(gt=0, strict=True)]
+    sets: Annotated[int, Field(ge=1, le=20, strict=True)] = 3
+
+
+class RoutineInput(InputModel):
+    name: Annotated[str, Field(min_length=1, max_length=100)]
+    items: Annotated[list[RoutineItem], Field(min_length=1, max_length=30)]
+
+
+class RoutineResponse(RoutineInput):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    position: int
+
+
+class RoutineOrder(InputModel):
+    ids: Annotated[list[Annotated[int, Field(gt=0, strict=True)]], Field(max_length=100)]
 
 
 class DeleteResponse(BaseModel):

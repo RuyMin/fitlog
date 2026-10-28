@@ -93,11 +93,11 @@ class MigrationV14Tests(unittest.TestCase):
                 migrate(engine, path)
             finally:
                 engine.dispose()
-            self.assertEqual(SCHEMA_VERSION, 14)
+            self.assertGreaterEqual(SCHEMA_VERSION, 14)
             with closing(sqlite3.connect(path)) as c:
-                self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 14)
+                self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
                 self.assertEqual(c.execute("SELECT email, tracking FROM users").fetchall(), [("a@example.com", None)])
-            backups = list((Path(folder) / "backups").glob("before-v14-*.db"))
+            backups = list((Path(folder) / "backups").glob(f"before-v{SCHEMA_VERSION}-*.db"))
             self.assertEqual(len(backups), 1)
             with closing(sqlite3.connect(backups[0])) as c:
                 self.assertNotIn("tracking", {r[1] for r in c.execute("PRAGMA table_info(users)")})

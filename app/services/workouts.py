@@ -4,8 +4,8 @@ from datetime import date, datetime, timezone
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Exercise, Workout, WorkoutSet, utc_now
-from app.schemas import ExerciseInput, SetInput, WorkoutInput
+from app.models import Exercise, Routine, Workout, WorkoutSet, utc_now
+from app.schemas import ExerciseInput, RoutineInput, SetInput, WorkoutInput
 
 
 from app.services import exercise_presets
@@ -57,6 +57,7 @@ def delete_exercise(session: Session, user_id: int, exercise_id: int) -> None:
         shown = ", ".join(f"{day.month}/{day.day} {title}" for day, title in used[:3])
         more = f" 외 {len(used) - 3}개" if len(used) > 3 else ""
         raise RecordConflict(f"{shown}{more} 운동 기록에서 쓰고 있어 삭제할 수 없습니다. 그 운동에서 종목을 먼저 빼 주세요.")
+    replace_in_routines(session, user_id, exercise_id, None)
     session.delete(item)
     commit(session)
 
@@ -130,6 +131,7 @@ def merge_exercise(session: Session, user_id: int, exercise_id: int, preset_id: 
         if item.variant is None:
             item.variant = variant
     session.flush()
+    replace_in_routines(session, user_id, source.id, target.id)
     session.delete(source)
     commit(session)
     session.refresh(target)
@@ -160,7 +162,11 @@ def get_workout(session: Session, user_id: int, workout_id: int) -> Workout:
 
 def save_workout(session: Session, user_id: int, data: WorkoutInput, workout_id: int | None = None) -> Workout:
     item = get_workout(session, user_id, workout_id) if workout_id is not None else Workout(user_id=user_id)
+    if data.routine_id is not None:
+        get_routine(session, user_id, data.routine_id)
     for key, value in data.model_dump().items():
+        if key == "routine_id" and "routine_id" not in data.model_fields_set:
+            continue
         if isinstance(value, datetime):
             value = value.astimezone(timezone.utc).replace(tzinfo=None)
         setattr(item, key, value)
@@ -243,3 +249,69 @@ def remove_exercise(session: Session, user_id: int, workout_id: int, exercise_id
     workout.updated_at = utc_now()
     commit(session)
     return get_workout(session, user_id, workout_id)
+
+
+# ---- routines ---------------------------------------------------------------------------------------
+def list_routines(session: Session, user_id: int) -> list[Routine]:
+    return list(session.scalars(select(Routine).where(Routine.user_id == user_id).order_by(Routine.position, Routine.id)))
+
+
+def get_routine(session: Session, user_id: int, routine_id: int) -> Routine:
+    return owned(session, Routine, user_id, routine_id, "루틴을 찾을 수 없습니다.")
+
+
+def save_routine(session: Session, user_id: int, data: RoutineInput, routine_id: int | None = None) -> Routine:
+    ids = [entry.exercise_id for entry in data.items]
+    if len(set(ids)) != len(ids):
+        raise RecordInvalid("같은 종목이 두 번 들어 있어요. 세트 수로 조절해 주세요.")
+    found = set(session.scalars(select(Exercise.id).where(Exercise.user_id == user_id, Exercise.id.in_(ids))))
+    if found != set(ids):
+        raise RecordInvalid("내 종목에 없는 종목이 있어요.")
+    if routine_id is None:
+        last = session.scalar(select(func.max(Routine.position)).where(Routine.user_id == user_id))
+        item = Routine(user_id=user_id, position=(last or 0) + 1)
+    else:
+        item = get_routine(session, user_id, routine_id)
+    item.name = data.name
+    item.items = [entry.model_dump() for entry in data.items]
+    session.add(item)
+    commit(session)
+    return item
+
+
+def delete_routine(session: Session, user_id: int, routine_id: int) -> None:
+    item = get_routine(session, user_id, routine_id)
+    # Sessions started from it keep their records; they just no longer point at a routine.
+    for workout in session.scalars(select(Workout).where(Workout.user_id == user_id, Workout.routine_id == routine_id)):
+        workout.routine_id = None
+    session.delete(item)
+    commit(session)
+
+
+def order_routines(session: Session, user_id: int, ids: list[int]) -> list[Routine]:
+    routines = {item.id: item for item in list_routines(session, user_id)}
+    if sorted(ids) != sorted(routines):
+        raise RecordInvalid("루틴 목록이 바뀌었어요. 새로고침한 뒤 다시 순서를 정해 주세요.")
+    for position, routine_id in enumerate(ids, start=1):
+        routines[routine_id].position = position
+    commit(session)
+    return list_routines(session, user_id)
+
+
+def replace_in_routines(session: Session, user_id: int, old_id: int, new_id: int | None) -> None:
+    """A deleted exercise leaves the user's routines (an emptied routine goes too); a merged one is
+    replaced by the exercise it was merged into. The caller commits."""
+    for routine in list_routines(session, user_id):
+        if not any(entry["exercise_id"] == old_id for entry in routine.items):
+            continue
+        items, seen = [], set()
+        for entry in routine.items:
+            exercise_id = new_id if entry["exercise_id"] == old_id else entry["exercise_id"]
+            if exercise_id is None or exercise_id in seen:
+                continue
+            seen.add(exercise_id)
+            items.append({**entry, "exercise_id": exercise_id})
+        if items:
+            routine.items = items
+        else:
+            session.delete(routine)
