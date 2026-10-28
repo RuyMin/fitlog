@@ -108,7 +108,8 @@ function describe(exercise) {
 }
 // ---- set fields by tracking type -----------------------------------------------------------------
 // Each preset says how it is recorded (app/static/data/exercise_presets.json "tracking"); custom exercises use weight × reps.
-const CARDIO_FIELDS = ["duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate"];
+const CARDIO_FIELDS = ["duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate",
+  "max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds"];
 const FIELDS = {
   weight: {key: "weight", label: "kg", mode: "decimal"},
   reps: {key: "reps", label: "회", mode: "numeric"},
@@ -127,6 +128,7 @@ const TRACKING = {
   weight_time: {fields: ["weight", "seconds"]},
   treadmill: {fields: ["time", "speed", "incline"], cardio: true},
   distance: {fields: ["distance", "time"], cardio: true},
+  run: {fields: ["distance", "time"], cardio: true, details: true},
   cardio_machine: {fields: ["time", "level", "distance"], cardio: true},
   rope: {fields: ["time", "count"], cardio: true},
 };
@@ -156,6 +158,7 @@ function readField(field, text) {
   return field.mode === "km" ? Math.round(value * 1000) : field.mode === "numeric" ? Math.round(value) : value;
 }
 // Distance of a cardio row: as entered, or speed × time on a treadmill.
+const paceText = (seconds) => Math.floor(seconds / 60) + "'" + String(Math.round(seconds % 60)).padStart(2, "0") + "\"/km";
 const rowDistance = (set) => set.distance_m ?? (set.speed_kmh != null && set.duration_seconds != null ? set.speed_kmh * set.duration_seconds / 3.6 : null);
 function cardioSummary(sets) {
   const seconds = sets.reduce((sum, set) => sum + (set.duration_seconds || 0), 0);
@@ -164,7 +167,7 @@ function cardioSummary(sets) {
   const parts = [];
   if (seconds) parts.push(clock(seconds));
   if (metres) parts.push(number(metres / 1000) + "km");
-  if (seconds && metres >= 100) { const pace = seconds / (metres / 1000); parts.push(Math.floor(pace / 60) + "'" + String(Math.round(pace % 60)).padStart(2, "0") + "\"/km"); }
+  if (seconds && metres >= 100) parts.push(paceText(seconds / (metres / 1000)));
   if (count) parts.push(number(count) + "회");
   return parts.join(" · ");
 }
@@ -283,16 +286,29 @@ function setRow(workout, set, prev, tracking, variant = null) {
   row.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
   return row;
 }
-// Session-level calories and average heart rate live on the first row of a cardio exercise.
-function extrasRow(workout, first) {
-  const box = node("div", null, "cardio-extras");
-  for (const [key, label] of [["calories", "소모 kcal"], ["heart_rate", "평균 심박"]]) {
+// Session-level values live on the first row of a cardio exercise: calories and average heart rate, and for
+// runs and walks the rest of what a watch shows (max heart rate, cadence, steps, climb, best pace).
+const EXTRAS = [["calories", "소모 kcal"], ["heart_rate", "평균 심박"]];
+const RUN_EXTRAS = [["calories", "소모 kcal"], ["steps", "걸음"], ["heart_rate", "평균 심박"], ["max_heart_rate", "최대 심박"],
+  ["cadence", "평균 케이던스"], ["max_cadence", "최대 케이던스"], ["best_pace_seconds", "최고 페이스", "pace"], ["elevation_gain_m", "누적 상승 m"]];
+const LIMITS = {heart_rate: [20, 250], max_heart_rate: [20, 250], cadence: [0, 300], max_cadence: [0, 300], best_pace_seconds: [60, 3600]};
+function extrasRow(workout, first, config) {
+  const box = node("div", null, "cardio-extras" + (config.details ? " run-extras" : ""));
+  for (const [key, label, mode] of config.details ? RUN_EXTRAS : EXTRAS) {
     const wrap = node("label", null, "extra-field");
     wrap.append(node("span", label));
-    const input = node("input"); input.type = "number"; input.min = key === "heart_rate" ? "20" : "0"; input.step = "1"; input.inputMode = "numeric";
-    input.value = first[key] ?? ""; input.placeholder = "선택";
+    const input = node("input");
+    if (mode === "pace") { input.type = "text"; input.inputMode = "numeric"; input.pattern = "[0-9:]*"; input.placeholder = "분:초"; input.value = first[key] != null ? clock(first[key]) : ""; }
+    else { input.type = "number"; input.min = String(LIMITS[key]?.[0] ?? 0); input.step = key === "elevation_gain_m" ? "any" : "1"; input.inputMode = key === "elevation_gain_m" ? "decimal" : "numeric"; input.placeholder = "선택"; input.value = first[key] ?? ""; }
     input.addEventListener("change", () => {
-      first[key] = input.value === "" ? null : Math.round(Number(input.value));
+      const value = mode === "pace" ? parseClock(input.value) : input.value === "" ? null : key === "elevation_gain_m" ? Number(input.value) : Math.round(Number(input.value));
+      const [low, high] = LIMITS[key] || [0, Infinity];
+      if (value != null && (!Number.isFinite(value) || value < low || value > high)) {
+        input.value = first[key] == null ? "" : mode === "pace" ? clock(first[key]) : first[key];
+        notice(label + " 값을 확인해 주세요." + (mode === "pace" ? " 1km당 분:초로 적어요. 예: 4:31" : ""), true);
+        return;
+      }
+      first[key] = value;
       save(workout, () => api("/workouts/" + workout.id + "/sets/" + first.id, "PUT", setPayload(first)));
     });
     wrap.append(input); box.append(wrap);
@@ -365,8 +381,10 @@ function exerciseBlock(workout, sets) {
   block.append(table);
   if (config.cardio) {
     const summary = cardioSummary(sets);
-    if (summary) block.append(node("p", (sets.length > 1 ? "합계 " : "") + summary, "cardio-summary"));
-    block.append(extrasRow(workout, sets[0]));
+    const seconds = sets.reduce((sum, set) => sum + (set.duration_seconds || 0), 0), metres = sets.reduce((sum, set) => sum + (rowDistance(set) || 0), 0);
+    const speed = config.details && seconds && metres >= 100 ? " · " + number(metres / seconds * 3.6) + "km/h" : "";
+    if (summary) block.append(node("p", (sets.length > 1 ? "합계 " : "") + summary + speed, "cardio-summary"));
+    block.append(extrasRow(workout, sets[0], config));
   }
   const actions = node("div", null, "ex-actions");
   actions.append(button(config.cardio ? "+ 구간 추가" : "+ 세트 추가", (control) => mutate(control, async () => {
@@ -439,8 +457,12 @@ function pastItem(workout) {
   const item = node("div", null, "past-item");
   const link = node("a", null, "past-link"); link.href = "/workouts#" + workout.id;
   const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
+  // Strength work counts sets; a run or other cardio shows its distance, time and pace instead.
+  const cardio = workout.sets.filter((set) => TRACKING[trackingOf(userExercise(set.exercise))].cardio);
+  const strength = workout.sets.length - cardio.length;
+  const amount = [strength && strength + "세트", cardioSummary(cardio)].filter(Boolean).join(" · ");
   const text = node("span", null, "past-text");
-  text.append(node("strong", workout.title), node("span", (names.slice(0, 3).join(" · ") || "세트 없음") + (names.length > 3 ? " 외" : "") + " · " + workout.sets.length + "세트"));
+  text.append(node("strong", workout.title), node("span", (names.slice(0, 3).join(" · ") || "세트 없음") + (names.length > 3 ? " 외" : "") + (amount ? " · " + amount : "")));
   link.append(text);
   link.insertAdjacentHTML("beforeend", SVG_CHEVRON);
   item.append(link);
@@ -459,7 +481,8 @@ async function repeat(source) {
   const copies = [...source.sets].sort((a, b) => a.id - b.id).map((set) => {
     const next = (used.get(set.exercise_id) || 0) + 1; used.set(set.exercise_id, next);
     // Plans copy over; outcomes (calories, heart rate) do not.
-    return setPayload(set, {set_number: next, completed: false, memo: null, calories: null, heart_rate: null});
+    return setPayload(set, {set_number: next, completed: false, memo: null, calories: null, heart_rate: null,
+      max_heart_rate: null, cadence: null, max_cadence: null, steps: null, elevation_gain_m: null, best_pace_seconds: null});
   });
   Object.assign(today, await api("/workouts/" + today.id + "/sets/batch", "POST", copies));
   notice("‘" + source.title + "’ 구성을 오늘 운동에 불러왔어요.");

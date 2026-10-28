@@ -20,7 +20,8 @@ class Identity(InputModel):
         if info.field_name == "workout_date" and (not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value)):
             raise ValueError("ISO date required")
         if info.field_name in {"weight", "reps", "set_number", "rpe", "rir", "calories", "protein", "carbohydrates", "fat", "body_fat", "skeletal_muscle", "duration_minutes",
-                               "duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "heart_rate"} and isinstance(value, bool):
+                               "duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "heart_rate",
+                               "max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds"} and isinstance(value, bool):
             raise ValueError("boolean is not a number")
         return value
 
@@ -46,6 +47,12 @@ class SetRow(Identity):
     level: Annotated[float, Field(ge=0, le=100)] | None = None
     calories: Annotated[float, Field(ge=0, le=20000)] | None = None
     heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
+    max_heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
+    cadence: Annotated[int, Field(ge=0, le=300)] | None = None
+    max_cadence: Annotated[int, Field(ge=0, le=300)] | None = None
+    steps: Annotated[int, Field(ge=0, le=1_000_000)] | None = None
+    elevation_gain_m: Annotated[float, Field(ge=0, le=10_000)] | None = None
+    best_pace_seconds: Annotated[int, Field(ge=60, le=3600)] | None = None
 
 
 class MealRow(MealInput, Identity):
@@ -73,8 +80,11 @@ ROW_TYPES = {"workouts": WorkoutRow, "workout_sets": SetRow, "meals": MealRow, "
 COLUMNS = {
     "workouts": "external_id workout_date title body_part started_at ended_at memo updated_at".split(),
     "workout_sets": ("external_id workout_external_id exercise set_number weight reps completed rpe rir memo updated_at "
-                     "duration_seconds distance_m speed_kmh incline_pct level calories heart_rate").split(),
+                     "duration_seconds distance_m speed_kmh incline_pct level calories heart_rate "
+                     "max_heart_rate cadence max_cadence steps elevation_gain_m best_pace_seconds").split(),
     "meals": "external_id eaten_at meal_type name calories protein carbohydrates fat memo image_url updated_at".split(),
     "body_metrics": "external_id measured_at weight body_fat skeletal_muscle memo updated_at".split(),
     "sleep": "external_id sleep_start sleep_end duration_minutes sleep_type memo updated_at".split(),
 }
+# Columns added after files were already in use (schema v9); a file without them still reads.
+OPTIONAL_COLUMNS = {"workout_sets": {"max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds"}}

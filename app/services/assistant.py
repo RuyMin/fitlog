@@ -17,7 +17,7 @@ from app import config
 from app.assistant_schemas import CommitRequest, WorkoutDraft
 from app.models import AiCredential, AiUsage, BodyMetric, Exercise, Meal, SleepRecord, User, Workout, WorkoutSet, utc_now
 from app.schemas import BodyMetricInput, MealInput, SleepInput
-from app.services import accounts, claude_records
+from app.services import accounts, claude_records, workouts as workout_service
 from app.services.claude_records import AssistantError
 from app.services.persistence import RecordConflict, commit
 from app.services.records import SLEEP_OVERLAP, sleep_overlaps, utc_naive
@@ -133,7 +133,8 @@ LABELS = {
     "body_fat": "체지방률", "skeletal_muscle": "골격근량", "sleep_start": "잠든 시각", "sleep_end": "일어난 시각",
     "sleep_type": "구분", "workout_date": "운동일", "title": "제목", "body_part": "부위", "sets": "세트",
     "duration_seconds": "시간", "distance_m": "거리", "speed_kmh": "속도", "incline_pct": "경사", "level": "레벨",
-    "heart_rate": "심박",
+    "heart_rate": "심박", "max_heart_rate": "최대 심박", "cadence": "케이던스", "max_cadence": "최대 케이던스",
+    "steps": "걸음", "elevation_gain_m": "누적 상승", "best_pace_seconds": "최고 페이스",
     "exercise": "종목", "set_number": "세트 번호", "reps": "횟수", "completed": "완료",
 }
 
@@ -213,9 +214,4 @@ def as_utc(values: dict) -> dict:
 
 
 def exercise_id(session: Session, user_id: int, name: str) -> int:
-    exercise = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.name == name))
-    if exercise is None:
-        exercise = Exercise(user_id=user_id, name=name)
-        session.add(exercise)
-        session.flush()
-    return exercise.id
+    return workout_service.exercise_named(session, user_id, name).id

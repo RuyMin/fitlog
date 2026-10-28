@@ -74,6 +74,12 @@ class SetInput(InputModel):
     level: Annotated[float, Field(ge=0, le=100)] | None = None
     calories: Annotated[float, Field(ge=0, le=20000)] | None = None
     heart_rate: Annotated[int, Field(ge=20, le=250, strict=True)] | None = None
+    max_heart_rate: Annotated[int, Field(ge=20, le=250, strict=True)] | None = None
+    cadence: Annotated[int, Field(ge=0, le=300, strict=True)] | None = None
+    max_cadence: Annotated[int, Field(ge=0, le=300, strict=True)] | None = None
+    steps: Annotated[int, Field(ge=0, le=1_000_000, strict=True)] | None = None
+    elevation_gain_m: Annotated[float, Field(ge=0, le=10_000)] | None = None
+    best_pace_seconds: Annotated[int, Field(ge=60, le=3600, strict=True)] | None = None
     variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
 
 

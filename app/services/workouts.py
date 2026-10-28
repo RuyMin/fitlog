@@ -16,6 +16,23 @@ def get_exercise(session: Session, user_id: int, exercise_id: int) -> Exercise:
     return owned(session, Exercise, user_id, exercise_id, "운동 종목을 찾을 수 없습니다.")
 
 
+def exercise_named(session: Session, user_id: int, name: str) -> Exercise:
+    """The user's exercise with this name, created when missing. A new one links to the preset of the same
+    name (러닝 → running) unless the user already has an exercise for that preset, so imported runs are
+    recorded like runs picked from the list."""
+    exercise = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.name == name))
+    if exercise is None:
+        preset_id = exercise_presets.match_name(name)
+        if preset_id and session.scalar(select(Exercise.id).where(Exercise.user_id == user_id, Exercise.preset_id == preset_id)):
+            preset_id = None
+        preset = next((p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id), None)
+        exercise = Exercise(user_id=user_id, name=name, preset_id=preset_id,
+                            body_part=preset and preset["body_part"], category=preset and preset["equipment"])
+        session.add(exercise)
+        session.flush()
+    return exercise
+
+
 def list_exercises(session: Session, user_id: int, limit: int, offset: int) -> list[Exercise]:
     query = select(Exercise).where(Exercise.user_id == user_id)
     return list(session.scalars(query.order_by(Exercise.name, Exercise.id).limit(limit).offset(offset)))
