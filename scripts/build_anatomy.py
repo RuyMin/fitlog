@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BODY_GROUPS = {"non_muscle", "face", "head", "hands", None}
 BODY_KEYS = {"underlayer", "hand", "palm", "wrist"}
 # Muscle keys the app can highlight (see app/static/js/anatomy.js for the tag mapping).
-KEYS = {"pectoralis_major", "latissimus_dorsi", "trapezius_upper", "trapezius_middle", "trapezius_lower",
+KEYS = {"pectoralis_upper", "pectoralis_lower", "latissimus_dorsi", "trapezius_upper", "trapezius_middle", "trapezius_lower",
         "anterior_deltoid", "lateral_deltoid", "posterior_deltoid", "biceps_brachii_caput_longum",
         "biceps_brachii_caput_breve", "triceps_brachii_caput_longum", "triceps_brachii_caput_laterale",
         "triceps_brachii_caput_mediale", "anconeus", "brachioradialis", "flexor_digitorum_superficialis",
@@ -23,7 +23,10 @@ KEYS = {"pectoralis_major", "latissimus_dorsi", "trapezius_upper", "trapezius_mi
         "pronator_teres", "extensor_carpi_ulnaris", "extensor_digitorum", "flexor_carpi_ulnaris", "rectus_femoris",
         "vastus_lateralis", "vastus_medialis", "biceps_femoris", "semitendinosus", "semimembranosus",
         "gluteus_maximus", "gluteus_medius", "adductor_longus", "adductor_magnus", "pectineus", "gracilis",
-        "gastrocnemius", "rectus_abdominis", "external_oblique"}
+        "gastrocnemius", "rectus_abdominis", "external_oblique", "infraspinatus", "tibialis_anterior", "sternocleidomastoid"}
+# The artwork draws pectoralis major as one shape; two clipped copies split it at this height (front view)
+# into the upper (clavicular) and lower (sternal) parts that incline and decline work hit.
+PEC_SPLIT = 240
 
 
 def convert(path: Path, symbol: str) -> tuple[str, set[str]]:
@@ -57,9 +60,19 @@ def convert(path: Path, symbol: str) -> tuple[str, set[str]]:
             css = "a-rest"
         attrs = re.sub(r'\s*\bfill="[^"]*"', "", attrs)
         attrs = re.sub(r'\bstroke="[^"]*"', 'stroke="#FFFFFF"', attrs)
-        parts.append(f'<path class="{css}" {re.sub(r"\s+", " ", attrs).strip()}></path>')
+        attrs = re.sub(r"\s+", " ", attrs).strip()
+        if key == "pectoralis_major":
+            for part in ("upper", "lower"):
+                parts.append(f'<path class="m-pectoralis_{part}" clip-path="url(#pec-{part})" {attrs}></path>')
+                found.add("pectoralis_" + part)
+            continue
+        parts.append(f'<path class="{css}" {attrs}></path>')
     parts.append(inner[last:])
     body = re.sub(r"\n\s*\n", "\n", "".join(parts)).strip()
+    if "pectoralis_upper" in found:
+        width = view_box.split()[2]
+        body = (f'<clipPath id="pec-upper"><rect x="0" y="0" width="{width}" height="{PEC_SPLIT}"></rect></clipPath>'
+                f'<clipPath id="pec-lower"><rect x="0" y="{PEC_SPLIT}" width="{width}" height="1000"></rect></clipPath>\n' + body)
     return f'<symbol id="{symbol}" viewBox="{view_box}">\n{body}\n</symbol>', found
 
 
