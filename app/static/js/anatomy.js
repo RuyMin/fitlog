@@ -11,11 +11,11 @@ window.FitAnatomy = (() => {
   const TAGS = {
     "대흉근": ["pectoralis_upper", "pectoralis_lower"], "대흉근 상부": ["pectoralis_upper"], "대흉근 하부": ["pectoralis_lower"],
     "광배근": ["latissimus_dorsi"], "승모근": ["trapezius_upper", "trapezius_middle", "trapezius_lower"],
-    "능형근": ["trapezius_middle"], "척추기립근": [], "극하근": ["infraspinatus"], "목": ["sternocleidomastoid"],
+    "능형근": ["rhomboids"], "척추기립근": ["erector_spinae"], "전거근": ["serratus_anterior"], "극하근": ["infraspinatus"], "목": ["sternocleidomastoid"],
     "승모근 상부": ["trapezius_upper"], "승모근 중부": ["trapezius_middle"], "승모근 하부": ["trapezius_lower"],
     "전면 삼각근": ["anterior_deltoid"], "측면 삼각근": ["lateral_deltoid"], "후면 삼각근": ["posterior_deltoid"],
     "이두근": ["biceps_brachii_caput_longum", "biceps_brachii_caput_breve"],
-    "이두근 장두": ["biceps_brachii_caput_longum"], "이두근 단두": ["biceps_brachii_caput_breve"],
+    "이두근 장두": ["biceps_brachii_caput_longum"], "이두근 단두": ["biceps_brachii_caput_breve"], "상완근": ["brachialis"],
     "삼두근": ["triceps_brachii_caput_longum", "triceps_brachii_caput_laterale", "triceps_brachii_caput_mediale", "anconeus"],
     "삼두근 장두": ["triceps_brachii_caput_longum"], "삼두근 외측두": ["triceps_brachii_caput_laterale"],
     "삼두근 내측두": ["triceps_brachii_caput_mediale", "anconeus"],
@@ -27,7 +27,7 @@ window.FitAnatomy = (() => {
     "햄스트링 바깥쪽": ["biceps_femoris"], "햄스트링 안쪽": ["semitendinosus", "semimembranosus"],
     "둔근": ["gluteus_maximus"], "중둔근": ["gluteus_medius"],
     "내전근": ["adductor_longus", "adductor_magnus", "pectineus", "gracilis"],
-    "종아리": ["gastrocnemius"], "전경골근": ["tibialis_anterior"],
+    "종아리": ["gastrocnemius", "soleus"], "비복근": ["gastrocnemius"], "가자미근": ["soleus"], "전경골근": ["tibialis_anterior"],
     "복직근": ["rectus_abdominis"], "복사근": ["external_oblique"],
     "코어": ["rectus_abdominis", "external_oblique"],
   };
@@ -35,12 +35,12 @@ window.FitAnatomy = (() => {
   const FRONT = new Set(["pectoralis_upper", "pectoralis_lower", "anterior_deltoid", "lateral_deltoid", "biceps_brachii_caput_longum",
     "biceps_brachii_caput_breve", "rectus_abdominis", "external_oblique", "rectus_femoris", "vastus_lateralis",
     "vastus_medialis", "adductor_longus", "pectineus", "gracilis", "brachioradialis", "flexor_digitorum_superficialis",
-    "tibialis_anterior", "sternocleidomastoid"]);
+    "tibialis_anterior", "sternocleidomastoid", "serratus_anterior", "brachialis"]);
   // Thumbnails crop to the half of the body where the primary muscle is, so the color stays visible.
   const LOWER = new Set(["rectus_femoris", "vastus_lateralis", "vastus_medialis", "biceps_femoris", "semitendinosus",
     "semimembranosus", "gluteus_maximus", "gluteus_medius", "adductor_longus", "adductor_magnus", "pectineus", "gracilis",
-    "gastrocnemius", "tibialis_anterior"]);
-  const CALF = new Set(["gastrocnemius", "tibialis_anterior"]);
+    "gastrocnemius", "tibialis_anterior", "soleus"]);
+  const CALF = new Set(["gastrocnemius", "tibialis_anterior", "soleus"]);
   const CROP = {upper: "93 90 400 400", lower: "113 480 360 360", calf: "143 720 300 300"};
   const PRIMARY = "#e8772e", SECONDARY = "#f5c394";
   let loading = null;
@@ -63,7 +63,7 @@ window.FitAnatomy = (() => {
   // muscles: the preset's muscle tags, first one primary. view: "both" | "auto" (one side, for thumbnails).
   function figure(muscles, {view = "both", captions = view === "both"} = {}) {
     load().catch(() => {});
-    // Some tags have no artwork (척추기립근, 심폐): the first one that does is drawn as primary.
+    // Some tags have no artwork (심폐): the first one that does is drawn as primary.
     const [primary = null, ...secondary] = muscles.filter((muscle) => TAGS[muscle]?.length);
     const root = document.createElement("div");
     root.className = "anatomy";
