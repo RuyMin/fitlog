@@ -1,0 +1,34 @@
+/* First run: "무엇을 기록할까요?" — pick the record kinds the home summary shows. */
+.welcome{max-width:520px;min-height:100dvh;padding:16px 20px max(28px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:28px}
+.welcome-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.welcome .status:not(.error):not(.loading){visibility:hidden}
+.welcome-skip{min-height:44px;display:flex;align-items:center;padding:0 4px;font-size:14px;color:var(--muted)}
+.welcome-head{display:flex;flex-direction:column;gap:10px}
+.welcome-head h1{font-size:32px;line-height:1.25}
+.welcome-head p{font-size:15px}
+
+.welcome-kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kind{--kind:var(--accent);--kind-ink:#fff;position:relative;text-align:left;min-height:150px;padding:16px;border-radius:var(--radius);display:flex;flex-direction:column;gap:4px;cursor:pointer;color:var(--ink);background:var(--surface);border:2px solid var(--line)}
+.kind-meal{--kind:var(--meal)}.kind-body{--kind:var(--body-ink)}.kind-sleep{--kind:var(--sleep)}
+.kind strong{font-size:18px;font-weight:800}
+.kind>span:not([class]){font-size:13px;color:var(--muted);line-height:1.4}
+.kind-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;margin-bottom:14px;background:var(--soft);color:var(--ink)}
+.kind svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.kind-check{position:absolute;top:14px;right:14px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);color:transparent}
+.kind-check svg{width:14px;height:14px;stroke-width:3}
+.kind[aria-pressed=true]{border-color:var(--kind)}
+.kind[aria-pressed=true] .kind-icon{background:var(--kind);color:var(--kind-ink)}
+.kind[aria-pressed=true] .kind-check{background:var(--kind);border-color:var(--kind);color:var(--kind-ink)}
+@media(prefers-color-scheme:dark){.kind{--kind-ink:var(--brand-ink)}}
+
+.welcome-excel{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+.welcome-excel-icon{flex:none;width:40px;height:40px;border-radius:12px;background:var(--soft);display:grid;place-items:center}
+.welcome-excel-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.welcome-excel-text{flex:1;display:flex;flex-direction:column;font-size:14px;line-height:1.45}
+.welcome-excel-go{min-height:44px;display:flex;align-items:center;font-size:14px;font-weight:700;color:var(--accent)}
+
+.welcome-message:empty{display:none}.welcome-message{font-size:14px;color:var(--danger)}
+.welcome-start{margin-top:auto;min-height:56px;border:0;border-radius:28px;background:var(--brand);color:var(--brand-ink);font-size:17px;font-weight:800;cursor:pointer}
+.welcome-start:disabled{background:var(--soft);color:var(--muted);cursor:default}
+.welcome-kinds button:focus-visible,.welcome-start:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media(min-width:760px){.welcome{padding-top:48px}}

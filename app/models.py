@@ -18,6 +18,9 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+TRACKING_KINDS = ("work", "meal", "body", "sleep")
+
+
 class User(Base):
     """Identity is the Google `sub`; only the owner row may wait unbound (see migrations v3)."""
     __tablename__ = "users"
@@ -36,6 +39,8 @@ class User(Base):
     status: Mapped[str] = mapped_column(String(10), default="active", server_default="active")
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # What the home summary shows, comma-separated from TRACKING_KINDS; None until the first-run screen is answered.
+    tracking: Mapped[str | None] = mapped_column(String(40))
 
 
 class AuthSession(Base):
