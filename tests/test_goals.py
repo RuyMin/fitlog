@@ -12,7 +12,7 @@ from app.services import accounts
 THIS_YEAR = date.today().year
 # Male, 30, 175 cm, 70 kg, moderately active, maintaining:
 # BMR 10×70 + 6.25×175 − 5×30 + 5 = 1648.75 → ×1.55 = 2555.6 → 2560 kcal; protein 70×1.6 = 112 g;
-# fat 25% = 71 g; carbohydrate (2560 − 448 − 639) / 4 = 368 g.
+# (maintaining uses 1.6 g/kg) fat 25% = 71 g; carbohydrate (2560 − 448 − 639) / 4 = 368 g.
 PROFILE = {"mode": "auto", "sex": "male", "birth_year": THIS_YEAR - 30, "height_cm": 175, "activity": "moderate", "aim": "maintain"}
 
 
@@ -61,6 +61,24 @@ class GoalTests(unittest.TestCase):
         self.assertEqual(self.dashboard()["protein_goal_grams"], 128)
         self.assertEqual(self.client.get("/api/me/goals").json()["weight"], 80)
 
+    def test_protein_per_kg_follows_the_aim(self) -> None:
+        # Same body as PROFILE: losing 2160 kcal with 2.0 g/kg, gaining 2860 kcal with 1.8 g/kg; carbohydrate takes the rest.
+        self.weigh(70)
+        lose = self.save({**PROFILE, "aim": "lose"})
+        self.assertEqual(lose["estimate"]["protein_g_per_kg"], 2.0)
+        self.assertEqual(lose["goals"], {"calorie_kcal": 2160, "protein_g": 140, "carbohydrate_g": 265, "fat_g": 60, "sleep_minutes": 420, "source": "auto"})
+        gain = self.save({**PROFILE, "aim": "gain"})
+        self.assertEqual(gain["estimate"]["protein_g_per_kg"], 1.8)
+        self.assertEqual(gain["goals"], {"calorie_kcal": 2860, "protein_g": 126, "carbohydrate_g": 411, "fat_g": 79, "sleep_minutes": 420, "source": "auto"})
+        self.assertEqual(self.save(PROFILE)["estimate"]["protein_g_per_kg"], 1.6)
+
+    def test_heavy_body_losing_still_leaves_carbohydrate(self) -> None:
+        # Female, 70, 150 cm, 150 kg, sedentary, losing: the BMR floor (1930 kcal) with 300 g protein still leaves some carbohydrate.
+        self.weigh(150)
+        goals = self.save({"mode": "auto", "sex": "female", "birth_year": THIS_YEAR - 70, "height_cm": 150, "activity": "sedentary", "aim": "lose"})["goals"]
+        self.assertEqual((goals["calorie_kcal"], goals["protein_g"]), (1930, 300))
+        self.assertGreater(goals["carbohydrate_g"], 0)
+
     def test_auto_without_details_or_weight_keeps_the_defaults(self) -> None:
         data = self.save({"mode": "auto", "sex": "female", "height_cm": 160})
         self.assertEqual(data["missing"], ["birth_year", "weight"])
@@ -75,6 +93,7 @@ class GoalTests(unittest.TestCase):
         data = self.save({"mode": "auto", "sex": "female", "birth_year": THIS_YEAR - 60, "height_cm": 150, "activity": "sedentary", "aim": "lose"})
         self.assertEqual(data["goals"]["calorie_kcal"], 930)
         self.assertEqual(data["estimate"]["adjustment_kcal"], -400)
+        self.assertEqual(data["goals"]["protein_g"], 90)
 
     def test_manual_goals_need_all_four_and_ignore_weight(self) -> None:
         self.assertIn("모두", self.save({"mode": "manual", "calorie_kcal": 1800}, 422)["detail"][0]["msg"])
