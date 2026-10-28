@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -425,7 +425,87 @@ def migrate_v8(engine: Engine) -> None:
         c.exec_driver_sql("PRAGMA user_version=8")
 
 
-STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8}
+RUN_PRESETS = ("running", "walking", "hiking")
+
+
+def run_exercise(c: Connection, user_id: int, preset_id: str) -> int:
+    """The user's exercise for a run preset, created like one picked from the list when missing."""
+    from app.services import exercise_presets
+    found = c.exec_driver_sql("SELECT id FROM exercises WHERE user_id=? AND preset_id=?", (user_id, preset_id)).first()
+    if found:
+        return found[0]
+    preset = next(p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id)
+    name = preset["name"]
+    if c.exec_driver_sql("SELECT 1 FROM exercises WHERE user_id=? AND name=?", (user_id, name)).first():
+        name += " (기록)"
+    now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat(" ")
+    return c.exec_driver_sql("INSERT INTO exercises (user_id, name, category, body_part, preset_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                             (user_id, name, preset["equipment"], preset["body_part"], preset_id, now)).lastrowid
+
+
+def link_run_exercises(c: Connection) -> None:
+    """A custom exercise named like a run preset (러닝, 달리기, 걷기 ...) only offered weight × reps. Link it to the
+    preset so it records distance, time and the run details; its stored values do not change."""
+    from app.services import exercise_presets
+    for exercise_id, user_id, name in c.exec_driver_sql("SELECT id, user_id, name FROM exercises WHERE preset_id IS NULL ORDER BY id").all():
+        preset_id = exercise_presets.match_name(name)
+        if preset_id not in RUN_PRESETS:
+            continue
+        if c.exec_driver_sql("SELECT 1 FROM exercises WHERE user_id=? AND preset_id=?", (user_id, preset_id)).first():
+            continue
+        preset = next(p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id)
+        c.exec_driver_sql("UPDATE exercises SET preset_id=?, body_part=COALESCE(body_part, ?), category=COALESCE(category, ?) WHERE id=?",
+                          (preset_id, preset["body_part"], preset["equipment"], exercise_id))
+
+
+def fill_imported_runs(c: Connection) -> None:
+    """Runs imported from the old workbook kept every value in the workout memo and had no set. Give each one
+    a set with the distance, time and details read back from that memo (the memo stays)."""
+    from app.services.legacy_xlsx import run_set
+    rows = c.exec_driver_sql("SELECT w.id, w.user_id, w.title, w.memo, w.source, w.external_id FROM workouts w "
+                             "WHERE w.memo LIKE '원본: 러닝 기록 %' AND NOT EXISTS (SELECT 1 FROM workout_sets s WHERE s.workout_id = w.id)").all()
+    for workout_id, user_id, title, memo, source, external_id in rows:
+        fields = dict(line.split(": ", 1) for line in memo.splitlines()[1:] if ": " in line)
+        values = run_set(fields)
+        if not values:
+            continue
+        exercise_id = run_exercise(c, user_id, "walking" if title == "걷기" else "running")
+        set_external = external_id.replace("_run_", "_run_set_", 1) if external_id else None
+        names = ", ".join(values)
+        c.exec_driver_sql(f"INSERT INTO workout_sets (user_id, workout_id, exercise_id, set_number, completed, source, external_id, {names}) "
+                          f"VALUES (?, ?, ?, 1, 1, ?, ?, {', '.join('?' * len(values))})",
+                          (user_id, workout_id, exercise_id, source, set_external, *values.values()))
+
+
+V9_SET_COLUMNS = (
+    "max_heart_rate INTEGER CONSTRAINT ck_set_max_heart_rate CHECK (max_heart_rate IS NULL OR max_heart_rate BETWEEN 20 AND 250)",
+    "cadence INTEGER CONSTRAINT ck_set_cadence CHECK (cadence IS NULL OR cadence BETWEEN 0 AND 300)",
+    "max_cadence INTEGER CONSTRAINT ck_set_max_cadence CHECK (max_cadence IS NULL OR max_cadence BETWEEN 0 AND 300)",
+    "steps INTEGER CONSTRAINT ck_set_steps CHECK (steps IS NULL OR steps >= 0)",
+    "elevation_gain_m FLOAT CONSTRAINT ck_set_elevation_gain CHECK (elevation_gain_m IS NULL OR elevation_gain_m >= 0)",
+    "best_pace_seconds INTEGER CONSTRAINT ck_set_best_pace CHECK (best_pace_seconds IS NULL OR best_pace_seconds > 0)",
+)
+
+
+def migrate_v9(engine: Engine) -> None:
+    """Add running details (max heart rate, cadence, steps, elevation gain, best pace) to workout_sets.
+    All are nullable; existing rows keep their values."""
+    with engine.connect() as c:
+        c.exec_driver_sql("BEGIN IMMEDIATE")
+        try:
+            for column in V9_SET_COLUMNS:
+                c.exec_driver_sql(f"ALTER TABLE workout_sets ADD COLUMN {column}")
+            link_run_exercises(c)
+            fill_imported_runs(c)
+            c.exec_driver_sql("PRAGMA user_version=9")
+            c.commit()
+        except Exception:
+            c.rollback()
+            raise
+
+
+STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8,
+                                              9: migrate_v9}
 
 
 def finish_migration(engine: Engine) -> None:

@@ -343,7 +343,8 @@ class ClaudeCallTests(unittest.TestCase):
 
     def test_schema_objects_are_closed_and_required_except_cardio(self):
         # Cardio set fields are optional rather than nullable to stay under the union-type limit (test_ai_schema.py).
-        optional = {"duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate"}
+        optional = {"duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate",
+                    "max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds"}
         def walk(node):
             if isinstance(node, dict):
                 if node.get("type") == "object":

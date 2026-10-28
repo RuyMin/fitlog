@@ -8,8 +8,9 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Workout, WorkoutSet, Exercise, Meal, BodyMetric, SleepRecord
-from app.sync_schemas import COLUMNS, ROW_TYPES
+from app.models import Workout, WorkoutSet, Meal, BodyMetric, SleepRecord
+from app.services import workouts as workout_service
+from app.sync_schemas import COLUMNS, OPTIONAL_COLUMNS, ROW_TYPES
 
 MODELS = {"workouts": Workout, "workout_sets": WorkoutSet, "meals": Meal, "body_metrics": BodyMetric, "sleep": SleepRecord}
 SOURCE = "google_sheets"
@@ -34,7 +35,8 @@ def parse_tables(tables: dict[str, list[list]]) -> dict[str, list]:
         if not rows or len(rows) > 20001:
             raise SyncError(f"{key}: 헤더가 필요하며 시트당 최대 20,000행까지 지원합니다.")
         headers = [str(x).strip() for x in rows[0]]
-        if len(set(headers)) != len(headers) or set(headers) != set(columns):
+        required = set(columns) - OPTIONAL_COLUMNS.get(key, set())
+        if len(set(headers)) != len(headers) or not required <= set(headers) <= set(columns):
             raise SyncError(f"{key}: 헤더가 템플릿과 다릅니다. 필수 컬럼과 중복·추가 컬럼을 확인해 주세요.")
         seen, result = set(), []
         for number, cells in enumerate(rows[1:], 2):
@@ -78,11 +80,7 @@ def apply_rows(session: Session, user_id: int, rows: dict[str, list]) -> dict:
                 if parent is None:
                     raise SyncError(f"workout_sets {number}행: 연결할 workout_external_id가 없습니다.")
                 name = values.pop("exercise")
-                exercise = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.name == name))
-                if exercise is None:
-                    exercise = Exercise(user_id=user_id, name=name)
-                    session.add(exercise)
-                    session.flush()
+                exercise = workout_service.exercise_named(session, user_id, name)
                 values.update(workout_id=parent.id, exercise_id=exercise.id)
             for name, value in values.items():
                 if isinstance(value, datetime):

@@ -1,4 +1,4 @@
-"""Schema v8; all timestamp values follow the UTC-naive storage convention.
+"""Schema v9; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -259,6 +259,13 @@ class WorkoutSet(Owned, SyncFields, Base):
         CheckConstraint("level IS NULL OR level >= 0", name="ck_set_level"),
         CheckConstraint("calories IS NULL OR calories >= 0", name="ck_set_calories"),
         CheckConstraint("heart_rate IS NULL OR heart_rate BETWEEN 20 AND 250", name="ck_set_heart_rate"),
+        # Running details from a watch (schema v9).
+        CheckConstraint("max_heart_rate IS NULL OR max_heart_rate BETWEEN 20 AND 250", name="ck_set_max_heart_rate"),
+        CheckConstraint("cadence IS NULL OR cadence BETWEEN 0 AND 300", name="ck_set_cadence"),
+        CheckConstraint("max_cadence IS NULL OR max_cadence BETWEEN 0 AND 300", name="ck_set_max_cadence"),
+        CheckConstraint("steps IS NULL OR steps >= 0", name="ck_set_steps"),
+        CheckConstraint("elevation_gain_m IS NULL OR elevation_gain_m >= 0", name="ck_set_elevation_gain"),
+        CheckConstraint("best_pace_seconds IS NULL OR best_pace_seconds > 0", name="ck_set_best_pace"),
         # A set may only reference the same owner's workout and exercise.
         ForeignKeyConstraint(["workout_id", "user_id"], ["workouts.id", "workouts.user_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["exercise_id", "user_id"], ["exercises.id", "exercises.user_id"], ondelete="RESTRICT"),
@@ -284,6 +291,12 @@ class WorkoutSet(Owned, SyncFields, Base):
     level: Mapped[float | None] = mapped_column(Float)
     calories: Mapped[float | None] = mapped_column(Float)
     heart_rate: Mapped[int | None] = mapped_column(Integer)
+    max_heart_rate: Mapped[int | None] = mapped_column(Integer)
+    cadence: Mapped[int | None] = mapped_column(Integer)  # average steps per minute
+    max_cadence: Mapped[int | None] = mapped_column(Integer)
+    steps: Mapped[int | None] = mapped_column(Integer)
+    elevation_gain_m: Mapped[float | None] = mapped_column(Float)
+    best_pace_seconds: Mapped[int | None] = mapped_column(Integer)  # fastest pace, seconds per km
     # Grip, foot position or stance from the exercise's preset (schema v6); empty means the default.
     variant: Mapped[str | None] = mapped_column(String(40))
 

@@ -135,3 +135,5 @@ main .variant-group button.chip.on{background:var(--brand);border-color:var(--br
 .variant-note{font-size:12px;color:var(--muted);margin:0}
 .set-prev{display:flex;flex-direction:column;line-height:1.25}.set-variant{font-size:10px;color:var(--accent);white-space:normal;word-break:keep-all}
 .info-variants{display:flex;flex-direction:column;gap:6px}
+/* Runs and walks: the watch's details, label over value so the longer names fit two to a row. */
+.run-extras .extra-field{flex-direction:column;align-items:stretch;gap:4px}
