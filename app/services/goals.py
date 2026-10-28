@@ -1,7 +1,8 @@
 """Daily goals per user: the server defaults, an estimate from the user's body details, or their own numbers.
 
 The estimate uses the Mifflin-St Jeor resting energy equation times an activity factor, then a fixed
-adjustment for losing or gaining weight. Protein follows body weight; fat takes a fixed share of the
+adjustment for losing or gaining weight. Protein follows body weight, more while losing (to keep muscle
+in a deficit) and a little more while gaining; fat takes a fixed share of the
 calories and carbohydrate the rest. It is a general-population estimate, not a prescription.
 """
 from dataclasses import dataclass
@@ -16,7 +17,8 @@ from app.services.persistence import commit
 
 ACTIVITY_FACTORS = {"sedentary": 1.2, "light": 1.375, "moderate": 1.55, "active": 1.725, "very_active": 1.9}
 AIM_ADJUSTMENT_KCAL = {"lose": -400, "maintain": 0, "gain": 300}
-PROTEIN_G_PER_KG = 1.6
+# 1.6 g/kg is where muscle gain levels off for most people (Morton et al. 2018, upper bound about 2.2).
+PROTEIN_G_PER_KG = {"lose": 2.0, "maintain": 1.6, "gain": 1.8}
 FAT_SHARE = 0.25
 AGE_RANGE = (15, 100)  # the equation is for adults and older teenagers
 
@@ -28,6 +30,7 @@ class Estimate:
     bmr: float
     activity_factor: float
     adjustment_kcal: float
+    protein_g_per_kg: float
     calorie_kcal: float
     protein_g: float
     carbohydrate_g: float
@@ -65,10 +68,11 @@ def estimate(profile: GoalProfile, weight: float | None, today: date) -> Estimat
     adjustment = AIM_ADJUSTMENT_KCAL[profile.aim]
     # Losing weight never goes below the resting energy itself.
     calories = round(max(bmr * factor + adjustment, bmr) / 10) * 10
-    protein = round(weight * PROTEIN_G_PER_KG)
+    per_kg = PROTEIN_G_PER_KG[profile.aim]
+    protein = round(weight * per_kg)
     fat = round(calories * FAT_SHARE / 9)
     carbohydrate = max(0, round((calories - protein * 4 - fat * 9) / 4))
-    return Estimate(age, weight, round(bmr), factor, adjustment, calories, protein, carbohydrate, fat)
+    return Estimate(age, weight, round(bmr), factor, adjustment, per_kg, calories, protein, carbohydrate, fat)
 
 
 def latest_weight(session: Session, user_id: int) -> BodyMetric | None:

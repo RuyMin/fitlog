@@ -82,7 +82,7 @@
     steps.append(
       element("li", "기초대사량 " + number(found.bmr) + "kcal (만 " + found.age + "세 기준) × 활동량 " + found.activity_factor + " = 유지 열량 약 " + number(maintain) + "kcal"),
       element("li", found.adjustment_kcal ? AIM[form.elements.aim.value] + " " + (found.adjustment_kcal > 0 ? "+" : "−") + number(Math.abs(found.adjustment_kcal)) + "kcal" + (maintain + found.adjustment_kcal < found.bmr ? " (기초대사량 아래로는 내리지 않음)" : "") + " → " + number(found.calorie_kcal) + "kcal" : "유지 열량을 10kcal 단위로 → " + number(found.calorie_kcal) + "kcal"),
-      element("li", "단백질은 체중 1kg당 1.6g, 지방은 열량의 25%, 나머지를 탄수화물로 나눴어요."));
+      element("li", "단백질은 체중 1kg당 " + found.protein_g_per_kg + "g(" + AIM[form.elements.aim.value] + " 목표 기준), 지방은 열량의 25%, 나머지를 탄수화물로 나눴어요."));
     box.append(top, macros, steps);
   }
   function manualCheck() {

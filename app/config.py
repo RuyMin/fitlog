@@ -3,7 +3,7 @@ import os
 from urllib.parse import urlsplit
 
 # Single source of truth for the app version (FastAPI metadata, /api/health, settings footer).
-APP_VERSION = "1.2.4"
+APP_VERSION = "1.2.5"
 
 def goal(name: str, default: str, maximum: float) -> float:
     """A server-wide daily target for the home rings; per-user goals are deferred."""

@@ -237,6 +237,7 @@ class GoalEstimate(BaseModel):
     bmr: float
     activity_factor: float
     adjustment_kcal: float
+    protein_g_per_kg: float
     calorie_kcal: float
     protein_g: float
     carbohydrate_g: float
