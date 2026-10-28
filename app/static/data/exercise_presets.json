@@ -1998,6 +1998,30 @@
    ]
   },
   {
+   "id": "bb_overhead_extension",
+   "name": "바벨 오버헤드 익스텐션",
+   "name_en": "Barbell Overhead Triceps Extension",
+   "body_part": "팔",
+   "muscles": [
+    "삼두근"
+   ],
+   "equipment": "바벨",
+   "kind": "isolation",
+   "tracking": "weight_reps",
+   "aliases": [
+    "바벨 트라이셉스 익스텐션",
+    "바벨 프렌치 프레스",
+    "EZ바 오버헤드 익스텐션"
+   ],
+   "tags": [
+    "팔",
+    "삼두근",
+    "바벨",
+    "기구",
+    "고립"
+   ]
+  },
+  {
    "id": "cable_overhead_extension",
    "name": "케이블 오버헤드 익스텐션",
    "name_en": "Cable Overhead Triceps Extension",
