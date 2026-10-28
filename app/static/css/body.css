@@ -30,7 +30,7 @@ main .period button[aria-pressed=true]{background:var(--surface);color:var(--ink
 .trend-svg{width:100%;height:90px;overflow:visible}
 .trend-grid{stroke:var(--soft);stroke-width:1;vector-effect:non-scaling-stroke}
 .trend-line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
-.trend:nth-child(2) .trend-line{stroke:#5e8f3a}.trend:nth-child(2) .trend-dot{fill:#5e8f3a}
+.trend:nth-child(2) .trend-line{stroke:var(--meal)}.trend:nth-child(2) .trend-dot{fill:var(--meal)}
 .trend:nth-child(3) .trend-line{stroke:var(--meal)}.trend:nth-child(3) .trend-dot{fill:var(--meal)}
 .trend-dot{fill:var(--accent)}
 .trend-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
