@@ -1,7 +1,7 @@
 """Workout business rules shared by REST and import adapters. Always scoped to one user."""
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import Exercise, Workout, WorkoutSet, utc_now
@@ -53,6 +53,66 @@ def delete_exercise(session: Session, user_id: int, exercise_id: int) -> None:
         raise RecordConflict("세트에서 사용 중인 종목은 삭제할 수 없습니다.")
     session.delete(item)
     commit(session)
+
+
+def cleanup_suggestions(session: Session, user_id: int) -> list[dict]:
+    """The user's own exercises whose name is a built-in one, often with the grip in it ("랫풀다운 페러럴그립"),
+    each with the preset and variant it would merge into and how many sets it holds."""
+    presets = {preset["id"]: preset for preset in exercise_presets.catalog()["presets"]}
+    counts = dict(session.execute(select(WorkoutSet.exercise_id, func.count()).where(WorkoutSet.user_id == user_id)
+                                  .group_by(WorkoutSet.exercise_id)).all())
+    found = []
+    for exercise in session.scalars(select(Exercise).where(Exercise.user_id == user_id, Exercise.preset_id.is_(None)).order_by(Exercise.name)):
+        match = exercise_presets.split_variant(exercise.name)
+        if match is None:
+            continue
+        preset = presets[match[0]]
+        variant = next((v for v in preset.get("variants", []) if v["id"] == match[1]), None)
+        found.append({"exercise_id": exercise.id, "name": exercise.name, "sets": counts.get(exercise.id, 0),
+                      "preset_id": preset["id"], "preset_name": preset["name"],
+                      "variant": match[1], "variant_label": variant and variant["label"]})
+    return found
+
+
+def merge_exercise(session: Session, user_id: int, exercise_id: int, preset_id: str, variant: str | None) -> tuple[Exercise, int]:
+    """Move a duplicate exercise's sets onto the user's exercise for `preset_id` (made when missing), mark
+    them with `variant` where they had none, then delete the duplicate. Returns (target, sets moved)."""
+    source = get_exercise(session, user_id, exercise_id)
+    if source.preset_id is not None:
+        raise RecordConflict("기본 종목에 연결된 종목은 합칠 수 없습니다.")
+    preset = next((p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id), None)
+    if preset is None:
+        raise RecordInvalid("알 수 없는 기본 종목입니다.")
+    if variant is not None and variant not in exercise_presets.variant_ids(preset_id):
+        raise RecordInvalid("이 종목에 없는 그립·자세입니다.")
+    target = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.preset_id == preset_id))
+    if target is None:
+        # An unlinked exercise already called by the preset's name becomes the linked one; else make it.
+        target = session.scalar(select(Exercise).where(Exercise.user_id == user_id, Exercise.name == preset["name"], Exercise.id != source.id))
+        if target is None:
+            target = Exercise(user_id=user_id, name=preset["name"])
+            session.add(target)
+        target.preset_id = preset_id
+        target.body_part = target.body_part or preset["body_part"]
+        target.category = target.category or preset["equipment"]
+        session.flush()
+    sets = list(session.scalars(select(WorkoutSet).where(WorkoutSet.user_id == user_id, WorkoutSet.exercise_id == source.id)
+                                .order_by(WorkoutSet.workout_id, WorkoutSet.set_number)))
+    taken: dict[int, int] = dict(session.execute(select(WorkoutSet.workout_id, func.max(WorkoutSet.set_number)).where(
+        WorkoutSet.user_id == user_id, WorkoutSet.exercise_id == target.id).group_by(WorkoutSet.workout_id)).all())
+    for item in sets:
+        # In a workout that already has the target exercise, the moved sets follow its last set.
+        if item.workout_id in taken:
+            taken[item.workout_id] += 1
+            item.set_number = taken[item.workout_id]
+        item.exercise_id = target.id
+        if item.variant is None:
+            item.variant = variant
+    session.flush()
+    session.delete(source)
+    commit(session)
+    session.refresh(target)
+    return target, len(sets)
 
 
 def workout_query(user_id: int) -> Select[tuple[Workout]]:
