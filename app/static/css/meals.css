@@ -27,7 +27,7 @@ main .day-stepper button{width:42px;min-height:42px;padding:0;border:0;border-ra
 .macro p>span:first-child{font-weight:700}.macro p>span:last-child{color:var(--muted)}.macro strong{color:var(--ink)}
 .macro-track{display:block;height:10px;border-radius:5px;background:var(--soft);overflow:hidden}
 .macro-track span{display:block;height:100%;width:0;border-radius:5px;transition:width .6s ease}
-.macro-protein .macro-track span{background:var(--accent)}.macro-carb .macro-track span{background:var(--meal)}.macro-fat .macro-track span{background:#d9b13f}
+.macro-protein .macro-track span{background:var(--accent)}.macro-carb .macro-track span{background:var(--meal)}.macro-fat .macro-track span{background:var(--sleep)}
 .intake .hint{margin:0}
 .goal-link{align-self:flex-start;font-size:12px;font-weight:600;color:var(--accent);padding:4px 0}
 

@@ -10,7 +10,7 @@
 .assistant-card textarea,.assistant-card input,.assistant-card select{width:100%;box-sizing:border-box;font:inherit;font-size:14px;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
 .assistant-card textarea{resize:vertical;min-height:96px;line-height:1.5}
 .assistant-card button{min-height:44px;padding:0 16px;font:inherit;font-size:14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer}
-.assistant-card button.assistant-primary,.record-sheet button.assistant-primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.assistant-card button.assistant-primary,.record-sheet button.assistant-primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:700}
 .assistant-card button:disabled{opacity:.55;cursor:default}
 .assistant-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:14px 0 0}
 .assistant-setup{font-size:13px;padding:12px 14px;border-radius:8px;background:var(--soft);margin:12px 0 0}
