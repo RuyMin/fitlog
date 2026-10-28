@@ -14,14 +14,18 @@ class NameSplitTests(unittest.TestCase):
             "와이드 랫풀다운": ("lat_pulldown", "wide"), "랫풀다운(언더그립)": ("lat_pulldown", "under"),
             "랫풀다운 브이바": ("lat_pulldown", "v_bar"), "시티드 케이블 로우 패러럴": ("seated_cable_row", "parallel"),
             "풀업 패러럴": ("pull_up", "parallel"), "벤치프레스 내로우": ("bench_press", "narrow"),
-            "랫 풀다운": ("lat_pulldown", None),
+            "랫 풀다운": ("lat_pulldown", None), "랫풀다운 페러렐그립": ("lat_pulldown", "parallel"),
+            # One-arm, the preset's own equipment in front, and common spellings.
+            "원암 해머컬": ("hammer_curl", None), "덤벨 해머컬": ("hammer_curl", None), "원암 덤벨컬": ("db_curl", None),
+            "원암 덤벨 숄더프레스": ("db_shoulder_press", None), "팩덱플라이": ("pec_deck", None), "이지 바벨컬": ("ez_curl", None),
+            "원암 벤트오버 리버스 플라이": ("rear_delt_fly", None), "삼두 푸시다운": ("triceps_pushdown", None),
         }
         for name, expected in cases.items():
             with self.subTest(name=name):
                 self.assertEqual(split_variant(name), expected)
 
     def test_unsure_names_are_left_alone(self) -> None:
-        for name in ["랫풀다운 머신", "내 맘대로 운동", "케이블 Y 레이즈", "랫풀다운 아무거나"]:
+        for name in ["랫풀다운 머신", "내 맘대로 운동", "케이블 Y 레이즈", "랫풀다운 아무거나", "덤벨 카프레이즈", "원암"]:
             with self.subTest(name=name):
                 self.assertIsNone(split_variant(name))
 

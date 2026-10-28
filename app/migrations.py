@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -518,8 +518,63 @@ def migrate_v11(engine: Engine) -> None:
         c.exec_driver_sql("PRAGMA user_version=11")
 
 
+UNREAD_SET = "\n중량×횟수를 단일 값으로 확정하지 않아 볼륨 합계에서 제외. 원문: "
+
+
+def fill_imported_sets(c: Connection) -> None:
+    """Imported weight sets whose cell the old importer could not read ("4kg×15(좌우)", "맨몸×15", "×10",
+    "25kg×5 + 15kg×8") had no weight or reps, only the cell in the memo. Read it back with the current rule;
+    the memo keeps the original text."""
+    from app.services.legacy_xlsx import parse_set_text
+    rows = c.exec_driver_sql("SELECT id, memo FROM workout_sets WHERE weight IS NULL AND reps IS NULL AND memo LIKE ?",
+                             ("%" + UNREAD_SET.strip() + "%",)).all()
+    for set_id, memo in rows:
+        head, _, rest = memo.partition(UNREAD_SET)
+        text, _, tail = rest.partition("\n")
+        parsed = parse_set_text(text)
+        if parsed is None:
+            continue
+        weight, reps, label = parsed
+        memo = head + "\n원문: " + text + (" (" + label + ")" if label and label not in text else "") + ("\n" + tail if tail else "")
+        c.exec_driver_sql("UPDATE workout_sets SET weight = ?, reps = ?, memo = ? WHERE id = ?", (weight, reps, memo, set_id))
+
+
+def fold_daily_summaries(c: Connection) -> None:
+    """The daily log sheet came in as extra workouts with only a memo, next to the same day's real session.
+    Move each one's memo onto that session and drop the empty duplicate. Days with no matching session
+    (e.g. outdoor work) keep theirs."""
+    from app.services.legacy_xlsx import daily_target
+    summaries = c.exec_driver_sql(
+        "SELECT w.id, w.user_id, w.workout_date, w.title, w.memo FROM workouts w WHERE w.memo LIKE '원본: 일일 운동 기록 %' "
+        "AND NOT EXISTS (SELECT 1 FROM workout_sets s WHERE s.workout_id = w.id) ORDER BY w.id").all()
+    for workout_id, user_id, day, title, memo in summaries:
+        same_day = c.exec_driver_sql(
+            "SELECT w.id, w.title FROM workouts w WHERE w.user_id = ? AND w.workout_date = ? AND w.id != ? "
+            "AND EXISTS (SELECT 1 FROM workout_sets s WHERE s.workout_id = w.id)", (user_id, day, workout_id)).all()
+        target = daily_target([(name, other) for other, name in same_day], title)
+        if target is None:
+            continue
+        c.exec_driver_sql("UPDATE workouts SET memo = COALESCE(memo || char(10) || char(10), '') || ? WHERE id = ?", (memo, target))
+        c.exec_driver_sql("DELETE FROM workouts WHERE id = ?", (workout_id,))
+
+
+def migrate_v12(engine: Engine) -> None:
+    """Repair imported records: read back weight × reps the old importer skipped, and fold daily-log
+    summaries into the session they describe. No schema change."""
+    with engine.connect() as c:
+        c.exec_driver_sql("BEGIN IMMEDIATE")
+        try:
+            fill_imported_sets(c)
+            fold_daily_summaries(c)
+            c.exec_driver_sql("PRAGMA user_version=12")
+            c.commit()
+        except Exception:
+            c.rollback()
+            raise
+
+
 STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8,
-                                              9: migrate_v9, 10: migrate_v10, 11: migrate_v11}
+                                              9: migrate_v9, 10: migrate_v10, 11: migrate_v11, 12: migrate_v12}
 
 
 def finish_migration(engine: Engine) -> None:

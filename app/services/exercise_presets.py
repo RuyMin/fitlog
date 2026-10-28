@@ -101,8 +101,13 @@ def match_name(name: str) -> str | None:
 
 # Old records often name the grip inside the exercise ("랫풀다운 페러럴그립"). Common spellings, then the
 # words that only say "grip"/"bar", are folded so the rest can be compared with a variant's label.
-SPELLINGS = {"페러럴": "패러럴", "패럴렐": "패러럴", "페럴렐": "패러럴", "파라렐": "패러럴", "parallel": "패러럴",
-             "브이바": "v바", "디핸들": "d핸들", "언더핸드": "언더", "미듐": "미디엄", "와이드그립": "와이드"}
+SPELLINGS = {"페러럴": "패러럴", "패럴렐": "패러럴", "페럴렐": "패러럴", "페러렐": "패러럴", "파라렐": "패러럴", "parallel": "패러럴",
+             "브이바": "v바", "디핸들": "d핸들", "언더핸드": "언더", "미듐": "미디엄", "와이드그립": "와이드",
+             "팩덱": "펙덱", "이지바벨": "ez바", "이지바": "ez바"}
+# "원암 해머컬" is the 해머 컬 done one arm at a time: the same exercise for the list.
+ONE_ARM = re.compile(r"^(원암|싱글암|한팔|한손)")
+# Words that turn a movement into a different one: a name with one never takes muscles from a preset without it.
+OPPOSITES = ("리버스",)
 
 
 def fold(text: str) -> str:
@@ -118,12 +123,15 @@ def grip_key(text: str) -> str:
 
 def split_variant(name: str) -> tuple[str, str | None] | None:
     """The preset (and grip/stance variant) an exercise name stands for: "랫풀다운 페러럴그립" →
-    ("lat_pulldown", "parallel"), "랫 풀다운" → ("lat_pulldown", None). None when unsure."""
-    text = fold(name)
+    ("lat_pulldown", "parallel"), "랫 풀다운" → ("lat_pulldown", None). "원암" in front and the preset's own
+    equipment in front ("덤벨 해머컬") are ignored. None when unsure."""
+    text = ONE_ARM.sub("", fold(name))
     best = None
     for preset in visible():
-        for key in {fold(preset["name"]), fold(preset["name_en"]), *map(fold, preset["aliases"])}:
-            if not key or not (text.startswith(key) or text.endswith(key)):
+        names = {fold(preset["name"]), fold(preset["name_en"]), *map(fold, preset["aliases"])} - {""}
+        gear = fold(preset["equipment"])
+        for key in names | {gear + key for key in names if not key.startswith(gear)}:
+            if not (text.startswith(key) or text.endswith(key)):
                 continue
             rest = text[len(key):] if text.startswith(key) else text[:-len(key)]
             if rest:
@@ -155,6 +163,9 @@ def similar(name: str) -> dict | None:
     for preset in visible():
         for key in {fold(preset["name"]), fold(preset["name_en"]), *map(fold, preset["aliases"])}:
             if len(key) < length or key not in text:
+                continue
+            # "덤벨 리버스 플라이" works the back, not the chest like 덤벨 플라이.
+            if any(word in text and word not in key for word in OPPOSITES):
                 continue
             if len(key) > length:
                 best, length = preset, len(key)

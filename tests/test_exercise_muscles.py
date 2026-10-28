@@ -36,7 +36,9 @@ class PresetMuscleTests(unittest.TestCase):
 
     def test_similar_names(self) -> None:
         cases = {"해머 스트렝스 인클라인 프레스": "인클라인 바벨 벤치프레스", "머신 랫풀다운 원암": "랫풀다운",
-                 "덤벨 컬 얼터네이트": "덤벨 컬", "풀업 어시스트": "풀업", "내 맘대로 운동": None}
+                 "덤벨 컬 얼터네이트": "덤벨 컬", "풀업 어시스트": "풀업", "내 맘대로 운동": None,
+                 # 리버스 makes it a different movement: never the chest fly's muscles.
+                 "덤벨 리버스 플라이": "리어 델트 플라이", "리버스 크런치": None}
         for name, expected in cases.items():
             with self.subTest(name=name):
                 self.assertEqual((similar(name) or {}).get("name"), expected)
