@@ -57,6 +57,24 @@ def create_invite(session: Session, created_by: int, note: str | None = None, tt
     return token
 
 
+def list_invites(session: Session, limit: int = 30) -> list[tuple[Invite, str | None]]:
+    """Recent invites, newest first, with the email of whoever used each one."""
+    query = (select(Invite, User.email).outerjoin(User, User.id == Invite.used_by)
+             .order_by(Invite.created_at.desc(), Invite.id.desc()).limit(limit))
+    return [(invite, email) for invite, email in session.execute(query).all()]
+
+
+def revoke_invite(session: Session, invite_id: int) -> None:
+    """Withdraw a link nobody has used yet. A used invite stays as the record of who joined through it."""
+    invite = session.get(Invite, invite_id)
+    if invite is None:
+        raise AccountError("invite_not_found")
+    if invite.used_at is not None:
+        raise AccountError("invite_used")
+    session.delete(invite)
+    session.commit()
+
+
 def usable_invite(session: Session, token: str) -> Invite | None:
     invite = session.scalar(select(Invite).where(Invite.token_hash == token_hash(token)))
     if invite is None or invite.used_at is not None or invite.expires_at <= utc_now():

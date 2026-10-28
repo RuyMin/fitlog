@@ -19,6 +19,7 @@ from app.api.auth import router as auth_router
 from app.api.excel import router as excel_router
 from app.api.goals import router as goals_router
 from app.api.health import router as health_router
+from app.api.invites import router as invites_router
 from app.api.perf import router as perf_router
 from app.api.workouts import router as workouts_router
 from app.api.records import router as records_router
@@ -48,6 +49,7 @@ app.include_router(assistant_router)
 app.include_router(excel_router)
 app.include_router(goals_router)
 app.include_router(health_router)
+app.include_router(invites_router)
 app.include_router(perf_router)
 app.include_router(workouts_router)
 app.include_router(records_router)
