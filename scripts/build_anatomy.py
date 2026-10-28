@@ -23,10 +23,28 @@ KEYS = {"pectoralis_upper", "pectoralis_lower", "latissimus_dorsi", "trapezius_u
         "pronator_teres", "extensor_carpi_ulnaris", "extensor_digitorum", "flexor_carpi_ulnaris", "rectus_femoris",
         "vastus_lateralis", "vastus_medialis", "biceps_femoris", "semitendinosus", "semimembranosus",
         "gluteus_maximus", "gluteus_medius", "adductor_longus", "adductor_magnus", "pectineus", "gracilis",
-        "gastrocnemius", "rectus_abdominis", "external_oblique", "infraspinatus", "tibialis_anterior", "sternocleidomastoid"}
+        "gastrocnemius", "rectus_abdominis", "external_oblique", "infraspinatus", "tibialis_anterior", "sternocleidomastoid",
+        "serratus_anterior", "brachialis", "soleus", "rhomboids", "erector_spinae"}
 # The artwork draws pectoralis major as one shape; two clipped copies split it at this height (front view)
 # into the upper (clavicular) and lower (sternal) parts that incline and decline work hit.
 PEC_SPLIT = 240
+# Muscles the artwork lacks, drawn for FitLog (right half; a mirrored copy makes the left). They sit on top of
+# the original shapes, roughly where the muscle shows under the skin.
+DRAWN = {
+    "anatomy-front": {
+        "serratus_anterior": "M397 304 C386 308 371 316 361 327 C373 330 387 326 395 321 Z M395 327 C383 332 369 342 361 353 "
+                             "C374 353 386 347 392 342 Z M392 349 C381 355 369 365 363 376 C375 375 384 368 389 364 Z "
+                             "M389 370 C381 376 373 386 368 395 C377 393 384 387 387 383 Z",
+        "brachialis": "M454 328 C466 338 475 360 473 393 C466 396 458 391 451 381 C451 360 451 344 454 328 Z",
+        "soleus": "M352 900 C351 950 352 990 350 1030 L343 1032 C343 990 342 950 345 905 Z",
+    },
+    "anatomy-back": {
+        "rhomboids": "M302 205 C316 212 331 221 343 230 C346 254 348 277 351 299 C335 289 317 280 302 272 Z",
+        "erector_spinae": "M302 298 C318 300 327 332 327 380 C327 422 322 455 311 478 L302 478 Z",
+        "soleus": "M336 905 C334 955 344 1000 360 1022 C376 1000 400 955 400 905 C392 942 382 966 368 978 "
+                  "C354 966 344 942 336 905 Z",
+    },
+}
 
 
 def convert(path: Path, symbol: str) -> tuple[str, set[str]]:
@@ -67,10 +85,14 @@ def convert(path: Path, symbol: str) -> tuple[str, set[str]]:
                 found.add("pectoralis_" + part)
             continue
         parts.append(f'<path class="{css}" {attrs}></path>')
+    width = view_box.split()[2]
+    for key, d in DRAWN.get(symbol, {}).items():
+        for mirror in ("", f' transform="translate({width},0) scale(-1,1)"'):
+            parts.append(f'\n<path class="m-{key}" d="{d}"{mirror} stroke="#FFFFFF" stroke-linejoin="round"></path>')
+        found.add(key)
     parts.append(inner[last:])
     body = re.sub(r"\n\s*\n", "\n", "".join(parts)).strip()
     if "pectoralis_upper" in found:
-        width = view_box.split()[2]
         body = (f'<clipPath id="pec-upper"><rect x="0" y="0" width="{width}" height="{PEC_SPLIT}"></rect></clipPath>'
                 f'<clipPath id="pec-lower"><rect x="0" y="{PEC_SPLIT}" width="{width}" height="1000"></rect></clipPath>\n' + body)
     return f'<symbol id="{symbol}" viewBox="{view_box}">\n{body}\n</symbol>', found

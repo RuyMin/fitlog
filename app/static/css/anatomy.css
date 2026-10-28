@@ -12,7 +12,9 @@
 .m-biceps_brachii_caput_breve{fill:var(--m-biceps_brachii_caput_breve,var(--a-rest))}
 .m-biceps_brachii_caput_longum{fill:var(--m-biceps_brachii_caput_longum,var(--a-rest))}
 .m-biceps_femoris{fill:var(--m-biceps_femoris,var(--a-rest))}
+.m-brachialis{fill:var(--m-brachialis,var(--a-rest))}
 .m-brachioradialis{fill:var(--m-brachioradialis,var(--a-rest))}
+.m-erector_spinae{fill:var(--m-erector_spinae,var(--a-rest))}
 .m-extensor_carpi_radialis_longus{fill:var(--m-extensor_carpi_radialis_longus,var(--a-rest))}
 .m-extensor_carpi_ulnaris{fill:var(--m-extensor_carpi_ulnaris,var(--a-rest))}
 .m-extensor_digitorum{fill:var(--m-extensor_digitorum,var(--a-rest))}
@@ -36,8 +38,11 @@
 .m-pronator_teres{fill:var(--m-pronator_teres,var(--a-rest))}
 .m-rectus_abdominis{fill:var(--m-rectus_abdominis,var(--a-rest))}
 .m-rectus_femoris{fill:var(--m-rectus_femoris,var(--a-rest))}
+.m-rhomboids{fill:var(--m-rhomboids,var(--a-rest))}
 .m-semimembranosus{fill:var(--m-semimembranosus,var(--a-rest))}
 .m-semitendinosus{fill:var(--m-semitendinosus,var(--a-rest))}
+.m-serratus_anterior{fill:var(--m-serratus_anterior,var(--a-rest))}
+.m-soleus{fill:var(--m-soleus,var(--a-rest))}
 .m-sternocleidomastoid{fill:var(--m-sternocleidomastoid,var(--a-rest))}
 .m-tibialis_anterior{fill:var(--m-tibialis_anterior,var(--a-rest))}
 .m-trapezius_lower{fill:var(--m-trapezius_lower,var(--a-rest))}

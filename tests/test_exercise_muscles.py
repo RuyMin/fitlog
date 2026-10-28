@@ -11,7 +11,7 @@ from app.services.exercise_presets import similar
 
 PRESETS = json.loads((Path(__file__).resolve().parents[1] / "app" / "static" / "data" / "exercise_presets.json").read_text(encoding="utf-8"))
 # Tags the anatomy figure cannot draw (anatomy.js TAGS maps them to nothing).
-UNDRAWN = {"심폐", "척추기립근"}
+UNDRAWN = {"심폐"}
 
 
 class PresetMuscleTests(unittest.TestCase):
@@ -29,8 +29,9 @@ class PresetMuscleTests(unittest.TestCase):
         named = set(re.findall(r'"([a-z_]+)"', script[script.index("const FLEXORS"):script.index("const FRONT")]))
         self.assertEqual(named - drawn, set(), "artwork keys the sprite does not have")
         used = {m for p in PRESETS["presets"] for m in [*p["muscles"], *(x for v in p.get("variants", []) for x in v.get("muscles", []))]}
-        self.assertEqual(used - tags - {"심폐"}, set(), "muscle tags without a figure mapping")
-        for name in ["대흉근 상부", "대흉근 하부", "삼두근 장두", "이두근 단두", "상완요골근", "대퇴직근", "극하근", "전경골근", "목"]:
+        self.assertEqual(used - tags - UNDRAWN, set(), "muscle tags without a figure mapping")
+        for name in ["대흉근 상부", "대흉근 하부", "삼두근 장두", "이두근 단두", "상완요골근", "대퇴직근", "극하근", "전경골근", "목",
+                     "능형근", "척추기립근", "전거근", "상완근", "가자미근", "비복근"]:
             self.assertIn(name, used, "every finer tag is used by some preset, so admins and users can pick it")
 
     def test_similar_names(self) -> None:
