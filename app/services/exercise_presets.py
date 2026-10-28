@@ -149,10 +149,9 @@ def split_variant(name: str) -> tuple[str, str | None] | None:
 
 
 def muscle_names() -> list[str]:
-    """Every muscle the shipped list names, grip variants included: what a preset or a user's own exercise
-    may be tagged with."""
-    return sorted({muscle for preset in base()["presets"]
-                   for muscle in [*preset["muscles"], *(m for variant in preset.get("variants", []) for m in variant.get("muscles", []))]})
+    """What a preset or a user's own exercise may be tagged with: the list's muscle names (the ones the
+    figure can draw, plus 심폐), in the list's order."""
+    return list(base()["muscles"])
 
 
 def similar(name: str) -> dict | None:

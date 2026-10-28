@@ -3,8 +3,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#183f35"><title>FitLog · 관리자</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-<link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/settings.css?v=20261023.2"><link rel="stylesheet" href="/static/css/admin.css?v=1">
-<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/admin.js?v=1" defer></script><script src="/static/js/admin-presets.js?v=1" defer></script><script src="/static/js/invites.js?v=1" defer></script><script src="/static/js/perf-stats.js?v=1" defer></script>
+<link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/settings.css?v=20261023.2"><link rel="stylesheet" href="/static/css/admin.css?v=1"><link rel="stylesheet" href="/static/css/anatomy.css?v=1"><link rel="preload" id="anatomy-sprite" href="/static/img/anatomy.svg?v=1" as="fetch" crossorigin="anonymous">
+<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/anatomy.js?v=1" defer></script><script src="/static/js/admin.js?v=1" defer></script><script src="/static/js/admin-presets.js?v=1" defer></script><script src="/static/js/invites.js?v=1" defer></script><script src="/static/js/perf-stats.js?v=1" defer></script>
 </head><body class="settings-page admin-page">
 <a class="skip" href="#main">본문으로 이동</a>
 <aside class="sidebar">
@@ -70,9 +70,11 @@
 <label>이름 *<input name="name" maxlength="100" required></label>
 <label>영어 이름<input name="name_en" maxlength="100"></label>
 <label>다른 이름 (쉼표로 구분, 검색·가져오기에 쓰여요)<input name="aliases" maxlength="1000" placeholder="예: 프렌치 프레스, 스컬 크러셔"></label>
-<div class="form-grid"><label>운동 부위<select name="body_part"></select></label><label>장비<select name="equipment"></select></label></div>
-<div class="form-grid"><label>종류<select name="kind"></select></label><label>기록 방식<select name="tracking"></select></label></div>
-<fieldset class="muscle-pick"><legend>주로 쓰는 근육 (근육 그림에 표시돼요)</legend><div id="preset-muscles" class="chips"></div></fieldset>
+<p class="field-label">장비</p><div id="preset-equipment" class="chips chips-small"></div>
+<p class="field-label">종류</p><div id="preset-kind" class="chips chips-small"></div>
+<p class="field-label">기록 방식</p><div id="preset-tracking" class="chips chips-small"></div>
+<p class="field-label">주로 쓰는 근육 <span class="muted">· 모든 사용자의 근육 그림에 표시돼요</span></p><div id="preset-muscles"></div>
+<p class="field-label">운동 부위 <span id="preset-part-note" class="muted"></span></p><div id="preset-part" class="chips chips-small"></div>
 <p id="preset-variants" class="hint"></p>
 <p class="form-error" role="alert"></p>
 <div class="dialog-actions"><button type="submit" class="primary" id="preset-save">저장</button></div>

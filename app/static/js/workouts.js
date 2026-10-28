@@ -3,7 +3,7 @@
 // the preset picker (search + body part / equipment tags) and an exercise sheet with the muscle figure.
 const $ = (selector) => document.querySelector(selector);
 const state = {variants: {}, workouts: [], exercises: [], presets: [], catalog: null, current: null, route: 0,
-  editWorkout: null, editExercise: null, exerciseMuscles: [], picker: {workout: null, part: "전체", gear: "전체", picked: new Map()},
+  editWorkout: null, picker: {workout: null, part: "전체", gear: "전체", picked: new Map()},
   calendar: {month: null, day: null, months: new Map(), stale: false}};
 const pageSize = 20;
 const SVG_CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
@@ -121,18 +121,20 @@ const FIELDS = {
   distance: {key: "distance_m", label: "km", mode: "km"},
   level: {key: "level", label: "레벨", mode: "decimal"},
 };
+// short: the label on the exercise editor's chips (the catalog's own labels are longer).
 const TRACKING = {
-  weight_reps: {fields: ["weight", "reps"]},
-  reps: {fields: ["weight", "reps"], weightLabel: "+kg"},
-  hold: {fields: ["seconds"]},
-  weight_time: {fields: ["weight", "seconds"]},
-  treadmill: {fields: ["time", "speed", "incline"], cardio: true},
-  distance: {fields: ["distance", "time"], cardio: true},
-  run: {fields: ["distance", "time"], cardio: true, details: true},
-  cardio_machine: {fields: ["time", "level", "distance"], cardio: true},
-  rope: {fields: ["time", "count"], cardio: true},
+  weight_reps: {fields: ["weight", "reps"], short: "무게 × 횟수"},
+  reps: {fields: ["weight", "reps"], weightLabel: "+kg", short: "횟수"},
+  hold: {fields: ["seconds"], short: "버티기 시간"},
+  weight_time: {fields: ["weight", "seconds"], short: "무게 × 시간"},
+  treadmill: {fields: ["time", "speed", "incline"], cardio: true, short: "트레드밀"},
+  distance: {fields: ["distance", "time"], cardio: true, short: "거리 · 시간"},
+  run: {fields: ["distance", "time"], cardio: true, details: true, short: "달리기 · 걷기"},
+  cardio_machine: {fields: ["time", "level", "distance"], cardio: true, short: "유산소 머신"},
+  rope: {fields: ["time", "count"], cardio: true, short: "줄넘기"},
 };
-const trackingOf = (exercise) => TRACKING[presetOf(exercise)?.tracking] ? presetOf(exercise).tracking : "weight_reps";
+// A preset decides how its exercise is recorded; a user's own exercise says so itself (default weight × reps).
+const trackingOf = (exercise) => [presetOf(exercise)?.tracking, exercise?.tracking].find((tracking) => TRACKING[tracking]) || "weight_reps";
 function clock(seconds) {
   if (seconds == null) return "";
   const h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = Math.round(seconds % 60);
@@ -745,7 +747,7 @@ function openInfo(exercise, item = null) {
   $("#info-title").textContent = exercise.name || preset?.name;
   const own = preset ? null : exercise.muscles || [];
   $("#info-sub").textContent = preset ? [preset.name_en, ...preset.aliases].join(" · ") : own.length ? "내 종목" : "내 종목 · 근육을 고르지 않아 근육 그림이 없어요";
-  const tracking = TRACKING[preset?.tracking] ? preset.tracking : "weight_reps";
+  const tracking = [preset?.tracking, exercise.tracking].find((value) => TRACKING[value]) || "weight_reps";
   $("#info-tracking").textContent = "기록 방식 · " + (state.catalog?.tracking?.[tracking] || "중량 × 횟수");
   const tags = $("#info-tags"); tags.replaceChildren();
   for (const tag of preset ? preset.tags : [exercise.body_part, ...own, exercise.category].filter(Boolean)) tags.append(node("span", tag, "tag"));
@@ -806,52 +808,61 @@ function openWorkout(workout = null) {
   fill($("#workout-form"), workout ? {...workout, started_at: localTime(workout.started_at), ended_at: localTime(workout.ended_at)} : {workout_date: localDate()});
   $("#workout-dialog").showModal();
 }
-function resetExercise() {
-  editExercise(null);
+// ---- my exercises: a searchable list; tapping one (or "+ 새 종목") opens the editor ------------------------
+function renderExercises() {
+  const list = $("#exercise-list"), query = squash($("#exercise-query").value);
+  const shown = state.exercises.filter((exercise) => !query || squash(exercise.name).includes(query));
+  list.replaceChildren(...shown.map((exercise) => {
+    const preset = presetOf(exercise);
+    const item = button("", () => openExerciseEditor(exercise), "exercise-row");
+    const text = node("span", null, "ex-text");
+    const muscles = preset?.muscles || exercise.muscles;
+    text.append(node("strong", exercise.name), node("span", describe(exercise) + (preset ? " · 기본 종목 연결" : muscles?.length ? "" : " · 근육 없음")));
+    item.append(thumb(muscles, exercise.name), text);
+    item.insertAdjacentHTML("beforeend", SVG_CHEVRON);
+    return item;
+  }));
+  if (!shown.length) list.append(node("p", query ? "맞는 종목이 없어요." : "등록된 종목이 없습니다.", "empty-state"));
 }
-// Every muscle the built-in list names (grip variants too): what a user's own exercise may be tagged with.
-const muscleNames = () => [...new Set(state.presets.flatMap((preset) => [...preset.muscles, ...(preset.variants || []).flatMap((item) => item.muscles || [])]))].sort();
-function renderMusclePick() {
-  const picked = state.exerciseMuscles;
-  $("#exercise-muscles").replaceChildren(...muscleNames().map((muscle) => {
-    const at = picked.indexOf(muscle);
-    const chip = button(at === 0 ? "주 · " + muscle : muscle, () => {
-      if (at >= 0) picked.splice(at, 1); else picked.push(muscle);
-      renderMusclePick();
-    }, "chip" + (at >= 0 ? " on" : ""));
-    chip.setAttribute("aria-pressed", String(at >= 0));
+// The editor: name for every exercise; equipment, recording type, muscles (on the figure) and body part
+// for the user's own ones. A preset-linked exercise shows the preset's figure instead.
+const editor = {exercise: null, gear: null, tracking: "weight_reps", part: null, partPicked: false, muscles: null};
+function editorChips(id, values, current, pick) {
+  $(id).replaceChildren(...values.map(([value, label]) => {
+    const chip = button(label, () => { pick(value === current ? null : value); }, "chip" + (value === current ? " on" : ""));
+    chip.setAttribute("aria-pressed", String(value === current));
     return chip;
   }));
 }
-// Muscles are picked only for exercises without a preset; a preset brings its own figure.
-function editExercise(exercise, muscles = exercise?.muscles) {
-  state.editExercise = exercise?.id ?? null; fill($("#exercise-form"), exercise || {});
-  $("#exercise-form-title").textContent = exercise ? "종목 수정" : "새 종목";
-  state.exerciseMuscles = [...(muscles || [])];
-  $("#exercise-muscles-field").hidden = Boolean(exercise?.preset_id);
-  renderMusclePick();
+function renderEditorChoices() {
+  const catalog = state.catalog;
+  editorChips("#exercise-gear", catalog.equipment.map((gear) => [gear, gear]), editor.gear, (value) => { editor.gear = value; renderEditorChoices(); });
+  editorChips("#exercise-tracking", Object.keys(catalog.tracking).filter((value) => TRACKING[value]).map((value) => [value, TRACKING[value].short]), editor.tracking,
+    (value) => { editor.tracking = value || "weight_reps"; renderEditorChoices(); });
+  editorChips("#exercise-part", catalog.parts.map((part) => [part, part]), editor.part, (value) => { editor.part = value; editor.partPicked = true; renderEditorChoices(); });
+  $("#exercise-part-note").textContent = editor.partPicked ? "" : "· 주 근육에서 자동으로 정해요";
 }
-function renderExercises() {
-  const list = $("#exercise-list"); list.replaceChildren();
-  if (!state.exercises.length) list.append(node("p", "등록된 종목이 없습니다.", "empty-state"));
-  for (const exercise of state.exercises) {
-    const item = node("div", null, "exercise-item");
-    item.append(node("h3", exercise.name), node("p", describe(exercise) + (exercise.preset_id ? " · 프리셋 연결됨" : exercise.muscles?.length ? " · " + exercise.muscles.join(", ") : " · 근육 없음"), "muted"));
-    const actions = node("div", null, "row-actions");
-    actions.append(button("수정", () => {
-      editExercise(exercise);
-      $("#exercise-form").elements.name.focus();
-    }), button("삭제", async (control) => {
-      if (!confirm(exercise.name + " 종목을 삭제할까요?")) return;
-      control.disabled = true;
-      try { await api("/exercises/" + exercise.id, "DELETE"); resetExercise(); await loadExercises(); renderExercises(); }
-      // Under the exercise itself: the form's error line is out of view when the list is scrolled.
-      catch (error) { problem.textContent = error.message; problem.hidden = false; }
-      finally { control.disabled = false; }
-    }, "danger"));
-    const problem = node("p", null, "form-error"); problem.setAttribute("role", "alert"); problem.hidden = true;
-    item.append(actions, problem); list.append(item);
+function openExerciseEditor(exercise = null, muscles = exercise?.muscles) {
+  const preset = presetOf(exercise), form = $("#exercise-form");
+  fill(form, {name: exercise?.name || ""});
+  Object.assign(editor, {exercise, gear: exercise?.category || null, tracking: exercise?.tracking || "weight_reps",
+    part: exercise?.body_part || null, partPicked: Boolean(exercise?.body_part)});
+  $("#exercise-form-title").textContent = exercise ? "종목 수정" : "새 종목";
+  $("#exercise-own").hidden = Boolean(preset);
+  $("#exercise-linked").hidden = $("#exercise-linked-figure").hidden = !preset;
+  $("#exercise-delete").hidden = !exercise;
+  if (preset) {
+    $("#exercise-linked").textContent = "기본 종목 '" + preset.name + "'과 연결돼 있어요. 근육·장비·기록 방식은 기본 종목을 따라요. 이름만 바꿀 수 있어요.";
+    $("#exercise-linked-figure").replaceChildren(FitAnatomy.figure(preset.muscles));
+  } else {
+    editor.muscles = FitAnatomy.picker(muscles || [], {names: state.catalog.muscles, onChange: (picked) => {
+      if (!editor.partPicked) { editor.part = FitAnatomy.partOf(picked); renderEditorChoices(); }
+    }});
+    $("#exercise-muscles").replaceChildren(editor.muscles.root);
+    if (!editor.partPicked && muscles?.length) editor.part = FitAnatomy.partOf(muscles);
+    renderEditorChoices();
   }
+  $("#exercise-editor").showModal();
 }
 // Exercises from old records that repeat a built-in one, often with the grip in the name ("랫풀다운 페러럴그립").
 async function renderCleanup() {
@@ -886,7 +897,8 @@ async function renderMuscleFix() {
   const list = $("#muscle-fix-list"); list.replaceChildren();
   const save = (item, muscles) => {
     const exercise = state.exercises.find((entry) => entry.id === item.exercise_id);
-    return api("/exercises/" + item.exercise_id, "PUT", {name: exercise.name, category: exercise.category, body_part: exercise.body_part, preset_id: null, muscles});
+    return api("/exercises/" + item.exercise_id, "PUT", {name: exercise.name, category: exercise.category, body_part: exercise.body_part || FitAnatomy.partOf(muscles),
+      preset_id: null, muscles, tracking: exercise.tracking});
   };
   const run = (control, action) => mutate(control, () => action().catch((error) => { $("#muscle-fix-message").textContent = error.message; }));
   const after = async (text) => { await loadExercises(); renderExercises(); await renderMuscleFix(); $("#muscle-fix-message").textContent = text; };
@@ -898,10 +910,7 @@ async function renderMuscleFix() {
     if (item.like) row.append(button("추천대로", (control) => run(control, async () => {
       await save(item, item.muscles); await after(item.name + "에 근육 정보를 넣었어요.");
     }), "small"));
-    row.append(button("고르기", () => {
-      editExercise(state.exercises.find((entry) => entry.id === item.exercise_id), item.muscles);
-      $("#exercise-form").scrollIntoView({block: "start"});
-    }, "small"));
+    row.append(button("고르기", () => openExerciseEditor(state.exercises.find((entry) => entry.id === item.exercise_id), item.muscles), "small"));
     list.append(row);
   }
   const suggested = items.filter((item) => item.like);
@@ -926,12 +935,15 @@ $("#workout-form").addEventListener("submit", (event) => {
 $("#exercise-form").addEventListener("submit", (event) => {
   event.preventDefault(); const form = event.currentTarget;
   submitForm(form, async () => {
-    const current = state.exercises.find((exercise) => exercise.id === state.editExercise);
-    await api("/exercises" + (state.editExercise ? "/" + state.editExercise : ""), state.editExercise ? "PUT" : "POST", {
-      name: form.elements.name.value, category: textValue(form, "category"), body_part: textValue(form, "body_part"), preset_id: current?.preset_id ?? null,
-      muscles: current?.preset_id ? null : state.exerciseMuscles
-    });
-    resetExercise(); await loadExercises(); renderExercises(); renderMuscleFix().catch(() => {});
+    const current = editor.exercise;
+    if (!form.elements.name.value.trim()) throw new Error("종목명을 적어 주세요.");
+    const body = current?.preset_id
+      ? {name: form.elements.name.value, category: current.category, body_part: current.body_part, preset_id: current.preset_id}
+      : {name: form.elements.name.value, category: editor.gear, body_part: editor.part, preset_id: null,
+        muscles: editor.muscles.get(), tracking: editor.tracking === "weight_reps" ? null : editor.tracking};
+    await api("/exercises" + (current ? "/" + current.id : ""), current ? "PUT" : "POST", body);
+    $("#exercise-editor").close();
+    await loadExercises(); renderExercises(); renderMuscleFix().catch(() => {});
   });
 });
 $("#picker-query").addEventListener("input", renderPicker);
@@ -949,11 +961,19 @@ document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener(
 }));
 $("#exercise-dialog").addEventListener("close", () => showRoute());
 $("#manage-exercises").addEventListener("click", async () => {
-  try { await loadExercises(); resetExercise(); renderExercises(); $("#cleanup-message").textContent = ""; $("#muscle-fix-message").textContent = ""; $("#exercise-dialog").showModal();
+  try { await loadExercises(); $("#exercise-query").value = ""; renderExercises(); $("#cleanup-message").textContent = ""; $("#muscle-fix-message").textContent = ""; $("#exercise-dialog").showModal();
     renderCleanup().catch((error) => notice(error.message, true)); renderMuscleFix().catch((error) => notice(error.message, true)); }
   catch (error) { notice(error.message, true); }
 });
-$("#reset-exercise").addEventListener("click", resetExercise);
+$("#exercise-new").addEventListener("click", () => openExerciseEditor());
+$("#exercise-query").addEventListener("input", renderExercises);
+$("#exercise-delete").addEventListener("click", () => submitForm($("#exercise-form"), async () => {
+  const exercise = editor.exercise;
+  if (!confirm(exercise.name + " 종목을 삭제할까요?")) return;
+  await api("/exercises/" + exercise.id, "DELETE");
+  $("#exercise-editor").close();
+  await loadExercises(); renderExercises(); renderMuscleFix().catch(() => {}); renderCleanup().catch(() => {});
+}));
 $("#browse-exercises").addEventListener("click", () => openPicker());
 $("#cal-prev").addEventListener("click", () => moveMonth(-1));
 $("#cal-next").addEventListener("click", () => moveMonth(1));
