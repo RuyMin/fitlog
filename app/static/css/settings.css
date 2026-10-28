@@ -84,3 +84,13 @@ main .perf-days button[aria-pressed=true]{background:var(--surface);color:var(--
 .goal-missing{font-size:13px;color:var(--muted)}
 .settings-page .goal-sleep{max-width:240px}
 .settings-page #goals-message:empty,.settings-page #goals-form .form-error:empty{display:none}
+
+/* 멤버 초대 (admins) */
+.invite-card form,.invite-result{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.invite-card h3{font-size:14px;margin:16px 0 6px}
+.invite-result input{font-size:13px}
+.invite-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.invite-text{display:flex;flex-direction:column;min-width:0;flex:1}.invite-text span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.invite-status{font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.invite-pending{color:var(--accent)}
+.invite-card button.invite-cancel{min-height:36px;padding:0 10px;border:0;background:none;color:var(--danger);font-weight:600}
