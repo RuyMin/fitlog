@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser
 from app.database import get_session
 from app.models import Exercise, Workout, WorkoutSet
-from app.schemas import DeleteResponse, ExerciseInput, ExerciseResponse, SetInput, SetResponse, VariantInput, WorkoutInput, WorkoutResponse
+from app.schemas import DeleteResponse, ExerciseInput, ExerciseResponse, MergeInput, SetInput, SetResponse, VariantInput, WorkoutInput, WorkoutResponse
 from app.services import exercise_presets, workouts as service
 
 router = APIRouter(prefix="/api", tags=["workouts"])
@@ -20,6 +20,18 @@ Offset = Annotated[int, Query(ge=0)]
 def list_exercise_presets(user: CurrentUser) -> dict:
     """Built-in presets with their tags; the same for every user."""
     return exercise_presets.catalog()
+
+
+@router.get("/exercise-cleanup")
+def exercise_cleanup(db: DB, user: CurrentUser) -> list[dict]:
+    """My exercises that duplicate a built-in one (often with the grip in the name), to merge."""
+    return service.cleanup_suggestions(db, user.id)
+
+
+@router.post("/exercises/{exercise_id}/merge")
+def merge_exercise(exercise_id: int, data: MergeInput, db: DB, user: CurrentUser) -> dict:
+    target, moved = service.merge_exercise(db, user.id, exercise_id, data.preset_id, data.variant)
+    return {"moved": moved, "target": ExerciseResponse.model_validate(target).model_dump(mode="json")}
 
 
 @router.get("/exercises", response_model=list[ExerciseResponse])

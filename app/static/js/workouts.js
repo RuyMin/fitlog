@@ -828,6 +828,32 @@ function renderExercises() {
     item.append(actions); list.append(item);
   }
 }
+// Exercises from old records that repeat a built-in one, often with the grip in the name ("랫풀다운 페러럴그립").
+async function renderCleanup() {
+  const items = await api("/exercise-cleanup");
+  $("#cleanup").hidden = !items.length;
+  const list = $("#cleanup-list"); list.replaceChildren();
+  const merge = (item) => api("/exercises/" + item.exercise_id + "/merge", "POST", {preset_id: item.preset_id, variant: item.variant});
+  // Errors go in the dialog: the page notice sits behind it.
+  const run = (control, action) => mutate(control, () => action().catch((error) => { $("#cleanup-message").textContent = error.message; }));
+  const after = async (text) => { await loadExercises(); renderExercises(); await renderCleanup(); $("#cleanup-message").textContent = text; };
+  for (const item of items) {
+    const row = node("div", null, "cleanup-item");
+    const text = node("p");
+    text.append(node("strong", item.name), node("span", "→ " + item.preset_name + (item.variant_label ? " · " + item.variant_label : "") + " · 기록 " + item.sets + "세트", "muted"));
+    row.append(text, button("합치기", (control) => run(control, async () => {
+      const result = await merge(item);
+      await after(item.name + "의 " + result.moved + "세트를 " + item.preset_name + "(으)로 옮겼어요.");
+    }), "small"));
+    list.append(row);
+  }
+  $("#cleanup-all").onclick = (event) => run(event.currentTarget, async () => {
+    if (!confirm(items.length + "개 종목을 기본 종목으로 합칠까요? 기록은 그대로 옮겨지고, 겹치는 종목은 지워져요.")) return;
+    let moved = 0;
+    for (const item of items) moved += (await merge(item)).moved;
+    await after(items.length + "개 종목을 합쳤어요. 옮긴 기록 " + moved + "세트.");
+  });
+}
 $("#workout-form").addEventListener("submit", (event) => {
   event.preventDefault(); const form = event.currentTarget;
   submitForm(form, async () => {
@@ -864,7 +890,7 @@ document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener(
 }));
 $("#exercise-dialog").addEventListener("close", () => showRoute());
 $("#manage-exercises").addEventListener("click", async () => {
-  try { await loadExercises(); resetExercise(); renderExercises(); $("#exercise-dialog").showModal(); }
+  try { await loadExercises(); resetExercise(); renderExercises(); $("#cleanup-message").textContent = ""; $("#exercise-dialog").showModal(); renderCleanup().catch((error) => notice(error.message, true)); }
   catch (error) { notice(error.message, true); }
 });
 $("#reset-exercise").addEventListener("click", resetExercise);

@@ -83,6 +83,11 @@ class SetInput(InputModel):
     variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
 
 
+class MergeInput(InputModel):
+    preset_id: Annotated[str, Field(min_length=1, max_length=64)]
+    variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
+
+
 class VariantInput(InputModel):
     variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
 

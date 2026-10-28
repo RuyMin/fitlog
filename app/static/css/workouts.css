@@ -27,3 +27,7 @@ dialog::backdrop{background:#07180fb3}dialog h2{font-size:22px;margin-bottom:16p
 #exercise-form{border-bottom:1px solid var(--line);padding-bottom:20px}
 @media(max-width:380px){.form-grid{grid-template-columns:1fr}dialog{padding:18px}.toolbar button{flex:1}}
 @media(prefers-color-scheme:dark){button.danger,.form-error,#notice.error{color:#ffab96}}
+.cleanup{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 16px;background:var(--soft)}
+.cleanup h3{margin:0 0 4px;font-size:15px}
+.cleanup-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.cleanup-item p{display:flex;flex-direction:column;flex:1;min-width:0;margin:0;overflow-wrap:anywhere}.cleanup-item span{font-size:12px}

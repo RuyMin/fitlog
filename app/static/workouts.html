@@ -89,6 +89,13 @@
 
 <dialog id="exercise-dialog" aria-labelledby="exercise-heading">
 <div class="section-heading"><h2 id="exercise-heading">내 종목 관리</h2><button type="button" data-close>닫기</button></div>
+<section id="cleanup" class="cleanup" aria-labelledby="cleanup-heading" hidden>
+<h3 id="cleanup-heading">기본 종목과 겹치는 종목</h3>
+<p class="hint">예전 기록에서 그립을 이름에 붙여 따로 만든 종목이에요. 합치면 그 기록을 기본 종목으로 옮기고 그립을 표시한 뒤, 겹치는 종목은 지워요. 기록 수치는 바뀌지 않아요.</p>
+<div id="cleanup-list"></div>
+<div class="dialog-actions"><button type="button" id="cleanup-all" class="primary">모두 합치기</button></div>
+<p id="cleanup-message" role="status" aria-live="polite"></p>
+</section>
 <form id="exercise-form"><h3 id="exercise-form-title">새 종목</h3>
 <label>종목명 *<input name="name" maxlength="200" placeholder="예: 케이블 Y 레이즈" required></label>
 <div class="form-grid"><label>장비<input name="category" maxlength="100" placeholder="예: 케이블"></label><label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 어깨"></label></div>
