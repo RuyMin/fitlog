@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17191b" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+  <link rel="stylesheet" href="/static/css/app.css?v=1">
+  <link rel="stylesheet" href="/static/css/welcome.css?v=1">
+  <script src="/static/js/app.js?v=1" defer></script>
+  <script src="/static/js/welcome.js?v=1" defer></script>
+  <title>FitLog · 무엇을 기록할까요?</title>
+</head>
+<body class="welcome-page">
+  <main id="main" class="welcome">
+    <div class="welcome-top"><span id="server-status" class="status" role="status">서버 확인 중</span><a href="/" id="welcome-skip" class="welcome-skip">건너뛰기</a></div>
+
+    <div class="welcome-head">
+      <h1>무엇을<br>기록할까요?</h1>
+      <p class="muted">고른 것만 홈에 보여요. 나중에 설정에서 바꿀 수 있어요.</p>
+    </div>
+
+    <div class="welcome-kinds" role="group" aria-label="기록할 것">
+      <button type="button" class="kind kind-work" data-kind="work" aria-pressed="false"><span class="kind-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg></span><strong>운동</strong><span>세트·무게·근육</span><span class="kind-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span></button>
+      <button type="button" class="kind kind-meal" data-kind="meal" aria-pressed="false"><span class="kind-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg></span><strong>식단</strong><span>사진 한 장이면 끝</span><span class="kind-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span></button>
+      <button type="button" class="kind kind-body" data-kind="body" aria-pressed="false"><span class="kind-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span><strong>체중</strong><span>체성분까지</span><span class="kind-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span></button>
+      <button type="button" class="kind kind-sleep" data-kind="sleep" aria-pressed="false"><span class="kind-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></span><strong>수면</strong><span>잠든 시간·깬 시간</span><span class="kind-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span></button>
+    </div>
+
+    <a class="welcome-excel" href="/settings#excel-heading"><span class="welcome-excel-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h10l6 6v10H4z"></path><path d="M14 4v6h6M8 14h8M8 17h5"></path></svg></span><span class="welcome-excel-text">예전 기록표가 있나요?<span class="muted">엑셀 파일로 한 번에 옮겨요</span></span><span class="welcome-excel-go">가져오기</span></a>
+
+    <p id="welcome-message" class="welcome-message" role="status" aria-live="polite"></p>
+    <button type="button" id="welcome-start" class="welcome-start">하나 이상 골라 주세요</button>
+    <p id="pwa-note" class="visually-hidden" role="status"></p>
+  </main>
+</body>
+</html>

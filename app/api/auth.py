@@ -17,7 +17,9 @@ from app.api.deps import (
 from app.auth import google
 from app.config import APP_VERSION
 from app.database import get_session
-from app.services import accounts
+from app.models import TRACKING_KINDS, User
+from app.schemas import TrackingInput
+from app.services import accounts, dashboard
 
 router = APIRouter(tags=["auth"])
 DB = Annotated[Session, Depends(get_session)]
@@ -106,9 +108,21 @@ def google_callback(request: Request, db: DB, state: str = "", code: str = "", e
 
 
 @router.get("/api/me")
-def me(user: CurrentUser) -> dict:
+def me(user: CurrentUser, db: DB) -> dict:
     # The version rides along so pages need no separate /api/health call to show it.
-    return {"id": user.id, "email": user.email, "display_name": user.display_name, "role": user.role, "version": APP_VERSION}
+    tracking = user.tracking.split(",") if user.tracking else None
+    return {"id": user.id, "email": user.email, "display_name": user.display_name, "role": user.role, "version": APP_VERSION,
+            # The first-run screen is for new accounts only: someone who already has records skips it.
+            "tracking": tracking, "needs_setup": tracking is None and not dashboard.has_records(db, user.id)}
+
+
+@router.put("/api/me/tracking")
+def set_tracking(data: TrackingInput, user: CurrentUser, db: DB) -> dict:
+    account = db.get(User, user.id)
+    account.tracking = ",".join(kind for kind in TRACKING_KINDS if kind in data.tracking)
+    db.commit()
+    user.tracking = account.tracking
+    return me(user, db)
 
 
 def utc_iso(value):

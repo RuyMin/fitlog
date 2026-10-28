@@ -49,7 +49,8 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/me").status_code, 401)
         login(self.client, self.user)
         self.assertEqual(self.client.get("/api/me").json(),
-                         {"id": self.user.id, "email": "owner@example.com", "display_name": None, "role": "admin", "version": config.APP_VERSION})
+                         {"id": self.user.id, "email": "owner@example.com", "display_name": None, "role": "admin", "version": config.APP_VERSION,
+                          "tracking": None, "needs_setup": True})
         # Sleep reserves the writer with BEGIN IMMEDIATE on the request session the lookup already used.
         self.assertEqual(self.client.post("/api/sleep", json=SLEEP).status_code, 201)
         self.assertEqual(self.client.post("/api/meals", json=MEAL).status_code, 201)

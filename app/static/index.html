@@ -33,36 +33,55 @@
 <p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
 </aside>
   <main id="main" class="home">
-    <header class="topbar home-topbar"><div><p id="today" class="date">오늘의 기록</p><h1>오늘의 기록</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
+    <header class="topbar home-topbar"><div><p id="today" class="date">오늘의 기록</p><h1 id="home-title">오늘의 기록</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
 
-    <div class="quick-record">
+    <section id="first-day" class="first-day" aria-labelledby="first-day-title" hidden>
+      <div class="first-day-head"><h2 id="first-day-title">첫 기록 남기기</h2><span id="first-day-count" class="first-day-count"></span></div>
+      <ol class="first-steps">
+        <li id="step-pick"><a href="/welcome"><span class="step-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span class="step-text"><strong>기록할 것 고르기</strong><span>운동·식단·체중·수면 중에서</span></span><svg class="step-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a></li>
+        <li id="step-record"><a href="#first-text" id="step-record-link"><span class="step-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span class="step-text"><strong id="step-record-title">오늘 한 운동 적기</strong><span>아래 입력창에 말하듯 쓰면 돼요</span></span><svg class="step-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a></li>
+        <li id="step-goal"><a href="/settings#goals"><span class="step-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span class="step-text"><strong>목표 정하기</strong><span>단백질·열량·수면 목표</span></span><svg class="step-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a></li>
+      </ol>
+    </section>
+    <form id="first-form" class="first-form" hidden>
+      <div class="first-input"><label for="first-text" class="visually-hidden">무엇을 했나요</label><input id="first-text" type="text" maxlength="4000" placeholder="무엇을 했나요?" autocomplete="off"><button type="submit" aria-label="기록하기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button></div>
+      <p class="first-hint" id="first-hint">이렇게 써 보세요</p>
+      <div class="first-chips" role="group" aria-labelledby="first-hint">
+        <button type="button" data-kind="work">벤치프레스 50kg 10회 3세트</button>
+        <button type="button" data-kind="body">아침 체중 72.4</button>
+        <button type="button" data-kind="meal">점심 닭가슴살 샐러드</button>
+        <button type="button" data-kind="sleep">어젯밤 12시에 자서 7시에 일어남</button>
+      </div>
+    </form>
+
+    <div class="quick-record" id="quick-record">
       <a href="#record" class="quick-record-main"><span class="quick-record-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span><span class="quick-record-text"><strong>말하듯 적거나 사진으로 기록</strong><span>“점심 제육덮밥, 스쿼트 60kg 8회 4세트”</span></span></a>
       <button type="button" id="quick-photo" class="quick-record-photo" aria-label="사진으로 기록하기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></button>
     </div>
 
-    <section class="card week" aria-labelledby="week-title">
+    <section class="card week" id="week" aria-labelledby="week-title">
       <div class="section-heading"><h2 id="week-title">이번 주</h2><span id="week-note"></span></div>
       <ol class="week-days" id="week-days"></ol>
       <p class="week-legend"><span class="legend-workout">운동한 날</span><span class="legend-logged">기록만 한 날</span><span class="legend-today">오늘</span></p>
     </section>
 
-    <section class="goals" aria-labelledby="goals-title">
+    <section class="goals" id="goals" aria-labelledby="goals-title">
       <div class="goals-head"><h2 id="goals-title">오늘의 목표</h2><span><span id="goals-note">기록을 불러오는 중</span> · <a href="/settings#goals" class="goals-edit">목표 설정</a></span></div>
       <div class="goal-rings">
-        <div class="goal goal-protein"><div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26"></circle><circle class="ring-value" id="ring-protein" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"></circle></svg><strong id="pct-protein">—</strong></div><p class="goal-label">단백질</p><p class="goal-value"><b id="val-protein">—</b> / <span id="target-protein"></span></p></div>
-        <div class="goal goal-kcal"><div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26"></circle><circle class="ring-value" id="ring-kcal" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"></circle></svg><strong id="pct-kcal">—</strong></div><p class="goal-label">열량</p><p class="goal-value"><b id="val-kcal">—</b> / <span id="target-kcal"></span></p></div>
-        <div class="goal goal-sleep"><div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26"></circle><circle class="ring-value" id="ring-sleep" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"></circle></svg><strong id="pct-sleep">—</strong></div><p class="goal-label">수면</p><p class="goal-value"><b id="val-sleep">—</b> / <span id="target-sleep"></span></p></div>
+        <div class="goal goal-protein" data-kind="meal"><div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26"></circle><circle class="ring-value" id="ring-protein" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"></circle></svg><strong id="pct-protein">—</strong></div><p class="goal-label">단백질</p><p class="goal-value"><b id="val-protein">—</b> / <span id="target-protein"></span></p></div>
+        <div class="goal goal-kcal" data-kind="meal"><div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26"></circle><circle class="ring-value" id="ring-kcal" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"></circle></svg><strong id="pct-kcal">—</strong></div><p class="goal-label">열량</p><p class="goal-value"><b id="val-kcal">—</b> / <span id="target-kcal"></span></p></div>
+        <div class="goal goal-sleep" data-kind="sleep"><div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26"></circle><circle class="ring-value" id="ring-sleep" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"></circle></svg><strong id="pct-sleep">—</strong></div><p class="goal-label">수면</p><p class="goal-value"><b id="val-sleep">—</b> / <span id="target-sleep"></span></p></div>
       </div>
     </section>
 
     <section class="tiles" aria-labelledby="summary-title"><h2 id="summary-title" class="visually-hidden">오늘의 요약</h2>
-      <a class="tile tile-work" href="/workouts"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg></span>운동</span><span class="tile-value"><b id="today-sets">—</b> 세트</span><span class="tile-note" id="today-workouts">기록을 불러오는 중</span></a>
-      <a class="tile tile-body" href="/body"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span>체중</span><span class="tile-value"><b id="latest-weight">—</b> kg</span><svg class="spark" id="weight-spark" viewBox="0 0 140 28" preserveAspectRatio="none" aria-hidden="true"><polyline id="weight-line" points=""></polyline></svg><span class="tile-note" id="weight-note">기록을 불러오는 중</span></a>
-      <a class="tile tile-meal" href="/meals"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg></span>식단</span><span class="tile-value"><b id="today-kcal">—</b> kcal</span><span class="macro-bar" id="macro-bar" hidden><span id="macro-carb" class="macro-carb"></span><span id="macro-protein" class="macro-protein"></span><span id="macro-fat" class="macro-fat"></span></span><span class="tile-note" id="protein-note">기록을 불러오는 중</span></a>
-      <a class="tile tile-sleep" href="/sleep"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></span>수면</span><span class="tile-value" id="today-sleep">—</span><span class="sleep-bar" id="sleep-bar" hidden><span id="sleep-span"></span></span><span class="tile-note" id="sleep-note">기록을 불러오는 중</span></a>
+      <a class="tile tile-work" data-kind="work" href="/workouts"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg></span>운동</span><span class="tile-value"><b id="today-sets">—</b> 세트</span><span class="tile-note" id="today-workouts">기록을 불러오는 중</span></a>
+      <a class="tile tile-body" data-kind="body" href="/body"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span>체중</span><span class="tile-value"><b id="latest-weight">—</b> kg</span><svg class="spark" id="weight-spark" viewBox="0 0 140 28" preserveAspectRatio="none" aria-hidden="true"><polyline id="weight-line" points=""></polyline></svg><span class="tile-note" id="weight-note">기록을 불러오는 중</span></a>
+      <a class="tile tile-meal" data-kind="meal" href="/meals"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg></span>식단</span><span class="tile-value"><b id="today-kcal">—</b> kcal</span><span class="macro-bar" id="macro-bar" hidden><span id="macro-carb" class="macro-carb"></span><span id="macro-protein" class="macro-protein"></span><span id="macro-fat" class="macro-fat"></span></span><span class="tile-note" id="protein-note">기록을 불러오는 중</span></a>
+      <a class="tile tile-sleep" data-kind="sleep" href="/sleep"><span class="tile-head"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></span>수면</span><span class="tile-value" id="today-sleep">—</span><span class="sleep-bar" id="sleep-bar" hidden><span id="sleep-span"></span></span><span class="tile-note" id="sleep-note">기록을 불러오는 중</span></a>
     </section>
 
-    <section class="recent-section" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">최근 운동</h2><a href="/workouts">전체 보기</a></div><div id="recent-workouts" class="recent-list" aria-live="polite">기록을 불러오는 중…</div></section>
+    <section class="recent-section" id="recent" data-kind="work" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">최근 운동</h2><a href="/workouts">전체 보기</a></div><div id="recent-workouts" class="recent-list" aria-live="polite">기록을 불러오는 중…</div></section>
 
     <footer class="main-footer"><span>FitLog <span class="muted">/ 나의 하루를 쌓는 곳</span></span><span id="app-version" class="muted"></span></footer>
     <p id="pwa-note" class="muted pwa-note" role="status"></p>

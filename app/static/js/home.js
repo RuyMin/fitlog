@@ -81,19 +81,67 @@ function weekStrip(data) {
   $home("week-note").textContent = "운동 " + data.week.filter((d) => d.workout).length + "일 · 기록 " + data.week.filter((d) => d.logged).length + "일";
 }
 
-const homeToday = new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
+// What the account records (설정 › 홈에 보일 기록) and, until the first record, the 첫 기록 남기기 checklist.
+const homeStart = (() => {
+  const ALL = ["work", "meal", "body", "sleep"];
+  let me, data, met;
+  window.fitlogMe.then((answer) => {
+    me = answer;
+    // A new account answers 무엇을 기록할까요? first; one that already has records never sees it.
+    if (me?.needs_setup) { location.replace("/welcome"); return; }
+    paint();
+  });
+  function step(id, done) {
+    $home(id).classList.toggle("done", done);
+    return done;
+  }
+  function paint() {
+    if (!me || !data) return;
+    const tracking = me.tracking || ALL;
+    for (const element of document.querySelectorAll(".home [data-kind]")) element.hidden = !tracking.includes(element.dataset.kind);
+    const rings = Object.keys(met).filter((name) => !$home("ring-" + name).closest(".goal").hidden);
+    $home("goals-note").textContent = rings.length + "개 중 " + rings.filter((name) => met[name]).length + "개 달성";
+
+    // Before the first record the goal rings and the week are all empty: the checklist takes their place.
+    const first = !data.has_records;
+    $home("first-day").hidden = $home("first-form").hidden = !first;
+    $home("quick-record").hidden = $home("week").hidden = first;
+    $home("goals").hidden = first || !rings.length;
+    if (first) $home("recent").hidden = true;
+    $home("home-title").textContent = first ? "반가워요" : "오늘의 기록";
+    document.querySelector(".tiles").classList.toggle("is-empty", first);
+    if (!first) return;
+    $home("step-record-title").textContent = tracking.includes("work") ? "오늘 한 운동 적기" : "오늘 첫 기록 적기";
+    const done = [step("step-pick", Boolean(me.tracking)), step("step-record", false), step("step-goal", data.goal_source !== "default")];
+    $home("first-day-count").textContent = done.filter(Boolean).length + "/3";
+  }
+  // The sentence goes to the record sheet's AI box, which turns it into drafts to check and save.
+  const text = $home("first-text");
+  $home("step-record-link").addEventListener("click", (event) => { event.preventDefault(); text.focus(); });
+  for (const chip of document.querySelectorAll(".first-chips button")) {
+    chip.addEventListener("click", () => { text.value = chip.textContent; text.focus(); });
+  }
+  $home("first-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    $home("assistant-text").value = text.value.trim();
+    openSheet();
+  });
+  return {show(summary, goals) { data = summary; met = goals; paint(); }};
+})();
+
+const homeToday =new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
 
 function showSummary(data) {
-  const met = [
-    ring("protein", data.protein_grams, data.protein_goal_grams, formatNumber(data.protein_grams), formatNumber(data.protein_goal_grams) + "g"),
-    ring("kcal", data.calories, data.calorie_goal_kcal, formatNumber(Math.round(data.calories)), formatNumber(data.calorie_goal_kcal)),
-    ring("sleep", data.sleep_minutes, data.sleep_goal_minutes, hoursText(data.sleep_minutes), hoursText(data.sleep_goal_minutes)),
-  ].filter(Boolean).length;
-  $home("goals-note").textContent = "3개 중 " + met + "개 달성";
+  const met = {
+    protein: ring("protein", data.protein_grams, data.protein_goal_grams, formatNumber(data.protein_grams), formatNumber(data.protein_goal_grams) + "g"),
+    kcal: ring("kcal", data.calories, data.calorie_goal_kcal, formatNumber(Math.round(data.calories)), formatNumber(data.calorie_goal_kcal)),
+    sleep: ring("sleep", data.sleep_minutes, data.sleep_goal_minutes, hoursText(data.sleep_minutes), hoursText(data.sleep_goal_minutes)),
+  };
   $home("today-sets").textContent = data.total_sets;
   $home("today-workouts").textContent = !data.workouts_count ? "오늘은 아직 운동 기록이 없어요"
     : data.workout_titles.slice(0, 2).join(" · ") + (data.volume_kg ? " · 볼륨 " + formatNumber(Math.round(data.volume_kg)) + "kg" : "");
   weightTile(data); mealTile(data); sleepTile(data); weekStrip(data);
+  homeStart.show(data, met);
 }
 // Data comes through app.js (fitlogShow): the saved copy first, then the current one.
 async function loadSummary() {

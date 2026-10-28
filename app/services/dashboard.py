@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Integer, func, select
+from sqlalchemy import Integer, exists, func, select
 from sqlalchemy.orm import Session
 
 from app.models import BodyMetric, Meal, SleepRecord, Workout, WorkoutSet
@@ -57,7 +57,14 @@ def get_dashboard(session: Session, user_id: int, day: date, zone: ZoneInfo) -> 
         main_sleep_end=last_sleep.sleep_end if last_sleep else None,
         week=week(session, user_id, day, zone),
         weights=[WeightPoint(measured_at=m.measured_at, weight=m.weight) for m in weights],
+        has_records=has_records(session, user_id),
     )
+
+
+def has_records(session: Session, user_id: int) -> bool:
+    """Whether anything was ever saved; an empty home shows the first-record checklist instead."""
+    return any(session.scalar(select(exists().where(model.user_id == user_id)))
+               for model in (Workout, Meal, BodyMetric, SleepRecord))
 
 
 def week(session: Session, user_id: int, day: date, zone: ZoneInfo) -> list[WeekDay]:
