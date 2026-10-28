@@ -77,7 +77,11 @@ class WorkoutAPITests(unittest.TestCase):
 
     def test_in_use_exercise_and_cascade(self) -> None:
         item = self.client.post(self.path + "/sets", json=self.set_data).json()
-        self.assertEqual(self.client.delete(f"/api/exercises/{self.exercise['id']}").status_code, 409)
+        self.client.post(self.path + "/sets", json={**self.set_data, "set_number": 2})
+        refused = self.client.delete(f"/api/exercises/{self.exercise['id']}")
+        self.assertEqual(refused.status_code, 409)
+        # Each workout that uses it is named once, so the person knows where to take it out.
+        self.assertEqual(refused.json()["detail"], "9/25 하체 운동 기록에서 쓰고 있어 삭제할 수 없습니다. 그 운동에서 종목을 먼저 빼 주세요.")
         self.assertEqual(self.client.delete(self.path).status_code, 200)
         with SessionLocal() as session:
             self.assertIsNone(session.scalar(select(WorkoutSet).where(WorkoutSet.id == item["id"])))

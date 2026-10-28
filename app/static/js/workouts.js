@@ -845,10 +845,12 @@ function renderExercises() {
       if (!confirm(exercise.name + " 종목을 삭제할까요?")) return;
       control.disabled = true;
       try { await api("/exercises/" + exercise.id, "DELETE"); resetExercise(); await loadExercises(); renderExercises(); }
-      catch (error) { $("#exercise-form .form-error").textContent = error.message; }
+      // Under the exercise itself: the form's error line is out of view when the list is scrolled.
+      catch (error) { problem.textContent = error.message; problem.hidden = false; }
       finally { control.disabled = false; }
     }, "danger"));
-    item.append(actions); list.append(item);
+    const problem = node("p", null, "form-error"); problem.setAttribute("role", "alert"); problem.hidden = true;
+    item.append(actions, problem); list.append(item);
   }
 }
 // Exercises from old records that repeat a built-in one, often with the grip in the name ("랫풀다운 페러럴그립").

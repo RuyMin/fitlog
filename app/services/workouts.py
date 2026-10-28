@@ -49,8 +49,14 @@ def save_exercise(session: Session, user_id: int, data: ExerciseInput, exercise_
 
 def delete_exercise(session: Session, user_id: int, exercise_id: int) -> None:
     item = get_exercise(session, user_id, exercise_id)
-    if session.scalar(select(WorkoutSet.id).where(WorkoutSet.exercise_id == exercise_id).limit(1)):
-        raise RecordConflict("세트에서 사용 중인 종목은 삭제할 수 없습니다.")
+    used = session.execute(select(Workout.workout_date, Workout.title).join(WorkoutSet, WorkoutSet.workout_id == Workout.id)
+                           .where(WorkoutSet.exercise_id == exercise_id).group_by(Workout.id)
+                           .order_by(Workout.workout_date.desc(), Workout.id.desc())).all()
+    if used:
+        # Name the workouts, so the person knows where to take the exercise out first.
+        shown = ", ".join(f"{day.month}/{day.day} {title}" for day, title in used[:3])
+        more = f" 외 {len(used) - 3}개" if len(used) > 3 else ""
+        raise RecordConflict(f"{shown}{more} 운동 기록에서 쓰고 있어 삭제할 수 없습니다. 그 운동에서 종목을 먼저 빼 주세요.")
     session.delete(item)
     commit(session)
 
