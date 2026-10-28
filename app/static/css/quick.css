@@ -1,0 +1,62 @@
+/* Quick record sheets (quick.js): 체중, 수면, 식사 from the bottom of the screen. */
+dialog.quick-sheet{width:100%;max-width:520px;max-height:92dvh;margin:auto auto 0;padding:0;border:0;border-radius:28px 28px 0 0;background:var(--bg);color:var(--ink)}
+dialog.quick-sheet::backdrop{background:rgba(10,12,12,.55)}
+.quick-form{display:flex;flex-direction:column;gap:14px;padding:10px 16px max(22px,env(safe-area-inset-bottom))}
+.quick-grip{width:40px;height:5px;border-radius:3px;background:var(--line);align-self:center}
+.quick-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.quick-head h2{flex:1;font-size:22px;margin:0;white-space:nowrap}
+.quick-tools{order:3;flex-basis:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.quick-sheet button{font:inherit;cursor:pointer}
+.quick-close{width:40px;height:40px;border:0;background:none;color:var(--ink);display:grid;place-items:center;padding:0}
+.quick-close svg,.quick-photo svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.quick-when input,.quick-type select{min-height:36px;padding:0 10px;border-radius:18px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:13px;font-weight:700}
+.quick-when input{max-width:170px}
+.quick-photo{width:40px;height:40px;border-radius:20px;border:0;background:var(--meal-soft);color:var(--meal-ink);display:grid;place-items:center;padding:0}
+.quick-save{flex:1;min-height:56px;border-radius:28px;border:0;background:var(--brand);color:var(--brand-ink);font-size:17px;font-weight:800}
+.quick-delete{min-height:56px;padding:0 20px;border-radius:28px;border:0;background:var(--soft);color:var(--danger);font-weight:800}
+.quick-actions{display:flex;gap:8px}
+.quick-sheet .form-error{margin:0;color:var(--danger);font-size:13px;white-space:pre-wrap}.quick-sheet .form-error:empty{display:none}
+.quick-more{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:0 14px}
+.quick-more summary{min-height:48px;display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;list-style:none}
+.quick-more summary::-webkit-details-marker{display:none}
+.quick-more label,.quick-day{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.quick-more input,.quick-day input{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:15px;padding:0 10px;width:100%;box-sizing:border-box}
+.quick-pair,.quick-macros{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-bottom:14px}
+.quick-macros{grid-template-columns:repeat(3,minmax(0,1fr))}
+.quick-memo{padding-bottom:14px}
+
+/* 체중: one big number between − and +. */
+.quick-weight{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 0 0}
+.quick-weight button{width:56px;height:56px;border-radius:28px;border:0;background:var(--soft);color:var(--ink);font-size:26px;font-weight:700;flex:none}
+.quick-weight input{width:150px;border:0;background:none;color:var(--ink);font-family:var(--font-num);font-size:56px;font-weight:700;text-align:center;letter-spacing:-1px;padding:0}
+.quick-weight input:focus-visible{outline:2px solid var(--accent);border-radius:12px}
+.quick-unit{font-size:16px;color:var(--muted);margin-left:-8px}
+.quick-note{margin:0;text-align:center;font-size:14px;color:var(--muted);min-height:20px}
+
+/* 수면: the length on top, bed and wake times with ±10분. */
+.quick-segment{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;padding:3px;border-radius:18px;background:var(--surface);border:1px solid var(--line)}
+.quick-segment button{min-height:32px;padding:0 12px;border-radius:15px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:700}
+.quick-segment button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:800}
+.quick-duration{text-align:center}.quick-duration b{font-size:40px;font-weight:700}
+.quick-time{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:10px 10px 10px 16px}
+.quick-time label{flex:1;display:flex;flex-direction:column;font-size:12px;color:var(--muted)}
+.quick-time input{border:0;background:none;color:var(--ink);font-family:var(--font-num);font-size:24px;font-weight:600;padding:0;min-height:36px}
+.quick-time button{min-width:58px;height:44px;border-radius:22px;border:0;background:var(--soft);color:var(--ink);font-size:13px;font-weight:700}
+.quick-day{flex-direction:row;align-items:center;justify-content:space-between}.quick-day input{width:auto}
+
+/* 식사: name and kcal on one line, frequent foods in even tiles. */
+.quick-food{display:flex;gap:8px}
+.quick-name{flex:1;min-width:0}
+.quick-name input{width:100%;box-sizing:border-box;height:48px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:15px;font-weight:700;padding:0 14px}
+.quick-kcal{width:100px;flex:none;display:flex;align-items:center;gap:4px;height:48px;padding:0 10px;border-radius:16px;border:1px solid var(--line);background:var(--surface);box-sizing:border-box}
+.quick-kcal input{width:100%;min-width:0;border:0;background:none;color:var(--ink);font-family:var(--font-num);font-size:15px;font-weight:600;text-align:right;padding:0}
+.quick-kcal span{font-size:11px;color:var(--muted)}
+.quick-favourites p{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--muted)}
+.quick-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.quick-chips button{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:0;text-align:left}
+.quick-chips span{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quick-chips small{font-size:12px;color:var(--muted)}
+.quick-chips button[aria-pressed="true"]{border-color:var(--meal);background:var(--meal-soft)}
+
+.quick-toast{position:fixed;z-index:60;left:50%;top:max(16px,env(safe-area-inset-top));transform:translateX(-50%);margin:0;padding:10px 18px;border-radius:20px;background:var(--ink);color:var(--bg);font-size:14px;font-weight:700;box-shadow:var(--shadow)}
+@media(min-width:760px){dialog.quick-sheet{margin:auto;border-radius:28px}}

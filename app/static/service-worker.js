@@ -2,7 +2,7 @@
 // Pages show from the cache at once and refresh in the background; assets linked by content hash
 // (?v=<12 hex>, app/pages.py) never change at that address, so they come straight from the cache.
 // API responses are never cached.
-const CACHE = "fitlog-shell-v33";
+const CACHE = "fitlog-shell-v34";
 const PAGES = ["/", "/workouts", "/meals", "/body", "/body-metrics", "/sleep", "/statistics", "/settings", "/welcome"];
 const OFFLINE = ["/manifest.json", "/static/icons/icon.svg", "/static/icons/icon-192.png", "/static/icons/icon-512.png"];
 const HASHED = /^[0-9a-f]{12}$/;
