@@ -54,6 +54,47 @@ def number_of(value) -> float | None:
         return None
 
 
+SIDES = {"좌우", "양쪽", "우/좌", "좌/우", "각각"}
+
+
+def parse_set_text(text: str) -> tuple[float | None, int, str | None] | None:
+    """A weight-record cell as (weight, reps, note): "60kg×8", "4kg×15(좌우)", "20kg×5(워밍업)", "맨몸×15",
+    "×10" (weight not written), "좌우 합쳐 30회". A drop set ("25kg×5 + 15kg×8") keeps its first part and
+    says the rest in the note. None when the cell is not a weight × reps (e.g. "자세 교정")."""
+    parts = re.split(r"\s*\+\s*", str(text).strip())
+    found = []
+    for part in parts:
+        match = re.fullmatch(r"(?:(\d+(?:\.\d+)?)\s*kg|맨몸)?\s*[×x]\s*(\d+)\s*(?:\(([^()]*)\))?", part)
+        if match:
+            found.append((float(match[1]) if match[1] else None, int(match[2]), (match[3] or "").strip()))
+            continue
+        match = re.fullmatch(r"좌우 합쳐 (\d+)회", part)
+        if not match:
+            return None
+        found.append((None, int(match[1]), ""))
+    weight, reps, label = found[0]
+    notes = []
+    if label in SIDES:
+        notes.append("횟수는 한쪽 기준")
+    elif label:
+        notes.append(label)
+    if len(found) > 1:
+        notes.append("드롭 세트: 이어서 " + " + ".join(parts[1:]))
+    return weight, reps, " · ".join(notes) or None
+
+
+def daily_target(candidates: list, title: str):
+    """Of the same day's workouts (title, item), the one a daily-log row describes: the only one that day, or
+    the only one whose title holds the row's routine ("저녁 러닝" → "러닝 · 저녁 러닝"). None when unclear."""
+    if len(candidates) == 1:
+        return candidates[0][1]
+    def squash(text):
+        return re.sub(r"\s+|러닝·", "", str(text))
+    key = squash(title)
+    hits = [item for name, item in candidates if key and (key in squash(name) or squash(name) in key)]
+    return hits[0] if len(hits) == 1 else None
+
+
 RUN_COLUMNS = {"평균심박": "heart_rate", "최대심박": "max_heart_rate", "평균케이던스": "cadence", "최대케이던스": "max_cadence",
                "상승고도(m)": "elevation_gain_m", "칼로리": "calories"}
 RUN_LIMITS = {"heart_rate": (20, 250), "max_heart_rate": (20, 250), "cadence": (0, 300), "max_cadence": (0, 300),
@@ -212,22 +253,16 @@ def convert_book(book, archive: dict, *, merge_legacy_daily: bool = True) -> tup
             if raw is None:
                 continue
             text = str(raw)
-            weight, reps = None, None
-            match = re.fullmatch(r"(\d+(?:\.\d+)?)kg×(\d+)(?:\(우/좌\))?", text)
-            if match:
-                weight, reps = float(match[1]), int(match[2])
-            else:
-                match = re.fullmatch(r"맨몸×(\d+)|좌우 합쳐 (\d+)회", text)
-                if match:
-                    reps = int(match[1] or match[2])
-                else:
-                    complex_sets += 1
+            parsed = parse_set_text(text)
+            weight, reps, label = parsed or (None, None, None)
+            if parsed is None:
+                complex_sets += 1
             rir = float(row[8]) if row[8] is not None and re.fullmatch(r"\d+(?:\.\d+)?",str(row[8])) else None
             note = memo(headers,row,f"웨이트 기록 {i}행 / 세트{col}")
-            if weight is None or reps is None:
+            if parsed is None:
                 note += "\n중량×횟수를 단일 값으로 확정하지 않아 볼륨 합계에서 제외. 원문: " + text
-            if "우/좌" in text:
-                note += f"\n횟수는 원문 {reps}회(각 측) 그대로 보존; 좌우 합계로 배수 계산하지 않음."
+            elif label and label not in text:
+                note += "\n원문: " + text + " (" + label + ")"
             add("workout_sets", f"s_{i}_{col}", workout_external_id=parent["external_id"], exercise=exercise,
                 set_number=col, weight=weight, reps=reps, completed=True, rir=rir, memo=note)
     for title, key, start in [("러닝 기록","run",4),("일일 운동 기록","daily",2)]:
@@ -236,9 +271,14 @@ def convert_book(book, archive: dict, *, merge_legacy_daily: bool = True) -> tup
             if row[0] is None: continue
             if not isinstance(row[0],datetime): raise ValueError(f"{title} {i}행 날짜 확인 필요")
             day=row[0].date().isoformat(); note=memo(headers,row,f"{title} {i}행")
-            if merge_legacy_daily and key=="daily" and (day,"등") in groups:
-                groups[(day,"등")]["memo"] += "\n" + note
-                continue
+            if merge_legacy_daily and key=="daily":
+                # The daily log summarizes a session the weight or running sheet already has: keep it as that
+                # session's memo instead of a second, empty workout.
+                same_day=[w for w in rows["workouts"] if w["workout_date"]==day and not w["external_id"].startswith(prefix+"_daily_")]
+                target=daily_target([(w["title"],w) for w in same_day], str(row[1]))
+                if target is not None:
+                    target["memo"] += "\n\n" + note
+                    continue
             values={"workout_date":day,"title":("걷기" if row[1]=="걷기" else "러닝 · "+str(row[1])) if key=="run" else str(row[1]),"memo":note}
             time_range = re.search(r"(\d{2}:\d{2})~(\d{2}:\d{2})", str(row[2]))
             if key=="daily" and time_range:
