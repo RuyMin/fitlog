@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -511,8 +511,15 @@ def migrate_v10(engine: Engine) -> None:
         c.exec_driver_sql("PRAGMA user_version=10")
 
 
+def migrate_v11(engine: Engine) -> None:
+    """Muscles for a user's own exercise (a JSON list); existing exercises start with none."""
+    with engine.begin() as c:
+        c.exec_driver_sql("ALTER TABLE exercises ADD COLUMN muscles JSON")
+        c.exec_driver_sql("PRAGMA user_version=11")
+
+
 STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8,
-                                              9: migrate_v9, 10: migrate_v10}
+                                              9: migrate_v9, 10: migrate_v10, 11: migrate_v11}
 
 
 def finish_migration(engine: Engine) -> None:

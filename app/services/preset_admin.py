@@ -20,10 +20,8 @@ KINDS = {"compound": "복합", "isolation": "고립", "cardio": "유산소"}
 def options() -> dict:
     """What a preset may be set to: the shipped list's parts, equipment, tracking types and muscles."""
     base = exercise_presets.base()
-    # Every muscle the anatomy figure knows from the shipped list, grip variants included.
-    muscles = sorted({muscle for preset in base["presets"]
-                      for muscle in [*preset["muscles"], *(m for variant in preset.get("variants", []) for m in variant.get("muscles", []))]})
-    return {"parts": base["parts"], "equipment": base["equipment"], "tracking": base["tracking"], "kinds": KINDS, "muscles": muscles}
+    return {"parts": base["parts"], "equipment": base["equipment"], "tracking": base["tracking"], "kinds": KINDS,
+            "muscles": exercise_presets.muscle_names()}
 
 
 def definition(values: dict) -> dict:

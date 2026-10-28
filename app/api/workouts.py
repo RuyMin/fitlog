@@ -32,6 +32,12 @@ def exercise_cleanup(db: DB, user: CurrentUser) -> list[dict]:
     return service.cleanup_suggestions(db, user.id)
 
 
+@router.get("/exercise-muscles")
+def exercise_muscles(db: DB, user: CurrentUser) -> list[dict]:
+    """My own exercises with no muscle figure, each with muscles suggested from the closest built-in one."""
+    return service.muscle_suggestions(db, user.id)
+
+
 @router.post("/exercises/{exercise_id}/merge")
 def merge_exercise(exercise_id: int, data: MergeInput, db: DB, user: CurrentUser) -> dict:
     target, moved = service.merge_exercise(db, user.id, exercise_id, data.preset_id, data.variant)

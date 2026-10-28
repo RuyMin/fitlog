@@ -3,7 +3,7 @@
 // the preset picker (search + body part / equipment tags) and an exercise sheet with the muscle figure.
 const $ = (selector) => document.querySelector(selector);
 const state = {variants: {}, workouts: [], exercises: [], presets: [], catalog: null, current: null, route: 0,
-  editWorkout: null, editExercise: null, picker: {workout: null, part: "전체", gear: "전체", picked: new Map()},
+  editWorkout: null, editExercise: null, exerciseMuscles: [], picker: {workout: null, part: "전체", gear: "전체", picked: new Map()},
   calendar: {month: null, day: null, months: new Map(), stale: false}};
 const pageSize = 20;
 const SVG_CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
@@ -358,7 +358,7 @@ function exerciseBlock(workout, sets) {
   const picked = preset?.variants ? pickedVariant(workout, exercise.id, sets) : null;
   const block = node("article", null, "ex-block" + (config.cardio ? " cardio" : ""));
   const title = button("", () => openInfo(exercise), "ex-title");
-  title.append(thumb(variantOf(preset, picked)?.muscles || preset?.muscles, exercise.name));
+  title.append(thumb(variantOf(preset, picked)?.muscles || preset?.muscles || exercise.muscles, exercise.name));
   const text = node("span", null, "ex-text");
   const last = prev.length ? (config.cardio ? " · 지난번 " + (cardioSummary(prev) || "기록 있음") : " · 지난번 " + setText(prev[0], tracking) + " × " + prev.length) : "";
   text.append(node("strong", exercise.name), node("span", describe(exercise) + last));
@@ -642,7 +642,7 @@ const squash = (text) => text.replace(/\s+/g, "").toLowerCase();
 function candidates() {
   const custom = state.exercises.filter((exercise) => !exercise.preset_id).map((exercise) => ({
     key: "e" + exercise.id, exercise, name: exercise.name, names: [exercise.name], part: exercise.body_part, gear: exercise.category,
-    tags: [exercise.body_part, exercise.category].filter(Boolean), muscles: [], meta: describe(exercise) + " · 내 종목"}));
+    tags: [exercise.body_part, exercise.category].filter(Boolean), muscles: exercise.muscles || [], meta: describe(exercise) + " · 내 종목"}));
   // A preset the admin hid stays only for people who already use it.
   const presets = state.presets.filter((preset) => !preset.hidden || state.exercises.some((exercise) => exercise.preset_id === preset.id)).map((preset) => ({
     key: "p" + preset.id, preset, exercise: state.exercises.find((exercise) => exercise.preset_id === preset.id) || null,
@@ -743,12 +743,14 @@ function showTab(muscle) {
 function openInfo(exercise, item = null) {
   const preset = item?.preset || presetOf(exercise);
   $("#info-title").textContent = exercise.name || preset?.name;
-  $("#info-sub").textContent = preset ? [preset.name_en, ...preset.aliases].join(" · ") : "내 종목 · 프리셋과 연결되지 않아 근육 그림이 없어요";
+  const own = preset ? null : exercise.muscles || [];
+  $("#info-sub").textContent = preset ? [preset.name_en, ...preset.aliases].join(" · ") : own.length ? "내 종목" : "내 종목 · 근육을 고르지 않아 근육 그림이 없어요";
   const tracking = TRACKING[preset?.tracking] ? preset.tracking : "weight_reps";
   $("#info-tracking").textContent = "기록 방식 · " + (state.catalog?.tracking?.[tracking] || "중량 × 횟수");
   const tags = $("#info-tags"); tags.replaceChildren();
-  for (const tag of preset ? preset.tags : [exercise.body_part, exercise.category].filter(Boolean)) tags.append(node("span", tag, "tag"));
-  $("#info-muscle").replaceChildren(preset ? FitAnatomy.figure(preset.muscles) : node("p", "근육 정보가 없어요.", "empty-state"));
+  for (const tag of preset ? preset.tags : [exercise.body_part, ...own, exercise.category].filter(Boolean)) tags.append(node("span", tag, "tag"));
+  $("#info-muscle").replaceChildren(preset ? FitAnatomy.figure(preset.muscles)
+    : own.length ? FitAnatomy.figure(own) : node("p", "근육 정보가 없어요. 내 종목 관리에서 근육을 고를 수 있어요.", "empty-state"));
   // Variants: switch the figure between the default and each grip / foot position / stance.
   const variants = $("#info-variants"); variants.replaceChildren(); variants.hidden = !preset?.variants;
   if (preset?.variants) {
@@ -805,19 +807,39 @@ function openWorkout(workout = null) {
   $("#workout-dialog").showModal();
 }
 function resetExercise() {
-  state.editExercise = null; fill($("#exercise-form"), {});
-  $("#exercise-form-title").textContent = "새 종목";
+  editExercise(null);
+}
+// Every muscle the built-in list names (grip variants too): what a user's own exercise may be tagged with.
+const muscleNames = () => [...new Set(state.presets.flatMap((preset) => [...preset.muscles, ...(preset.variants || []).flatMap((item) => item.muscles || [])]))].sort();
+function renderMusclePick() {
+  const picked = state.exerciseMuscles;
+  $("#exercise-muscles").replaceChildren(...muscleNames().map((muscle) => {
+    const at = picked.indexOf(muscle);
+    const chip = button(at === 0 ? "주 · " + muscle : muscle, () => {
+      if (at >= 0) picked.splice(at, 1); else picked.push(muscle);
+      renderMusclePick();
+    }, "chip" + (at >= 0 ? " on" : ""));
+    chip.setAttribute("aria-pressed", String(at >= 0));
+    return chip;
+  }));
+}
+// Muscles are picked only for exercises without a preset; a preset brings its own figure.
+function editExercise(exercise, muscles = exercise?.muscles) {
+  state.editExercise = exercise?.id ?? null; fill($("#exercise-form"), exercise || {});
+  $("#exercise-form-title").textContent = exercise ? "종목 수정" : "새 종목";
+  state.exerciseMuscles = [...(muscles || [])];
+  $("#exercise-muscles-field").hidden = Boolean(exercise?.preset_id);
+  renderMusclePick();
 }
 function renderExercises() {
   const list = $("#exercise-list"); list.replaceChildren();
   if (!state.exercises.length) list.append(node("p", "등록된 종목이 없습니다.", "empty-state"));
   for (const exercise of state.exercises) {
     const item = node("div", null, "exercise-item");
-    item.append(node("h3", exercise.name), node("p", describe(exercise) + (exercise.preset_id ? " · 프리셋 연결됨" : ""), "muted"));
+    item.append(node("h3", exercise.name), node("p", describe(exercise) + (exercise.preset_id ? " · 프리셋 연결됨" : exercise.muscles?.length ? " · " + exercise.muscles.join(", ") : " · 근육 없음"), "muted"));
     const actions = node("div", null, "row-actions");
     actions.append(button("수정", () => {
-      state.editExercise = exercise.id; fill($("#exercise-form"), exercise);
-      $("#exercise-form-title").textContent = "종목 수정";
+      editExercise(exercise);
       $("#exercise-form").elements.name.focus();
     }), button("삭제", async (control) => {
       if (!confirm(exercise.name + " 종목을 삭제할까요?")) return;
@@ -855,6 +877,39 @@ async function renderCleanup() {
     await after(items.length + "개 종목을 합쳤어요. 옮긴 기록 " + moved + "세트.");
   });
 }
+// My own exercises with nothing to draw, with muscles suggested from the closest built-in one.
+async function renderMuscleFix() {
+  const items = await api("/exercise-muscles");
+  $("#muscle-fix").hidden = !items.length;
+  const list = $("#muscle-fix-list"); list.replaceChildren();
+  const save = (item, muscles) => {
+    const exercise = state.exercises.find((entry) => entry.id === item.exercise_id);
+    return api("/exercises/" + item.exercise_id, "PUT", {name: exercise.name, category: exercise.category, body_part: exercise.body_part, preset_id: null, muscles});
+  };
+  const run = (control, action) => mutate(control, () => action().catch((error) => { $("#muscle-fix-message").textContent = error.message; }));
+  const after = async (text) => { await loadExercises(); renderExercises(); await renderMuscleFix(); $("#muscle-fix-message").textContent = text; };
+  for (const item of items) {
+    const row = node("div", null, "cleanup-item");
+    const text = node("p");
+    text.append(node("strong", item.name), node("span", (item.like ? "추천: " + item.muscles.join(", ") + " · 비슷한 종목 " + item.like : "비슷한 기본 종목이 없어요") + " · 기록 " + item.sets + "세트", "muted"));
+    row.append(text);
+    if (item.like) row.append(button("추천대로", (control) => run(control, async () => {
+      await save(item, item.muscles); await after(item.name + "에 근육 정보를 넣었어요.");
+    }), "small"));
+    row.append(button("고르기", () => {
+      editExercise(state.exercises.find((entry) => entry.id === item.exercise_id), item.muscles);
+      $("#exercise-form").scrollIntoView({block: "start"});
+    }, "small"));
+    list.append(row);
+  }
+  const suggested = items.filter((item) => item.like);
+  $("#muscle-fix-all").hidden = !suggested.length;
+  $("#muscle-fix-all").onclick = (event) => run(event.currentTarget, async () => {
+    if (!confirm(suggested.length + "개 종목에 추천 근육을 넣을까요? 나중에 '수정'에서 바꿀 수 있어요.")) return;
+    for (const item of suggested) await save(item, item.muscles);
+    await after(suggested.length + "개 종목에 근육 정보를 넣었어요.");
+  });
+}
 $("#workout-form").addEventListener("submit", (event) => {
   event.preventDefault(); const form = event.currentTarget;
   submitForm(form, async () => {
@@ -871,9 +926,10 @@ $("#exercise-form").addEventListener("submit", (event) => {
   submitForm(form, async () => {
     const current = state.exercises.find((exercise) => exercise.id === state.editExercise);
     await api("/exercises" + (state.editExercise ? "/" + state.editExercise : ""), state.editExercise ? "PUT" : "POST", {
-      name: form.elements.name.value, category: textValue(form, "category"), body_part: textValue(form, "body_part"), preset_id: current?.preset_id ?? null
+      name: form.elements.name.value, category: textValue(form, "category"), body_part: textValue(form, "body_part"), preset_id: current?.preset_id ?? null,
+      muscles: current?.preset_id ? null : state.exerciseMuscles
     });
-    resetExercise(); await loadExercises(); renderExercises();
+    resetExercise(); await loadExercises(); renderExercises(); renderMuscleFix().catch(() => {});
   });
 });
 $("#picker-query").addEventListener("input", renderPicker);
@@ -891,7 +947,8 @@ document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener(
 }));
 $("#exercise-dialog").addEventListener("close", () => showRoute());
 $("#manage-exercises").addEventListener("click", async () => {
-  try { await loadExercises(); resetExercise(); renderExercises(); $("#cleanup-message").textContent = ""; $("#exercise-dialog").showModal(); renderCleanup().catch((error) => notice(error.message, true)); }
+  try { await loadExercises(); resetExercise(); renderExercises(); $("#cleanup-message").textContent = ""; $("#muscle-fix-message").textContent = ""; $("#exercise-dialog").showModal();
+    renderCleanup().catch((error) => notice(error.message, true)); renderMuscleFix().catch((error) => notice(error.message, true)); }
   catch (error) { notice(error.message, true); }
 });
 $("#reset-exercise").addEventListener("click", resetExercise);

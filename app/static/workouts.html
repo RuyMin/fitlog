@@ -96,9 +96,17 @@
 <div class="dialog-actions"><button type="button" id="cleanup-all" class="primary">모두 합치기</button></div>
 <p id="cleanup-message" role="status" aria-live="polite"></p>
 </section>
+<section id="muscle-fix" class="cleanup" aria-labelledby="muscle-fix-heading" hidden>
+<h3 id="muscle-fix-heading">근육 정보가 없는 내 종목</h3>
+<p class="hint">기본 목록에 없는 종목이라 근육 그림이 비어 있어요. 이름이 비슷한 기본 종목의 근육을 추천해 드려요. '고르기'로 직접 정할 수도 있어요.</p>
+<div id="muscle-fix-list"></div>
+<div class="dialog-actions"><button type="button" id="muscle-fix-all" class="primary">추천대로 모두 채우기</button></div>
+<p id="muscle-fix-message" role="status" aria-live="polite"></p>
+</section>
 <form id="exercise-form"><h3 id="exercise-form-title">새 종목</h3>
 <label>종목명 *<input name="name" maxlength="200" placeholder="예: 케이블 Y 레이즈" required></label>
 <div class="form-grid"><label>장비<input name="category" maxlength="100" placeholder="예: 케이블"></label><label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 어깨"></label></div>
+<fieldset id="exercise-muscles-field" class="muscle-pick"><legend>주로 쓰는 근육 · 처음 고른 것이 주 근육</legend><div class="chips chips-small" id="exercise-muscles"></div></fieldset>
 <p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="reset-exercise">새 종목으로 전환</button><button type="submit" class="primary">저장</button></div>
 </form><p class="hint">기록된 세트에서 사용하는 종목은 삭제할 수 없습니다. 프리셋과 연결된 종목은 이름을 바꿔도 근육 그림이 유지됩니다.</p>
 <div id="exercise-list"></div>

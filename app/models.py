@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     LargeBinary, Boolean, CheckConstraint, Date, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer,
-    String, Text, UniqueConstraint,
+    JSON, String, Text, UniqueConstraint,
 )
 from sqlalchemy import text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -255,6 +255,8 @@ class Exercise(Owned, Base):
     category: Mapped[str | None] = mapped_column(String(100))
     body_part: Mapped[str | None] = mapped_column(String(100))
     preset_id: Mapped[str | None] = mapped_column(String(64))
+    # Muscles the user picked for an exercise not linked to a preset (schema v11); a preset brings its own.
+    muscles: Mapped[list[str] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
 

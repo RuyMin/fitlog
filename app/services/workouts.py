@@ -74,6 +74,21 @@ def cleanup_suggestions(session: Session, user_id: int) -> list[dict]:
     return found
 
 
+def muscle_suggestions(session: Session, user_id: int) -> list[dict]:
+    """The user's own exercises with no muscles to draw: not linked to a preset, none picked, and not one the
+    cleanup above would merge. Each carries the muscles of the closest preset by name, when there is one."""
+    counts = dict(session.execute(select(WorkoutSet.exercise_id, func.count()).where(WorkoutSet.user_id == user_id)
+                                  .group_by(WorkoutSet.exercise_id)).all())
+    found = []
+    for exercise in session.scalars(select(Exercise).where(Exercise.user_id == user_id, Exercise.preset_id.is_(None)).order_by(Exercise.name)):
+        if exercise.muscles or exercise_presets.split_variant(exercise.name) is not None:
+            continue
+        preset = exercise_presets.similar(exercise.name)
+        found.append({"exercise_id": exercise.id, "name": exercise.name, "sets": counts.get(exercise.id, 0),
+                      "muscles": preset["muscles"] if preset else [], "like": preset and preset["name"]})
+    return found
+
+
 def merge_exercise(session: Session, user_id: int, exercise_id: int, preset_id: str, variant: str | None) -> tuple[Exercise, int]:
     """Move a duplicate exercise's sets onto the user's exercise for `preset_id` (made when missing), mark
     them with `variant` where they had none, then delete the duplicate. Returns (target, sets moved)."""
@@ -92,7 +107,7 @@ def merge_exercise(session: Session, user_id: int, exercise_id: int, preset_id: 
         if target is None:
             target = Exercise(user_id=user_id, name=preset["name"])
             session.add(target)
-        target.preset_id = preset_id
+        target.preset_id, target.muscles = preset_id, None
         target.body_part = target.body_part or preset["body_part"]
         target.category = target.category or preset["equipment"]
         session.flush()
