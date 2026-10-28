@@ -187,11 +187,23 @@ async function loadRecent() {
 
 // The record sheet opens from the ＋ menu item (/#record), the quick-record bar and the photo button.
 const sheet = $home("record-sheet");
-function openSheet() { if (!sheet.open) sheet.showModal(); }
+function openSheet() {
+  if (!sheet.open) sheet.showModal();
+  window.FitQuick?.hints().then((hints) => {
+    for (const [kind, text] of Object.entries(hints)) { const line = sheet.querySelector('[data-hint="' + kind + '"]'); if (line) line.textContent = text; }
+  }).catch(() => {});
+}
+// Meal, weight and sleep open a quick sheet in place; saving refreshes today's numbers.
+sheet.querySelectorAll("[data-quick]").forEach((tile) => tile.addEventListener("click", () => {
+  sheet.close();
+  window.FitQuick.open(tile.dataset.quick, {onSaved: () => window.fitlogOnSync?.()}).catch(() => {});
+}));
+// The meal sheet's camera button hands over to the AI photo flow here.
+window.fitlogPhotoRecord = () => { openSheet(); if (!$home("assistant-form").hidden) $home("assistant-photo-input").click(); };
 sheet.addEventListener("close", () => { if (location.hash === "#record") history.replaceState(null, "", location.pathname + location.search); });
 sheet.addEventListener("click", (event) => { if (event.target === sheet) sheet.close(); });
 $home("sheet-close").addEventListener("click", () => sheet.close());
-$home("quick-photo").addEventListener("click", () => { openSheet(); if (!$home("assistant-form").hidden) $home("assistant-photo-input").click(); });
+$home("quick-photo").addEventListener("click", () => window.fitlogPhotoRecord());
 window.addEventListener("hashchange", () => { if (location.hash === "#record") openSheet(); });
 if (location.hash === "#record") openSheet();
 

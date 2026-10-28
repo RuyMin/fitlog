@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17191b" media="(prefers-color-scheme: dark)"><title>FitLog · 체중 · 체성분</title>
+<link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/quick.css?v=20261023.2"><link rel="stylesheet" href="/static/css/records.css?v=20261023.2">
+<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/quick.js?v=20261023.2" defer></script><script src="/static/js/body-metrics.js?v=20261023.2" defer></script>
+</head><body>
+<a class="skip" href="#main">본문으로 이동</a>
+<aside class="sidebar">
+<a class="brand" href="/" aria-label="FitLog 홈"><span class="brand-mark">F<span>·</span></span> FitLog</a>
+<p class="brand-caption">나를 알아가는 작은 기록</p>
+<nav class="navigation" aria-label="주 메뉴">
+<a href="/" data-nav="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>홈</span></a>
+<a href="/workouts" data-nav="/workouts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>운동</span></a>
+<a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>기록하기</span></a>
+<a href="/meals" data-nav="/meals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg><span>식단</span></a>
+<a href="/body" data-nav="/body /body-metrics /sleep /statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
+<a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
+</nav>
+<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+</aside>
+<main id="main" class="rec-page">
+<header class="rec-head"><a href="/body" class="rec-back" aria-label="몸·추이로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1>체중 · 체성분</h1><span id="server-status" class="status" role="status" hidden>서버 확인 중</span><button type="button" id="rec-add" class="rec-add">+ 기록</button></header>
+<p id="notice" role="status" aria-live="polite"></p>
+<section class="rec-card" aria-label="변화">
+<div class="rec-periods" role="group" aria-label="기간"><button type="button" data-days="30" aria-pressed="false">1개월</button><button type="button" data-days="90" aria-pressed="true">3개월</button><button type="button" data-days="365" aria-pressed="false">1년</button></div>
+<div id="bm-charts" class="bm-charts"></div>
+</section>
+<section class="rec-list" aria-labelledby="bm-list-title">
+<h2 id="bm-list-title" class="visually-hidden">기록</h2>
+<div class="bm-row bm-header" aria-hidden="true"><span></span><span>체중 kg</span><span>골격근 kg</span><span>체지방 %</span></div>
+<div id="bm-rows"></div>
+<p class="rec-hint">기록을 누르면 고치거나 지울 수 있어요</p>
+</section>
+<p id="pwa-note" class="muted pwa-note" role="status"></p>
+<noscript>체중 기록에는 JavaScript와 서버 연결이 필요합니다.</noscript>
+</main>
+</body></html>

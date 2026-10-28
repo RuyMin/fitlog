@@ -105,9 +105,11 @@
 .sheet-close{width:44px;height:44px;border:0;background:none;color:var(--ink);display:grid;place-items:center;cursor:pointer}
 .sheet-close svg,.excel-link svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .sheet-subtitle{font-size:14px;font-weight:700;color:var(--muted)}
-.direct-entry{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.direct-entry a{background:var(--surface);border:1px solid var(--line);border-radius:18px;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600}
-.direct-entry .tile-icon{width:36px;height:36px;border-radius:12px}
+/* The four ways to record by hand: workout opens its tab, the others a quick sheet (quick.js). */
+.record-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.record-tile{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:116px;padding:16px;border-radius:22px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-sizing:border-box}
+.record-tile .tile-icon{width:40px;height:40px;border-radius:13px}.record-tile .tile-icon svg{width:20px;height:20px}
+.record-tile strong{font-size:16px}.record-tile span:last-child{font-size:12px;color:var(--muted)}
 .excel-link{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--soft);min-height:48px}
 .excel-link>span{display:flex;flex-direction:column;font-size:13px;line-height:1.4}
 @media(min-width:760px){
