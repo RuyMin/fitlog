@@ -3606,7 +3606,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance",
+   "tracking": "run",
    "aliases": [
     "달리기",
     "조깅",
@@ -3650,7 +3650,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance",
+   "tracking": "run",
    "aliases": [
     "산책",
     "워킹"
@@ -3672,7 +3672,7 @@
    ],
    "equipment": "맨몸",
    "kind": "cardio",
-   "tracking": "distance",
+   "tracking": "run",
    "aliases": [
     "하이킹",
     "트레킹"
@@ -3859,6 +3859,7 @@
   "weight_time": "세트마다 중량 · 시간",
   "treadmill": "시간 · 속도 · 경사",
   "distance": "거리 · 시간 (페이스 계산)",
+  "run": "거리 · 시간 · 심박 · 케이던스 · 걸음 · 상승고도",
   "cardio_machine": "시간 · 레벨 · 거리(선택)",
   "rope": "시간 · 횟수"
  }

@@ -18,7 +18,7 @@ from app.assistant_schemas import WorkoutDraft
 from app.database import SessionLocal
 from app.models import ExcelPreview, ImportArchive, Exercise, Workout, WorkoutSet, utc_now
 from app.schemas import BodyMetricInput, MealInput, SleepInput
-from app.services import accounts, assistant, claude_import
+from app.services import accounts, assistant, claude_import, workouts as workout_service
 from app.services.claude_records import AssistantError
 from app.services.legacy_xlsx import build_plan, load_cells
 from app.services.sync_service import MODELS, parse_tables, SyncError
@@ -28,7 +28,8 @@ from app.sync_schemas import COLUMNS
 TTL = timedelta(hours=1)
 LABELS = {"workouts": "운동", "workout_sets": "세트", "meals": "식단", "body_metrics": "신체", "sleep": "수면"}
 AI_ROW_LIMIT = 800
-CARDIO_FIELDS = ("duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate")
+CARDIO_FIELDS = ("duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate",
+                 "max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds")
 AI_MESSAGES = {
     "no_key": "운영자가 공용 AI 키를 아직 등록하지 않았습니다. 설정에서 등록해 주세요.",
     "key_unreadable": "서버 비밀키가 바뀌어 저장된 AI 키를 읽을 수 없습니다. 운영자가 키를 다시 등록해야 합니다.",
@@ -362,9 +363,7 @@ def commit_preview(user_id: int, token: str, selected: list[str]) -> dict:
                 values=dict(e["incoming"])
                 if e["kind"] == "workout_sets":
                     exercise_name=values.pop("exercise")
-                    exercise=session.scalar(select(Exercise).where(Exercise.user_id==user_id,Exercise.name==exercise_name))
-                    if exercise is None:
-                        exercise=Exercise(user_id=user_id,name=exercise_name);session.add(exercise);session.flush()
+                    exercise=workout_service.exercise_named(session,user_id,exercise_name)
                     values.update(workout_id=ids[e["parent"]],exercise_id=exercise.id)
                 for name,value in values.items():
                     if value is not None and name == "workout_date": value=date.fromisoformat(value)

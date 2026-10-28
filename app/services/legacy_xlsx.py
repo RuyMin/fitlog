@@ -27,6 +27,55 @@ def cell_value(value):
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
+def seconds_of(value) -> int | None:
+    """A duration cell: "43:03", "0:43:03", "43분 3초", a time-of-day cell, a fraction of a day, or minutes."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return round(value * 86400) if 0 < value < 1 else round(value * 60)
+    text = str(value).strip()
+    text = text.split("T")[-1]  # a time cell exported as 1899-12-30T00:43:03
+    if re.fullmatch(r"\d+(?::\d{1,2}){1,2}(?:\.\d+)?", text):
+        parts = [float(x) for x in text.split(":")]
+        return round(parts[0] * 60 + parts[1]) if len(parts) == 2 else round(parts[0] * 3600 + parts[1] * 60 + parts[2])
+    match = re.fullmatch(r"(?:(\d+)\s*시간)?\s*(?:(\d+)\s*분)?\s*(?:(\d+)\s*초)?", text)
+    if match and any(match.groups()):
+        h, m, s = (int(x or 0) for x in match.groups())
+        return h * 3600 + m * 60 + s
+    return None
+
+
+def number_of(value) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(str(value).replace(",", "").strip())
+    except ValueError:
+        return None
+
+
+RUN_COLUMNS = {"평균심박": "heart_rate", "최대심박": "max_heart_rate", "평균케이던스": "cadence", "최대케이던스": "max_cadence",
+               "상승고도(m)": "elevation_gain_m", "칼로리": "calories"}
+RUN_LIMITS = {"heart_rate": (20, 250), "max_heart_rate": (20, 250), "cadence": (0, 300), "max_cadence": (0, 300),
+              "elevation_gain_m": (0, 10_000), "calories": (0, 20_000), "distance_m": (0, 1_000_000), "duration_seconds": (0, 86400)}
+
+
+def run_set(fields: dict) -> dict:
+    """Set values for one 러닝 기록 row, keyed by its headers. A value that does not read as a number in range
+    is left out (the workout memo still has the original)."""
+    values = {"distance_m": (lambda km: km and round(km * 1000))(number_of(fields.get("거리(km)"))),
+              "duration_seconds": seconds_of(fields.get("운동시간"))}
+    for header, name in RUN_COLUMNS.items():
+        values[name] = number_of(fields.get(header))
+    for name, value in list(values.items()):
+        low, high = RUN_LIMITS[name]
+        if value is None or not low <= value <= high:
+            values.pop(name)
+        elif name != "elevation_gain_m" and name != "calories":
+            values[name] = round(value)
+    return values
+
+
 def guard_and_open(original: bytes):
     """ZIP/XML-bounded, formula-free open of an untrusted XLSX. The caller must close the book.
 
@@ -194,7 +243,11 @@ def convert_book(book, archive: dict, *, merge_legacy_daily: bool = True) -> tup
             time_range = re.search(r"(\d{2}:\d{2})~(\d{2}:\d{2})", str(row[2]))
             if key=="daily" and time_range:
                 values.update(started_at=day+"T"+time_range[1]+":00+09:00",ended_at=day+"T"+time_range[2]+":00+09:00")
-            add("workouts",f"{key}_{i}",**values)
+            workout=add("workouts",f"{key}_{i}",**values)
+            details=run_set(dict(zip(headers,row))) if key=="run" else {}
+            if details:
+                add("workout_sets",f"run_set_{i}",workout_external_id=workout["external_id"],exercise="걷기" if row[1]=="걷기" else "러닝",
+                    set_number=1,completed=True,memo=None,**details)
     sheet=book["식사 기록"]; headers=list(next(sheet.iter_rows(min_row=3,max_row=3,values_only=True)))
     for i,row in enumerate(sheet.iter_rows(min_row=4,values_only=True),4):
         if row[0] is None: continue
@@ -216,7 +269,7 @@ def convert_book(book, archive: dict, *, merge_legacy_daily: bool = True) -> tup
         else: note+="\n측정 시각 미상: 날짜 정렬을 위해 00:00 Asia/Seoul로 저장. 실제 시각을 뜻하지 않음."
         add("body_metrics",f"body_{i}",measured_at=at.isoformat(),weight=row[1],skeletal_muscle=row[2],body_fat=row[3],memo=note)
     notes=["루틴·대시보드·입력 예시는 실제 수행 기록으로 집계하지 않고 원본으로 보존합니다.",
-           "러닝 상세, 추가 영양소, RIR 범위, 인바디 추가 수치는 기록 메모와 원본에서 확인할 수 있습니다.",
+           "러닝은 거리·시간·심박·케이던스·상승고도·칼로리를 기록으로 옮기고, 페이스·VO2max·RPE와 추가 영양소, RIR 범위, 인바디 추가 수치는 기록 메모와 원본에서 확인할 수 있습니다.",
            "복합 세트와 중량 미상 세트는 임의의 중량×횟수를 만들지 않습니다. 어시스트 중량과 편측 횟수는 원문 그대로입니다.",
            "측정 시각이 없는 인바디는 정렬을 위한 00:00으로 저장하며 메모에 표시합니다. 수면 시트가 없어 수면 기록은 생성하지 않습니다."]
     report={"counts":{k:len(v) for k,v in rows.items()},"strength_rows":strength_rows,"complex_sets":complex_sets,
