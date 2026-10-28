@@ -103,12 +103,25 @@
 <div class="dialog-actions"><button type="button" id="muscle-fix-all" class="primary">추천대로 모두 채우기</button></div>
 <p id="muscle-fix-message" role="status" aria-live="polite"></p>
 </section>
-<form id="exercise-form"><h3 id="exercise-form-title">새 종목</h3>
-<label>종목명 *<input name="name" maxlength="200" placeholder="예: 케이블 Y 레이즈" required></label>
-<div class="form-grid"><label>장비<input name="category" maxlength="100" placeholder="예: 케이블"></label><label>운동 부위<input name="body_part" maxlength="100" placeholder="예: 어깨"></label></div>
-<fieldset id="exercise-muscles-field" class="muscle-pick"><legend>주로 쓰는 근육 · 처음 고른 것이 주 근육</legend><div class="chips chips-small" id="exercise-muscles"></div></fieldset>
-<p class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="reset-exercise">새 종목으로 전환</button><button type="submit" class="primary">저장</button></div>
-</form><p class="hint">기록된 세트에서 사용하는 종목은 삭제할 수 없습니다. 프리셋과 연결된 종목은 이름을 바꿔도 근육 그림이 유지됩니다.</p>
+<div class="ex-tools"><input id="exercise-query" type="search" placeholder="내 종목 찾기" aria-label="내 종목 찾기"><button type="button" id="exercise-new" class="primary">+ 새 종목</button></div>
 <div id="exercise-list"></div>
+<p class="hint">종목을 누르면 고칠 수 있어요. 고치거나 지워도 다른 사용자에게는 영향이 없어요.</p>
 </dialog>
+<dialog id="exercise-editor" aria-labelledby="exercise-form-title">
+<form id="exercise-form" novalidate>
+<div class="section-heading"><h2 id="exercise-form-title">새 종목</h2><button type="button" data-close>닫기</button></div>
+<label>종목명 *<input name="name" maxlength="200" placeholder="예: 케이블 Y 레이즈" required></label>
+<p id="exercise-linked" class="hint" hidden></p>
+<div id="exercise-linked-figure" hidden></div>
+<div id="exercise-own">
+<p class="field-label">장비</p><div class="chips chips-small" id="exercise-gear"></div>
+<p class="field-label">기록 방식</p><div class="chips chips-small" id="exercise-tracking"></div>
+<p class="field-label">주로 쓰는 근육</p><div id="exercise-muscles"></div>
+<p class="field-label">운동 부위 <span id="exercise-part-note" class="muted"></span></p><div class="chips chips-small" id="exercise-part"></div>
+</div>
+<p class="form-error" role="alert"></p>
+<div class="dialog-actions"><button type="button" id="exercise-delete" class="danger">삭제</button><button type="submit" class="primary">저장</button></div>
+</form>
+</dialog>
+
 </body></html>

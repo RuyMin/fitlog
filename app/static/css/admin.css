@@ -15,7 +15,7 @@
 .preset-actions button{min-height:36px;padding:0 8px;border:0;background:none;color:var(--accent);font-size:13px;font-weight:600}
 .preset-actions button.danger{color:var(--danger)}
 #preset-dialog form{display:flex;flex-direction:column;gap:10px}
-.muscle-pick{border:0;padding:0;margin:0}.muscle-pick legend{font-size:13px;color:var(--muted);margin-bottom:6px}
-.muscle-pick .chips{display:flex;flex-wrap:wrap;gap:6px}
-.muscle-pick button.chip{min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:16px;font-size:12px;background:var(--surface);color:var(--ink)}
-.muscle-pick button.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+#preset-dialog .field-label{margin:4px 0 -4px}
+#preset-dialog .chips{display:flex;flex-wrap:wrap;gap:6px}
+#preset-dialog button.chip{min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:16px;font-size:12px;background:var(--surface);color:var(--ink)}
+#preset-dialog button.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}

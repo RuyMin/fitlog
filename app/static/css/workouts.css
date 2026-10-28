@@ -31,5 +31,9 @@ dialog::backdrop{background:#07180fb3}dialog h2{font-size:22px;margin-bottom:16p
 .cleanup h3{margin:0 0 4px;font-size:15px}
 .cleanup-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
 .cleanup-item p{display:flex;flex-direction:column;flex:1;min-width:0;margin:0;overflow-wrap:anywhere}.cleanup-item span{font-size:12px}
-.muscle-pick{border:0;padding:0;margin:4px 0 0}.muscle-pick legend{font-size:13px;color:var(--muted);margin-bottom:6px;padding:0}
-.muscle-pick .chips{max-height:180px;overflow:auto}
+/* 내 종목 관리: list of rows that open the editor */
+.ex-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:4px 0 8px}.ex-tools input{margin:0}
+dialog button.exercise-row{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:10px 0;text-align:left;color:var(--ink);min-height:0}
+dialog button.exercise-row>svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--muted);stroke-width:2}
+.field-label{margin:14px 0 6px;font-size:13px;color:var(--muted)}
+#exercise-form .muscle-picker{margin-top:2px}

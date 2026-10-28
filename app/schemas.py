@@ -31,6 +31,7 @@ class ExerciseInput(InputModel):
     preset_id: Annotated[str, Field(max_length=64)] | None = None
     # Only for exercises without a preset; the first one is drawn as the main muscle.
     muscles: Annotated[list[str], Field(max_length=8)] | None = None
+    tracking: Annotated[str, Field(max_length=20)] | None = None
 
     @model_validator(mode="after")
     def known_preset(self) -> Self:
@@ -41,6 +42,10 @@ class ExerciseInput(InputModel):
             if unknown:
                 raise ValueError("알 수 없는 근육입니다: " + ", ".join(sorted(unknown)))
             self.muscles = list(dict.fromkeys(self.muscles)) if self.muscles and self.preset_id is None else None
+        if self.tracking is not None:
+            if self.tracking not in exercise_presets.base()["tracking"]:
+                raise ValueError("알 수 없는 기록 방식입니다.")
+            self.tracking = None if self.preset_id is not None else self.tracking
         return self
 
 

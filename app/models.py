@@ -257,6 +257,8 @@ class Exercise(Owned, Base):
     preset_id: Mapped[str | None] = mapped_column(String(64))
     # Muscles the user picked for an exercise not linked to a preset (schema v11); a preset brings its own.
     muscles: Mapped[list[str] | None] = mapped_column(JSON)
+    # How an exercise without a preset is recorded (schema v13; the list's tracking ids). None: weight × reps.
+    tracking: Mapped[str | None] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
 

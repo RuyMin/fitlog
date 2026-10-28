@@ -4,7 +4,8 @@
   const $ = (id) => document.getElementById(id);
   const node = (tag, text, className) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (className) n.className = className; return n; };
   const form = $("preset-form");
-  const state = {presets: [], options: null, editing: null, muscles: new Set()};
+  // The open form's choices: chips for the lists, the figure for muscles (FitAnatomy.picker).
+  const state = {presets: [], options: null, editing: null, choice: {}, partPicked: false, muscles: null};
   const normalize = (text) => text.replace(/\s+/g, "").toLowerCase();
 
   async function call(method, path = "", body) {
@@ -79,36 +80,39 @@
     return item;
   }
 
-  function options(select, entries) {
-    select.replaceChildren(...entries.map(([value, label]) => new Option(label, value)));
-  }
-  function renderMuscles() {
-    const box = $("preset-muscles"); box.replaceChildren();
-    for (const muscle of state.options.muscles) {
-      const on = state.muscles.has(muscle);
-      const chip = node("button", muscle, "chip" + (on ? " on" : "")); chip.type = "button";
+  function chips(id, entries, key, after) {
+    $(id).replaceChildren(...entries.map(([value, label]) => {
+      const on = state.choice[key] === value;
+      const chip = node("button", label, "chip" + (on ? " on" : "")); chip.type = "button";
       chip.setAttribute("aria-pressed", String(on));
-      chip.addEventListener("click", () => { if (on) state.muscles.delete(muscle); else state.muscles.add(muscle); renderMuscles(); });
-      box.append(chip);
-    }
+      chip.addEventListener("click", () => { state.choice[key] = value; if (after) after(); renderChoices(); });
+      return chip;
+    }));
+  }
+  function renderChoices() {
+    const o = state.options;
+    chips("preset-equipment", o.equipment.map((gear) => [gear, gear]), "equipment");
+    chips("preset-kind", Object.entries(o.kinds), "kind");
+    chips("preset-tracking", Object.entries(o.tracking), "tracking");
+    chips("preset-part", o.parts.map((part) => [part, part]), "body_part", () => { state.partPicked = true; });
+    $("preset-part-note").textContent = state.partPicked ? "" : "· 주 근육에서 자동으로 정해요";
   }
   function open(preset = null) {
     const o = state.options;
     state.editing = preset;
-    options(form.elements.body_part, o.parts.map((part) => [part, part]));
-    options(form.elements.equipment, o.equipment.map((gear) => [gear, gear]));
-    options(form.elements.kind, Object.entries(o.kinds));
-    options(form.elements.tracking, Object.entries(o.tracking));
     $("preset-form-title").textContent = preset ? "종목 수정" : "새 종목";
     form.elements.name.value = preset?.name || "";
     form.elements.name_en.value = preset?.name_en || "";
     form.elements.aliases.value = (preset?.aliases || []).join(", ");
-    form.elements.body_part.value = preset?.body_part || o.parts[0];
-    form.elements.equipment.value = preset?.equipment || o.equipment[0];
-    form.elements.kind.value = preset?.kind || "compound";
-    form.elements.tracking.value = preset?.tracking || "weight_reps";
-    state.muscles = new Set(preset?.muscles || []);
-    renderMuscles();
+    state.choice = {equipment: preset?.equipment || o.equipment[0], kind: preset?.kind || "compound",
+      tracking: preset?.tracking || "weight_reps", body_part: preset?.body_part || o.parts[0]};
+    state.partPicked = Boolean(preset);
+    state.muscles = FitAnatomy.picker(preset?.muscles || [], {names: o.muscles, onChange: (picked) => {
+      const part = FitAnatomy.partOf(picked);
+      if (!state.partPicked && part) { state.choice.body_part = part; renderChoices(); }
+    }});
+    $("preset-muscles").replaceChildren(state.muscles.root);
+    renderChoices();
     $("preset-variants").textContent = preset?.variants?.length
       ? "그립·자세 선택 " + preset.variants.length + "가지(" + preset.variants.map((variant) => variant.label).join(", ") + ")는 그대로 유지돼요." : "";
     form.querySelector(".form-error").textContent = "";
@@ -122,8 +126,7 @@
     const error = form.querySelector(".form-error"); error.textContent = "";
     const body = {name: form.elements.name.value.trim(), name_en: form.elements.name_en.value.trim(),
       aliases: form.elements.aliases.value.split(/[,，]/).map((alias) => alias.trim()).filter(Boolean),
-      body_part: form.elements.body_part.value, equipment: form.elements.equipment.value, kind: form.elements.kind.value,
-      tracking: form.elements.tracking.value, muscles: [...state.muscles]};
+      ...state.choice, muscles: state.muscles.get()};
     try {
       if (!body.name) throw new Error("이름을 적어 주세요.");
       if (!body.muscles.length) throw new Error("주로 쓰는 근육을 하나 이상 골라 주세요.");

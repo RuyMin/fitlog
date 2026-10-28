@@ -30,9 +30,11 @@ class PresetMuscleTests(unittest.TestCase):
         self.assertEqual(named - drawn, set(), "artwork keys the sprite does not have")
         used = {m for p in PRESETS["presets"] for m in [*p["muscles"], *(x for v in p.get("variants", []) for x in v.get("muscles", []))]}
         self.assertEqual(used - tags - UNDRAWN, set(), "muscle tags without a figure mapping")
-        for name in ["대흉근 상부", "대흉근 하부", "삼두근 장두", "이두근 단두", "상완요골근", "대퇴직근", "극하근", "전경골근", "목",
-                     "능형근", "척추기립근", "전거근", "상완근", "가자미근", "비복근"]:
-            self.assertIn(name, used, "every finer tag is used by some preset, so admins and users can pick it")
+        # The list the server accepts is exactly what the figure can draw (plus 심폐), so a tap is always valid.
+        self.assertEqual(set(PRESETS["muscles"]), tags | UNDRAWN)
+        self.assertEqual(used - set(PRESETS["muscles"]), set())
+        broad = set(re.findall(r'"([^"]+)"', script[script.index("const BROAD"):script.index("const PARTS")]))
+        self.assertEqual(broad - tags, set(), "the figure's default tags are all known")
 
     def test_similar_names(self) -> None:
         cases = {"해머 스트렝스 인클라인 프레스": "인클라인 바벨 벤치프레스", "머신 랫풀다운 원암": "랫풀다운",
@@ -81,8 +83,17 @@ class OwnExerciseMuscleTests(unittest.TestCase):
     def test_unknown_muscles_and_presets(self) -> None:
         self.assertEqual(self.client.post("/api/exercises", json={"name": "날개 운동", "muscles": ["날개"]}).status_code, 422)
         # A preset brings its own muscles.
-        linked = self.exercise("랫풀다운", preset_id="lat_pulldown", muscles=["둔근"])
-        self.assertIsNone(linked["muscles"])
+        linked = self.exercise("랫풀다운", preset_id="lat_pulldown", muscles=["둔근"], tracking="run")
+        self.assertEqual((linked["muscles"], linked["tracking"]), (None, None))
+        # Tags only the figure uses (no preset has them) are accepted too.
+        self.assertEqual(self.exercise("싱글 레그 컬", muscles=["햄스트링 안쪽"])["muscles"], ["햄스트링 안쪽"])
+
+    def test_own_exercises_choose_how_they_are_recorded(self) -> None:
+        rope = self.exercise("이중 뛰기", tracking="rope", muscles=["종아리"])
+        self.assertEqual(rope["tracking"], "rope")
+        self.assertEqual(self.client.post("/api/exercises", json={"name": "날기", "tracking": "flying"}).status_code, 422)
+        again = self.client.put(f"/api/exercises/{rope['id']}", json={"name": "이중 뛰기"}).json()
+        self.assertIsNone(again["tracking"], "no tracking means weight × reps")
 
 
 if __name__ == "__main__":
