@@ -305,3 +305,10 @@ class DashboardResponse(BaseModel):
     main_sleep_end: UTCDateTime | None
     week: list[WeekDay]
     weights: list[WeightPoint]
+    has_records: bool
+
+
+class TrackingInput(BaseModel):
+    """첫 실행 '무엇을 기록할까요?': the kinds the home summary shows, at least one."""
+    model_config = ConfigDict(extra="forbid")
+    tracking: Annotated[list[Literal["work", "meal", "body", "sleep"]], Field(min_length=1, max_length=4)]

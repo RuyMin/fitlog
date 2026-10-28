@@ -64,6 +64,37 @@
 .recent-text strong{font-size:14px;overflow-wrap:anywhere}.recent-text span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
 .recent-item svg{flex:none;width:18px;height:18px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}
 
+/* Kinds the account does not record (and the pieces of the first-day home) leave the layout. */
+.home [hidden]{display:none!important}
+
+/* First day: the 첫 기록 남기기 checklist, a sentence box with example chips, and dashed empty tiles. */
+.first-day{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px 6px}
+.first-day-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.first-day-count{font-family:var(--font-num);font-size:20px;font-weight:700;color:var(--accent)}
+.first-steps{list-style:none;margin:0;padding:0}
+.first-steps li+li{border-top:1px solid var(--line)}
+.first-steps a{display:flex;align-items:center;gap:14px;min-height:60px}
+.step-mark{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:transparent}
+.step-mark svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.step-text{flex:1;display:flex;flex-direction:column;line-height:1.45;min-width:0}
+.step-text strong{font-size:15px}.step-text span{font-size:13px;color:var(--muted)}
+.step-go{flex:none;width:18px;height:18px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.first-steps .done .step-mark{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.first-steps .done strong{font-weight:400;color:var(--muted);text-decoration:line-through}
+.first-steps .done .step-text span,.first-steps .done .step-go{display:none}
+
+.first-form{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px}
+.first-input{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 4px 0 16px;border-radius:26px;background:var(--bg)}
+.first-input input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--ink);font:inherit;font-size:16px}
+.first-input:focus-within{box-shadow:0 0 0 2px var(--accent)}
+.first-input button{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;cursor:pointer}
+.first-input svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.first-hint{font-size:13px;color:var(--muted)}
+.first-chips{display:flex;flex-wrap:wrap;gap:8px}
+.first-chips button{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:14px;cursor:pointer}
+.tiles.is-empty .tile{background:transparent;border:1.5px dashed var(--line)}
+.tiles.is-empty .tile-value b{color:var(--muted)}
+
 /* The record sheet rises from the bottom on phones and sits centred on wide screens. */
 .record-sheet{width:100%;max-width:560px;max-height:92dvh;margin:auto auto 0;padding:0;border:0;border-radius:28px 28px 0 0;background:var(--bg);color:var(--ink)}
 .record-sheet::backdrop{background:rgba(10,12,12,.55)}

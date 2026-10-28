@@ -163,6 +163,11 @@ def statistics_page() -> HTMLResponse:
     return page("statistics.html")
 
 
+@app.get("/welcome", include_in_schema=False)
+def welcome_page() -> HTMLResponse:
+    return page("welcome.html")
+
+
 @app.get("/workouts", include_in_schema=False)
 def workouts_page() -> HTMLResponse:
     return page("workouts.html")
