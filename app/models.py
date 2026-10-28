@@ -235,6 +235,8 @@ class Workout(Owned, SyncFields, Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     memo: Mapped[str | None] = mapped_column(Text)
+    # The routine this session was started from (schema v15), so the next one in the rotation can be offered.
+    routine_id: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
     # Joined on id only: services set user_id and the composite FK enforces it.
@@ -265,6 +267,24 @@ class Exercise(Owned, Base):
     # How an exercise without a preset is recorded (schema v13; the list's tracking ids). None: weight × reps.
     tracking: Mapped[str | None] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
+
+
+class Routine(Owned, Base):
+    """A saved session plan (schema v15): exercises in order with how many sets each. Routines rotate in
+    `position` order; the workouts page offers the one after the last routine done."""
+    __tablename__ = "routines"
+    __table_args__ = (
+        CheckConstraint("length(trim(name)) > 0", name="ck_routine_name"),
+        Index("ix_routines_user", "user_id", "position"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    # [{"exercise_id": 3, "sets": 4}, …]; exercises are the user's own (checked when saved).
+    items: Mapped[list[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
 
 
 class WorkoutSet(Owned, SyncFields, Base):

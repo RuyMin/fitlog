@@ -204,3 +204,28 @@ dialog button.menu-close{min-height:48px;border:0;background:none;color:var(--mu
 .finish-drop{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}.finish-drop input{width:auto;margin:0}
 .finish-drop[hidden]{display:none}
 .finish button.primary{min-height:56px;border-radius:28px;font-size:17px}
+
+/* Routines: the one whose turn it is on the start card, the list and the editor. */
+.start-card h2 em{font-style:normal;color:var(--accent)}
+.start-plan{font-size:13px;color:var(--muted);line-height:1.5}
+.start-others{display:flex;flex-wrap:wrap;gap:6px}
+main .start-others button.chip{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px;font-weight:700}
+main .start-others button.chip.ghost{background:none;color:var(--muted)}
+main button.start-hint{align-self:flex-start;text-align:left;padding:0;min-height:36px}
+.routine-list{display:flex;flex-direction:column;gap:8px}
+.routine-row{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:6px 8px 6px 14px}
+dialog button.routine-open{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:0;background:none;padding:6px 0;text-align:left;min-height:52px}
+.routine-open strong{font-size:15px}.routine-open span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+dialog button.routine-move,dialog button.step{flex:none;width:36px;min-height:36px;padding:0;border:0;border-radius:18px;background:var(--soft);color:var(--ink);font-weight:700}
+dialog button.routine-move:disabled,dialog button.step:disabled{opacity:.35}
+.routine-items{display:flex;flex-direction:column;gap:6px}
+.routine-item{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:6px 8px 6px 14px}
+.routine-item-name{flex:1;min-width:0;font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.routine-sets{min-width:44px;text-align:center;font-size:14px;font-weight:600}
+dialog button.step.remove{background:none;color:var(--muted);font-size:18px}
+dialog button.dashed{min-height:48px;border:1.5px dashed var(--line);background:none;border-radius:16px;color:var(--accent);font-weight:700}
+.routine-buttons{display:flex;gap:8px}.routine-buttons .primary{flex:1}
+.routine-buttons [hidden]{display:none}
+#routine-dialog .hint{font-size:12px;color:var(--muted);margin:0}
+#finish-save-row[hidden]{display:none}
+main button.menu-button{padding:0;width:44px;height:44px;min-height:44px;display:grid;place-items:center}

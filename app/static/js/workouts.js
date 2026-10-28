@@ -4,9 +4,9 @@
 // month's sessions, each opening to its exercises. Also the preset picker and an exercise sheet with the muscle figure.
 const $ = (selector) => document.querySelector(selector);
 const state = {variants: {}, workouts: [], exercises: [], presets: [], catalog: null, current: null, route: 0,
-  editWorkout: null, picker: {workout: null, start: false, part: "전체", gear: "전체", picked: new Map()},
-  calendar: {month: null, day: null, months: new Map(), stale: false, expanded: false},
-  focus: null, rest: {timer: null, until: 0}, finish: null};
+  editWorkout: null, picker: {workout: null, mode: null, part: "전체", gear: "전체", picked: new Map()},
+  calendar: {month: null, day: null, picked: false, months: new Map(), stale: false, expanded: false},
+  focus: null, rest: {timer: null, until: 0}, finish: null, routines: [], routineEdit: null};
 const DEFAULT_TITLE = "오늘 운동";
 const REST_SECONDS = 90;
 const pageSize = 20;
@@ -532,17 +532,34 @@ function renderToday(today) {
   root.className = "today-start";
   const start = node("section", null, "start-card");
   const now = new Date();
-  start.append(node("p", (now.getMonth() + 1) + "월 " + now.getDate() + "일 · 이번 주 " + weekCount() + "회", "start-sub"),
-    node("h2", "오늘은 무엇을 할까요?"));
-  const go = button("", (control) => mutate(control, () => openPicker(null, true)), "primary start-button");
-  go.innerHTML = SVG_PLAY + "<span>종목 골라서 시작</span>";
-  start.append(go);
+  start.append(node("p", (now.getMonth() + 1) + "월 " + now.getDate() + "일 · 이번 주 " + weekCount() + "회", "start-sub"));
+  const next = nextRoutine();
+  if (next) {
+    // With routines: the next one in the rotation, ready to start; the others one tap away.
+    const title = node("h2");
+    title.append("오늘은 ", node("em", next.name), " 할 차례예요");
+    start.append(title, node("p", routineSummary(next), "start-plan"));
+    const go = button("", (control) => mutate(control, () => startRoutine(next)), "primary start-button");
+    go.innerHTML = SVG_PLAY;
+    go.append(node("span", next.name + " 시작"));
+    start.append(go);
+    const others = state.routines.filter((item) => item !== next);
+    const row = node("div", null, "start-others");
+    for (const routine of others) row.append(button(routine.name, (control) => mutate(control, () => startRoutine(routine)), "chip"));
+    row.append(button("직접 고르기", (control) => mutate(control, () => openPicker(null, "start")), "chip ghost"));
+    start.append(row);
+  } else {
+    start.append(node("h2", "오늘은 무엇을 할까요?"));
+    const go = button("", (control) => mutate(control, () => openPicker(null, "start")), "primary start-button");
+    go.innerHTML = SVG_PLAY + "<span>종목 골라서 시작</span>";
+    start.append(go, button("자주 하는 구성을 루틴으로 저장해 두면 순서대로 알려 드려요 ›", () => openRoutines(), "link-button start-hint"));
+  }
   const parts = [start];
   const routines = recentRoutines();
   if (routines.length) {
     const box = node("section", null, "routines");
     const heading = node("div", null, "routines-head");
-    heading.append(node("h2", "최근 루틴 다시 하기"), node("span", "지난번 무게로 채워져요"));
+    heading.append(node("h2", "최근 운동 다시 하기"), node("span", "지난번 무게로 채워져요"));
     box.append(heading);
     for (const workout of routines) {
       const row = node("div", null, "routine");
@@ -596,7 +613,7 @@ function pastItem(workout) {
     body.append(line);
   }
   const actions = node("div", null, "past-actions");
-  if (workout.sets.length) actions.append(button(workout.workout_date === localDate() ? "오늘 운동에 더하기" : "오늘 다시 하기", (control) => mutate(control, () => repeat(workout)), "primary"));
+  if (workout.sets.length && workout.workout_date !== localDate()) actions.append(button("오늘 다시 하기", (control) => mutate(control, () => repeat(workout)), "primary"));
   const edit = node("a", "수정", "past-edit"); edit.href = "/workouts#" + workout.id;
   actions.append(edit);
   body.append(actions);
@@ -624,6 +641,108 @@ async function repeat(source) {
   if (location.hash) location.hash = ""; else { renderCurrent(); renderCalendar(); }
   window.scrollTo({top: 0, behavior: "smooth"});
 }
+// ---- routines -------------------------------------------------------------------------------------
+async function loadRoutines() {
+  state.routines = await api("/routines");
+  window.fitlogCache.set("routines", state.routines);
+}
+const exerciseById = (id) => state.exercises.find((item) => item.id === id);
+// The routine after the last one done before today, in list order; the first when none was done yet.
+function nextRoutine() {
+  const routines = state.routines;
+  if (!routines.length) return null;
+  const last = state.workouts.find((item) => item.workout_date < localDate() && routines.some((routine) => routine.id === item.routine_id));
+  if (!last) return routines[0];
+  return routines[(routines.findIndex((routine) => routine.id === last.routine_id) + 1) % routines.length];
+}
+function routineSummary(routine) {
+  return routine.items.map((item) => (exerciseById(item.exercise_id)?.name || "종목") + " " + item.sets).join(" · ");
+}
+// Today's workout from a routine: each exercise with its set count, filled from its last session.
+async function startRoutine(routine) {
+  if (!state.exercises.length) await loadExercises();
+  let today = todayWorkout();
+  if (!today) {
+    today = await api("/workouts", "POST", {workout_date: localDate(), title: routine.name, routine_id: routine.id, started_at: new Date().toISOString()});
+    state.workouts.unshift(today);
+  }
+  const additions = [];
+  for (const item of routine.items) {
+    const prev = previousSets(item.exercise_id, today);
+    const taken = Math.max(0, ...today.sets.filter((set) => set.exercise_id === item.exercise_id).map((set) => set.set_number));
+    for (let index = 0; index < item.sets; index++) {
+      const source = prev[index] || prev.at(-1);
+      additions.push(source ? setPayload(source, {set_number: taken + index + 1, completed: false, memo: null, ...OUTCOMES})
+        : {exercise_id: item.exercise_id, set_number: taken + index + 1, weight: null, reps: null, completed: false, memo: null});
+    }
+  }
+  state.focus = routine.items[0]?.exercise_id ?? null;
+  Object.assign(today, await api("/workouts/" + today.id + "/sets/batch", "POST", additions));
+  notice("‘" + routine.name + "’ 루틴을 시작했어요. 지난번 무게로 채웠어요.");
+  showView("today");
+  renderCurrent(); renderCalendar();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+async function openRoutines() {
+  try {
+    $("#menu-dialog").close();
+    await Promise.all([loadExercises(), loadRoutines()]);
+    renderRoutines();
+    $("#routine-dialog").showModal();
+  } catch (error) { notice(error.message, true); }
+}
+function renderRoutines() {
+  const list = $("#routine-list");
+  $("#routine-message").textContent = "";
+  if (!state.routines.length) { list.replaceChildren(node("p", "아직 루틴이 없어요. 운동을 끝낼 때 '이 구성을 루틴으로 저장'으로도 만들 수 있어요.", "empty-state")); return; }
+  list.replaceChildren(...state.routines.map((routine, index) => {
+    const row = node("div", null, "routine-row");
+    const open = button("", () => openRoutineEditor(routine), "routine-open");
+    open.append(node("strong", (index + 1) + ". " + routine.name), node("span", routineSummary(routine)));
+    const move = (by) => mutate(null, async () => {
+      const ids = state.routines.map((item) => item.id);
+      [ids[index], ids[index + by]] = [ids[index + by], ids[index]];
+      state.routines = await api("/routines/order", "PUT", {ids});
+      renderRoutines(); renderCurrent();
+    });
+    const up = button("↑", () => move(-1), "routine-move"); up.disabled = index === 0; up.setAttribute("aria-label", routine.name + " 위로");
+    const down = button("↓", () => move(1), "routine-move"); down.disabled = index === state.routines.length - 1; down.setAttribute("aria-label", routine.name + " 아래로");
+    row.append(open, up, down);
+    return row;
+  }));
+}
+function openRoutineEditor(routine = null) {
+  state.routineEdit = {id: routine?.id ?? null, items: routine ? routine.items.map((item) => ({...item})) : []};
+  const form = $("#routine-form");
+  fill(form, {name: routine?.name || ""});
+  $("#routine-editor-title").textContent = routine ? "루틴 고치기" : "새 루틴";
+  $("#routine-delete").hidden = !routine;
+  renderRoutineEditor();
+  $("#routine-editor").showModal();
+}
+function renderRoutineEditor() {
+  const edit = state.routineEdit, box = $("#routine-items");
+  if (!edit.items.length) { box.replaceChildren(node("p", "아래 '+ 종목 넣기'로 종목을 골라 주세요.", "empty-state")); return; }
+  box.replaceChildren(...edit.items.map((item, index) => {
+    const row = node("div", null, "routine-item");
+    row.append(node("span", exerciseById(item.exercise_id)?.name || "종목", "routine-item-name"));
+    const step = (by) => { item.sets = Math.min(20, Math.max(1, item.sets + by)); renderRoutineEditor(); };
+    const less = button("−", () => step(-1), "step"); less.setAttribute("aria-label", "세트 줄이기");
+    const more = button("+", () => step(1), "step"); more.setAttribute("aria-label", "세트 늘리기");
+    const up = button("↑", () => { [edit.items[index - 1], edit.items[index]] = [edit.items[index], edit.items[index - 1]]; renderRoutineEditor(); }, "step");
+    up.disabled = index === 0; up.setAttribute("aria-label", "위로");
+    const remove = button("×", () => { edit.items.splice(index, 1); renderRoutineEditor(); }, "step remove"); remove.setAttribute("aria-label", "빼기");
+    row.append(less, node("span", item.sets + "세트", "routine-sets num"), more, up, remove);
+    return row;
+  }));
+}
+// A finished session's done sets as a routine: its exercises in order, each with how many sets were done.
+function routineFrom(workout, name) {
+  const items = [...exerciseGroups(workout).values()].map((sets) => ({exercise_id: sets[0].exercise_id, sets: Math.min(20, sets.filter((set) => set.completed).length)}))
+    .filter((item) => item.sets > 0);
+  return {name: name.slice(0, 100), items};
+}
+
 function showList(items) {
   state.workouts = items;
   renderToday(todayWorkout());
@@ -638,8 +757,7 @@ function showView(view) {
 }
 
 // ---- calendar -----------------------------------------------------------------------------------
-// A month grid (folded to the two weeks around the picked day or today) over the month's sessions; tapping a
-// day narrows the list to that day, tapping it again shows the whole month.
+// A month grid (folded to the two weeks around the picked day) and the picked day's sessions below it.
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const monthOf = (day) => day.slice(0, 7);
 function shiftMonth(month, by) {
@@ -656,7 +774,11 @@ function renderCalendar() {
   const calendar = state.calendar, today = localDate();
   calendar.month ??= monthOf(today);
   const month = calendar.month, items = monthWorkouts(month);
-  if (calendar.day && monthOf(calendar.day) !== month) calendar.day = null;
+  // Until a day is tapped (calendar.picked): today when there was a session today, else the month's latest session day.
+  if (!calendar.picked || monthOf(calendar.day || "") !== month) {
+    calendar.picked = false;
+    calendar.day = items.find((item) => item.workout_date <= today)?.workout_date || (month === monthOf(today) ? today : month + "-01");
+  }
   const [year, index] = month.split("-").map(Number);
   $("#cal-title").textContent = (year === Number(today.slice(0, 4)) ? "" : year + "년 ") + index + "월";
   $("#cal-next").disabled = month >= monthOf(today);
@@ -667,7 +789,7 @@ function renderCalendar() {
   const cells = Array.from({length: (first.getDay() + 6) % 7}, () => node("span", null, "cal-blank"));
   for (let date = 1; date <= length; date++) {
     const day = month + "-" + String(date).padStart(2, "0"), count = counts.get(day) || 0;
-    const cell = button(String(date), () => { calendar.day = calendar.day === day ? null : day; renderCalendar(); },
+    const cell = button(String(date), () => { calendar.day = day; calendar.picked = true; renderCalendar(); },
       "cal-date" + (count ? " on" : "") + (day === today ? " today" : "") + (day > today ? " future" : ""));
     cell.setAttribute("aria-pressed", String(day === calendar.day));
     cell.setAttribute("aria-label", index + "월 " + date + "일" + (day === today ? " 오늘" : "") + (count ? ", 운동 " + count + "회" : ""));
@@ -680,18 +802,18 @@ function renderCalendar() {
   $("#cal-grid").replaceChildren(...shown);
   $("#cal-expand").textContent = calendar.expanded ? "달력 접기" : "달력 펼치기";
   $("#cal-expand").setAttribute("aria-expanded", String(calendar.expanded));
-  const picked = calendar.day ? items.filter((item) => item.workout_date === calendar.day) : items;
+  const picked = items.filter((item) => item.workout_date === calendar.day);
   const panel = $("#cal-day");
-  panel.replaceChildren();
-  if (calendar.day) {
-    const date = new Date(calendar.day + "T12:00:00");
-    const head = node("p", null, "cal-day-head");
-    head.append(node("strong", (date.getMonth() + 1) + "월 " + date.getDate() + "일 " + WEEKDAYS[date.getDay()] + "요일"),
-      button("한 달 전체 보기", () => { calendar.day = null; renderCalendar(); }, "link-button"));
-    panel.append(head);
+  const date = new Date(calendar.day + "T12:00:00");
+  const head = node("p", null, "cal-day-head");
+  head.append(node("strong", (date.getMonth() + 1) + "월 " + date.getDate() + "일 " + WEEKDAYS[date.getDay()] + "요일"),
+    node("span", picked.length ? "운동 " + picked.length + "회" : ""));
+  panel.replaceChildren(head);
+  if (picked.length) {
+    const list = node("div", null, "past-list"); list.append(...picked.map(pastItem)); panel.append(list);
+    if (picked.length === 1) list.firstChild.open = true;
   }
-  if (picked.length) { const list = node("div", null, "past-list"); list.append(...picked.map(pastItem)); panel.append(list); }
-  else panel.append(node("p", calendar.day > today ? "아직 오지 않은 날이에요." : !state.calendar.months.has(month) ? "기록을 불러오는 중…" : calendar.day ? "이 날은 운동 기록이 없어요." : "이 달은 운동 기록이 없어요.", "empty-state"));
+  else panel.append(node("p", calendar.day > today ? "아직 오지 않은 날이에요." : !state.calendar.months.has(month) ? "기록을 불러오는 중…" : "이 날은 운동 기록이 없어요.", "empty-state"));
   // A saved copy is read-only (다시 하기 writes) until the month's current copy is in.
   panel.inert = calendar.stale;
 }
@@ -741,6 +863,9 @@ async function showRoute() {
     if (!hash) {
       state.calendar.month ??= monthOf(localDate());
       loadMonth(state.calendar.month).catch((error) => { if (route === state.route) notice(error.message, true); });
+      // Routines: this phone's copy at once, then the server's (they only change the start card).
+      state.routines = window.fitlogCache.get("routines") || state.routines;
+      loadRoutines().then(() => { if (route === state.route && !todayWorkout()) renderToday(null); }).catch(() => {});
       await window.fitlogShow(window.fitlogData.workouts, (items, stale) => {
         if (route !== state.route) return;
         showList(items);
@@ -781,7 +906,7 @@ function candidates() {
   return [...custom, ...presets];
 }
 function renderPicker() {
-  const picker = state.picker, browse = !picker.workout && !picker.start; // browse: look exercises up without adding them
+  const picker = state.picker, browse = !picker.workout && !picker.mode; // browse: look exercises up without adding them
   const query = squash($("#picker-query").value);
   const chips = (root, values, current, pick) => {
     root.replaceChildren(...values.map((value) => {
@@ -824,15 +949,17 @@ function renderPicker() {
   $("#picker-custom").textContent = "‘" + typed + "’ 내 종목으로 만들기" + (picker.part !== "전체" ? " · " + picker.part : "") + (!["전체", "기구"].includes(picker.gear) ? " · " + picker.gear : "");
   $("#picker-selected").textContent = picker.picked.size + "개 선택";
   $("#picker-add").disabled = !picker.picked.size;
-  $("#picker-add").textContent = picker.start ? (picker.picked.size ? picker.picked.size + "개로 시작" : "종목을 골라 주세요") : "종목 추가";
+  $("#picker-add").textContent = picker.mode === "start" ? (picker.picked.size ? picker.picked.size + "개로 시작" : "종목을 골라 주세요")
+    : picker.mode === "routine" ? "루틴에 넣기" : "종목 추가";
 }
-// workout: add to it; start: today's workout is made when the picked exercises are added; neither: just browse.
-async function openPicker(workout = null, start = false) {
+// workout: add to it. mode "start": today's workout is made when the picked exercises are added; "routine": they
+// go into the routine being edited. Neither: just browse.
+async function openPicker(workout = null, mode = null) {
   try {
     await Promise.all([loadCatalog(), loadExercises()]);
-    Object.assign(state.picker, {workout, start, picked: new Map()});
-    $("#picker-title").textContent = start ? "종목 고르기" : workout ? "종목 추가" : "종목 둘러보기";
-    $("#picker-foot").hidden = !workout && !start;
+    Object.assign(state.picker, {workout, mode, picked: new Map()});
+    $("#picker-title").textContent = mode === "start" ? "종목 고르기" : mode === "routine" ? "루틴에 넣을 종목" : workout ? "종목 추가" : "종목 둘러보기";
+    $("#picker-foot").hidden = !workout && !mode;
     $("#picker-query").value = "";
     renderPicker();
     $("#picker-dialog").showModal();
@@ -855,6 +982,16 @@ async function addPicked(items) {
   const additions = [];
   // New exercises are created side by side; then one request adds all the sets.
   const exercises = await Promise.all(items.map(ensureExercise));
+  if (state.picker.mode === "routine") {
+    const edit = state.routineEdit;
+    for (const exercise of exercises) {
+      if (edit.items.some((item) => item.exercise_id === exercise.id)) continue;
+      edit.items.push({exercise_id: exercise.id, sets: previousSets(exercise.id, {id: 0, workout_date: "9999-12-31"}).length || 3});
+    }
+    $("#picker-dialog").close();
+    renderRoutineEditor();
+    return;
+  }
   if (!workout) {
     workout = await api("/workouts", "POST", {workout_date: localDate(), title: DEFAULT_TITLE, started_at: new Date().toISOString()});
     state.workouts.unshift(workout);
@@ -933,6 +1070,8 @@ function openFinish(workout) {
   form.elements.drop.checked = true;
   $("#finish-drop-row").hidden = !left || !done.length;
   $("#finish-drop-text").textContent = "체크하지 않은 세트 " + left + "개는 지우기";
+  form.elements.save_routine.checked = false;
+  $("#finish-save-row").hidden = workout.routine_id != null || !done.length;
   $("#finish-dialog").showModal();
 }
 
@@ -1177,6 +1316,29 @@ $("#exercise-delete").addEventListener("click", () => submitForm($("#exercise-fo
 }));
 $("#browse-exercises").addEventListener("click", () => { $("#menu-dialog").close(); openPicker(); });
 $("#menu-button").addEventListener("click", () => $("#menu-dialog").showModal());
+$("#manage-routines").addEventListener("click", () => openRoutines());
+$("#routine-new").addEventListener("click", () => openRoutineEditor());
+$("#routine-add").addEventListener("click", () => openPicker(null, "routine"));
+$("#routine-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget, edit = state.routineEdit;
+  submitForm(form, async () => {
+    if (!edit.items.length) throw new Error("종목을 하나 이상 넣어 주세요.");
+    const saved = await api("/routines" + (edit.id ? "/" + edit.id : ""), edit.id ? "PUT" : "POST", {name: form.elements.name.value.trim(), items: edit.items});
+    const index = state.routines.findIndex((item) => item.id === saved.id);
+    if (index >= 0) state.routines[index] = saved; else state.routines.push(saved);
+    $("#routine-editor").close();
+    renderRoutines(); renderCurrent();
+  });
+});
+$("#routine-delete").addEventListener("click", () => submitForm($("#routine-form"), async () => {
+  const edit = state.routineEdit;
+  if (!confirm("이 루틴을 삭제할까요? 지난 운동 기록은 그대로 남아요.")) return;
+  await api("/routines/" + edit.id, "DELETE");
+  state.routines = state.routines.filter((item) => item.id !== edit.id);
+  $("#routine-editor").close();
+  renderRoutines(); renderCurrent();
+}));
 $("#tab-today").addEventListener("click", () => showView("today"));
 $("#tab-history").addEventListener("click", () => showView("history"));
 $("#cal-expand").addEventListener("click", () => { state.calendar.expanded = !state.calendar.expanded; renderCalendar(); });
@@ -1194,6 +1356,11 @@ $("#finish-form").addEventListener("submit", (event) => {
     }
     const body = {workout_date: workout.workout_date, title: form.elements.title.value.trim(), body_part: workout.body_part,
       memo: textValue(form, "memo"), started_at: workout.started_at, ended_at: new Date().toISOString()};
+    if (form.elements.save_routine.checked && !$("#finish-save-row").hidden) {
+      const routine = await api("/routines", "POST", routineFrom(workout, body.title));
+      state.routines.push(routine);
+      body.routine_id = routine.id;
+    }
     await api("/workouts/" + workout.id, "PUT", body);
     Object.assign(workout, body);
     $("#finish-dialog").close();
