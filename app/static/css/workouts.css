@@ -31,3 +31,5 @@ dialog::backdrop{background:#07180fb3}dialog h2{font-size:22px;margin-bottom:16p
 .cleanup h3{margin:0 0 4px;font-size:15px}
 .cleanup-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
 .cleanup-item p{display:flex;flex-direction:column;flex:1;min-width:0;margin:0;overflow-wrap:anywhere}.cleanup-item span{font-size:12px}
+.muscle-pick{border:0;padding:0;margin:4px 0 0}.muscle-pick legend{font-size:13px;color:var(--muted);margin-bottom:6px;padding:0}
+.muscle-pick .chips{max-height:180px;overflow:auto}

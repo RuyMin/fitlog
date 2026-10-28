@@ -52,7 +52,8 @@ window.FitAnatomy = (() => {
   // muscles: the preset's muscle tags, first one primary. view: "both" | "auto" (one side, for thumbnails).
   function figure(muscles, {view = "both", captions = view === "both"} = {}) {
     load().catch(() => {});
-    const [primary = null, ...secondary] = muscles;
+    // Some tags have no artwork (척추기립근, 심폐): the first one that does is drawn as primary.
+    const [primary = null, ...secondary] = muscles.filter((muscle) => TAGS[muscle]?.length);
     const root = document.createElement("div");
     root.className = "anatomy";
     root.setAttribute("role", "img");

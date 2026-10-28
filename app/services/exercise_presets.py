@@ -138,3 +138,26 @@ def split_variant(name: str) -> tuple[str, str | None] | None:
             elif found[0] == best[0] and found[1:] != best[1:]:
                 best = (best[0], None, None)  # two presets fit equally well: leave it to the person
     return (best[1], best[2]) if best and best[1] else None
+
+
+def muscle_names() -> list[str]:
+    """Every muscle the shipped list names, grip variants included: what a preset or a user's own exercise
+    may be tagged with."""
+    return sorted({muscle for preset in base()["presets"]
+                   for muscle in [*preset["muscles"], *(m for variant in preset.get("variants", []) for m in variant.get("muscles", []))]})
+
+
+def similar(name: str) -> dict | None:
+    """The visible preset whose name or alias is the longest part of `name` ("해머 스트렝스 인클라인 프레스" →
+    인클라인 프레스), to suggest its muscles for a user's own exercise. None when nothing fits or two fit equally."""
+    text = fold(name)
+    best, length = None, 1
+    for preset in visible():
+        for key in {fold(preset["name"]), fold(preset["name_en"]), *map(fold, preset["aliases"])}:
+            if len(key) < length or key not in text:
+                continue
+            if len(key) > length:
+                best, length = preset, len(key)
+            elif best is not None and best["muscles"] != preset["muscles"]:
+                best = None
+    return best

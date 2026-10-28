@@ -29,11 +29,18 @@ class ExerciseInput(InputModel):
     category: ShortText | None = None
     body_part: ShortText | None = None
     preset_id: Annotated[str, Field(max_length=64)] | None = None
+    # Only for exercises without a preset; the first one is drawn as the main muscle.
+    muscles: Annotated[list[str], Field(max_length=8)] | None = None
 
     @model_validator(mode="after")
     def known_preset(self) -> Self:
         if self.preset_id is not None and self.preset_id not in exercise_presets.ids():
             raise ValueError("알 수 없는 운동 프리셋입니다.")
+        if self.muscles is not None:
+            unknown = set(self.muscles) - set(exercise_presets.muscle_names())
+            if unknown:
+                raise ValueError("알 수 없는 근육입니다: " + ", ".join(sorted(unknown)))
+            self.muscles = list(dict.fromkeys(self.muscles)) if self.muscles and self.preset_id is None else None
         return self
 
 
