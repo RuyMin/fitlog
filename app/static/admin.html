@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183f35"><title>FitLog · 관리자</title>
+<link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/settings.css?v=20261023.2"><link rel="stylesheet" href="/static/css/admin.css?v=1">
+<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/admin.js?v=1" defer></script><script src="/static/js/admin-presets.js?v=1" defer></script><script src="/static/js/invites.js?v=1" defer></script><script src="/static/js/perf-stats.js?v=1" defer></script>
+</head><body class="settings-page admin-page">
+<a class="skip" href="#main">본문으로 이동</a>
+<aside class="sidebar">
+<a class="brand" href="/" aria-label="FitLog 홈"><span class="brand-mark">F<span>·</span></span> FitLog</a>
+<p class="brand-caption">나를 알아가는 작은 기록</p>
+<nav class="navigation" aria-label="주 메뉴">
+<a href="/" data-nav="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>홈</span></a>
+<a href="/workouts" data-nav="/workouts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>운동</span></a>
+<a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>기록하기</span></a>
+<a href="/meals" data-nav="/meals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg><span>식단</span></a>
+<a href="/body" data-nav="/body /body-metrics /sleep /statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
+<a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
+</nav>
+<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+</aside>
+<main id="main">
+<header class="topbar"><span class="eyebrow">ADMIN</span><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
+<section class="page-heading"><div><a class="back-link" href="/settings">‹ 설정</a><h1>관리자</h1><p class="muted">모든 사용자에게 적용되는 설정이에요. 다른 사람의 운동·식단 기록은 여기서도 볼 수 없어요.</p></div></section>
+<p id="admin-denied" class="card" hidden>관리자 계정만 볼 수 있는 화면이에요. <a href="/settings">설정으로 돌아가기</a></p>
+<div id="admin-content" hidden>
+<nav class="admin-nav chips" aria-label="관리 항목"><a class="chip" href="#presets">기본 종목</a><a class="chip" href="#invite-card">멤버 초대</a><a class="chip" href="#ai-key-card">AI 공용 키</a><a class="chip" href="#perf-card">속도 통계</a></nav>
+<section class="card presets-card" id="presets" aria-labelledby="presets-heading">
+<div class="section-heading"><h2 id="presets-heading">기본 종목</h2><button type="button" id="preset-new" class="primary">+ 새 종목</button></div>
+<p class="muted">모든 사용자가 운동을 추가할 때 고르는 목록이에요. 바꾸면 모두에게 바로 반영되고, 이미 쓰고 있는 사용자의 종목 이름과 기록은 바뀌지 않아요. 사용자가 직접 만든 종목은 그 사람에게만 보이고 여기에는 나오지 않아요.</p>
+<div class="preset-tools"><input id="preset-query" type="search" placeholder="종목 이름으로 찾기" aria-label="종목 찾기"><select id="preset-filter" aria-label="표시"><option value="all">전체</option><option value="changed">바꾼 종목</option><option value="added">추가한 종목</option><option value="hidden">숨긴 종목</option></select></div>
+<p id="preset-count" class="hint" role="status"></p>
+<div id="preset-list" class="preset-list"></div>
+<p id="preset-message" role="status" aria-live="polite"></p>
+</section>
+<section class="card invite-card" id="invite-card" aria-labelledby="invite-heading" >
+<h2 id="invite-heading">멤버 초대</h2>
+<p class="muted">링크를 받은 사람이 Google 계정으로 가입하면 멤버가 됩니다. 멤버의 기록은 그 사람에게만 보이고, 관리자도 볼 수 없어요.</p>
+<form id="invite-form">
+<label for="invite-note">누구에게 보낼 링크인가요? (선택, 나만 보는 메모)</label><input id="invite-note" name="note" maxlength="100" autocomplete="off" placeholder="예: 민수">
+<label for="invite-days">유효 기간</label><select id="invite-days" name="days"><option value="1">1일</option><option value="3">3일</option><option value="7" selected>7일</option><option value="14">14일</option><option value="30">30일</option></select>
+<div class="settings-actions"><button class="primary" type="submit" id="invite-create">초대 링크 만들기</button></div>
+</form>
+<div id="invite-result" class="invite-result" hidden>
+<label for="invite-url">새 초대 링크</label><input id="invite-url" readonly>
+<div class="settings-actions"><button type="button" id="invite-copy">복사</button><button type="button" id="invite-share" hidden>공유</button></div>
+<p class="hint" role="note"><strong>지금만 보여요.</strong> 서버는 링크를 다시 보여 주지 않으니 바로 전달해 주세요. 한 번만 쓸 수 있고, 링크를 가진 사람은 누구든 가입할 수 있어요. 메신저 개인 대화처럼 받을 사람에게만 보내 주세요.</p>
+</div>
+<p id="invite-message" role="status" aria-live="polite"></p>
+<h3>최근 초대</h3><div id="invite-list" class="invite-list"></div>
+</section>
+<section class="card" id="ai-key-card" aria-labelledby="ai-key-heading"><h2 id="ai-key-heading">AI 공용 키</h2>
+<dl class="sync-details"><dt>등록된 키</dt><dd id="ai-key-hint">확인 중</dd></dl>
+<form id="ai-key-form"><label for="ai-key">새 키 (sk-ant-로 시작)</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sk-ant-..."><div class="settings-actions"><button class="primary" type="submit" id="ai-key-save">키 확인 후 저장</button><button type="button" id="ai-key-delete" hidden>등록한 키 삭제</button></div></form>
+<p class="hint">모든 사용자의 요청이 이 키로 호출되고, 요금은 이 키의 Anthropic 계정에 청구됩니다. 키는 서버에 암호화해 저장하며 다시 화면에 보여 주지 않습니다. 저장할 때 키가 동작하는지만 확인하며, 이때 기록 데이터는 보내지 않습니다. 새 키를 저장하면 기존 키를 대체합니다. 키는 Anthropic 콘솔(console.anthropic.com)의 API Keys 메뉴에서 만들고, 크레딧(결제) 등록이 필요합니다.</p>
+<p id="ai-message" role="status" aria-live="polite"></p></section>
+<section class="card perf-card" id="perf-card" aria-labelledby="perf-heading">
+<div class="section-heading"><h2 id="perf-heading">속도 통계</h2><div class="perf-days" role="group" aria-label="기간"><button type="button" data-days="1" aria-pressed="true">1일</button><button type="button" data-days="7" aria-pressed="false">7일</button><button type="button" data-days="14" aria-pressed="false">14일</button></div></div>
+<p class="muted">휴대폰에서 기다린 시간(체감)과 그중 서버 처리 시간을 나눠 보여 줍니다. 둘의 차이는 네트워크(Funnel) 구간이에요. 숫자는 보통(중앙값) / 느릴 때(상위 10%)이고, 기록은 14일 보관합니다.</p>
+<div id="perf-overall" class="perf-overall"></div>
+<h3>화면 열기</h3><div id="perf-pages" class="perf-table"></div>
+<h3>요청별</h3><div id="perf-routes" class="perf-table"></div>
+<h3>사용자별 기록 수</h3><div id="perf-users" class="perf-table"></div>
+<p id="perf-message" class="hint" role="status"></p></section>
+</div>
+<dialog id="preset-dialog" aria-labelledby="preset-form-title">
+<form id="preset-form" method="dialog" novalidate>
+<div class="section-heading"><h2 id="preset-form-title">종목 수정</h2><button type="button" data-close>닫기</button></div>
+<label>이름 *<input name="name" maxlength="100" required></label>
+<label>영어 이름<input name="name_en" maxlength="100"></label>
+<label>다른 이름 (쉼표로 구분, 검색·가져오기에 쓰여요)<input name="aliases" maxlength="1000" placeholder="예: 프렌치 프레스, 스컬 크러셔"></label>
+<div class="form-grid"><label>운동 부위<select name="body_part"></select></label><label>장비<select name="equipment"></select></label></div>
+<div class="form-grid"><label>종류<select name="kind"></select></label><label>기록 방식<select name="tracking"></select></label></div>
+<fieldset class="muscle-pick"><legend>주로 쓰는 근육 (근육 그림에 표시돼요)</legend><div id="preset-muscles" class="chips"></div></fieldset>
+<p id="preset-variants" class="hint"></p>
+<p class="form-error" role="alert"></p>
+<div class="dialog-actions"><button type="submit" class="primary" id="preset-save">저장</button></div>
+</form>
+</dialog>
+<noscript>관리자 화면에는 JavaScript와 서버 연결이 필요합니다.</noscript></main></body></html>

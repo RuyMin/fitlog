@@ -2,6 +2,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
@@ -12,14 +13,17 @@ from app.services import exercise_presets, workouts as service
 
 router = APIRouter(prefix="/api", tags=["workouts"])
 DB = Annotated[Session, Depends(get_session)]
+PRIVATE_IMMUTABLE = "private, max-age=31536000, immutable"
 Limit = Annotated[int, Query(ge=1, le=100)]
 Offset = Annotated[int, Query(ge=0)]
 
 
 @router.get("/exercise-presets")
-def list_exercise_presets(user: CurrentUser) -> dict:
-    """Built-in presets with their tags; the same for every user."""
-    return exercise_presets.catalog()
+def list_exercise_presets(user: CurrentUser, v: str | None = None) -> JSONResponse:
+    """Built-in presets with the admin's changes; the same for every user. The workouts page links it as
+    ?v=<catalog version>, and that exact address is kept by the phone until the list changes."""
+    fresh = v is not None and v == exercise_presets.version()
+    return JSONResponse(exercise_presets.catalog(), headers={"Cache-Control": PRIVATE_IMMUTABLE if fresh else "no-store"})
 
 
 @router.get("/exercise-cleanup")

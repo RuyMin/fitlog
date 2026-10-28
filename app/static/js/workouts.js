@@ -86,8 +86,8 @@ async function loadExercises() {
   state.exercises = exercises;
   window.fitlogCache.set("exercises", exercises);
 }
-// The catalog is a static file linked by content hash (preloaded by the page), so after the first visit
-// it comes from the phone's cache instead of a server round trip.
+// The catalog is linked by its version (preloaded by the page), so after the first visit it comes from the
+// phone's cache until an admin changes the list.
 async function loadCatalog() {
   if (state.catalog) return;
   const href = document.getElementById("preset-catalog")?.getAttribute("href");
@@ -107,7 +107,7 @@ function describe(exercise) {
   return [preset?.body_part || exercise.body_part, preset?.equipment || exercise.category].filter(Boolean).join(" · ") || "부위·장비 미지정";
 }
 // ---- set fields by tracking type -----------------------------------------------------------------
-// Each preset says how it is recorded (app/static/data/exercise_presets.json "tracking"); custom exercises use weight × reps.
+// Each preset says how it is recorded (its "tracking"); custom exercises use weight × reps.
 const CARDIO_FIELDS = ["duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate",
   "max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds"];
 const FIELDS = {
@@ -643,7 +643,8 @@ function candidates() {
   const custom = state.exercises.filter((exercise) => !exercise.preset_id).map((exercise) => ({
     key: "e" + exercise.id, exercise, name: exercise.name, names: [exercise.name], part: exercise.body_part, gear: exercise.category,
     tags: [exercise.body_part, exercise.category].filter(Boolean), muscles: [], meta: describe(exercise) + " · 내 종목"}));
-  const presets = state.presets.map((preset) => ({
+  // A preset the admin hid stays only for people who already use it.
+  const presets = state.presets.filter((preset) => !preset.hidden || state.exercises.some((exercise) => exercise.preset_id === preset.id)).map((preset) => ({
     key: "p" + preset.id, preset, exercise: state.exercises.find((exercise) => exercise.preset_id === preset.id) || null,
     name: preset.name, names: [preset.name, preset.name_en, ...preset.aliases], part: preset.body_part, gear: preset.equipment,
     tags: preset.tags, muscles: preset.muscles,

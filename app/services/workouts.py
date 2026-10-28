@@ -25,7 +25,7 @@ def exercise_named(session: Session, user_id: int, name: str) -> Exercise:
         preset_id = exercise_presets.match_name(name)
         if preset_id and session.scalar(select(Exercise.id).where(Exercise.user_id == user_id, Exercise.preset_id == preset_id)):
             preset_id = None
-        preset = next((p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id), None)
+        preset = exercise_presets.find(preset_id)
         exercise = Exercise(user_id=user_id, name=name, preset_id=preset_id,
                             body_part=preset and preset["body_part"], category=preset and preset["equipment"])
         session.add(exercise)
@@ -80,7 +80,7 @@ def merge_exercise(session: Session, user_id: int, exercise_id: int, preset_id: 
     source = get_exercise(session, user_id, exercise_id)
     if source.preset_id is not None:
         raise RecordConflict("기본 종목에 연결된 종목은 합칠 수 없습니다.")
-    preset = next((p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id), None)
+    preset = exercise_presets.find(preset_id)
     if preset is None:
         raise RecordInvalid("알 수 없는 기본 종목입니다.")
     if variant is not None and variant not in exercise_presets.variant_ids(preset_id):

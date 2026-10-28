@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#183f35"><title>FitLog · 설정</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg"><link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/settings.css?v=20261023.2">
-<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/settings.js?v=20261023.2" defer></script><script src="/static/js/goals.js?v=1" defer></script><script src="/static/js/perf-stats.js?v=1" defer></script><script src="/static/js/invites.js?v=1" defer></script><script src="/static/js/excel-import.js?v=20261023.2" defer></script>
+<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/settings.js?v=20261023.2" defer></script><script src="/static/js/goals.js?v=1" defer></script><script src="/static/js/excel-import.js?v=20261023.2" defer></script>
 </head><body class="settings-page">
 <a class="skip" href="#main">본문으로 이동</a>
 <aside class="sidebar">
@@ -78,38 +78,11 @@
 <p id="account-message" role="status" aria-live="polite"></p>
 <p class="hint">서비스 이용 동의를 철회하거나 모든 기록을 삭제하려면 운영자에게 요청해 주세요. 삭제 전에 만든 백업 파일에는 백업 보관 기간 동안 남습니다.</p>
 <p class="hint">속도 개선을 위해 앱이 서버에 보낸 요청의 시각·종류·걸린 시간만 14일 동안 기록합니다. 운동·식단 등 기록 내용은 남기지 않습니다.</p><p class="hint">화면을 빨리 띄우려고 홈·운동·식단·몸 화면의 최근 데이터를 이 기기에만 최대 7일 보관했다가 먼저 보여줍니다. 로그아웃하거나 다른 계정으로 로그인하면 지웁니다.</p></section>
+<section class="card admin-entry" id="admin-entry" aria-labelledby="admin-entry-heading" hidden><a href="/admin" class="admin-link"><span><strong id="admin-entry-heading">관리자 화면</strong><small>기본 종목 관리 · 멤버 초대 · AI 공용 키 · 속도 통계</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a></section>
 <section class="card" id="ai-card" aria-labelledby="ai-heading"><h2 id="ai-heading">AI 기록 도우미</h2>
 <p class="muted">홈 화면의 "문장으로 기록하기"는 <strong>운영자가 등록한 공용 Anthropic API 키</strong>로 동작하며, 비용은 운영자가 부담합니다. 사람마다 하루 사용 횟수에 제한이 있습니다. 사용하려면 위 계정 카드에서 "AI 외부 전송"에 동의해 주세요.</p>
 <dl class="sync-details"><dt>공용 키</dt><dd id="ai-key-hint">확인 중</dd><dt>AI 전송 동의</dt><dd id="ai-consent">—</dd><dt>오늘 사용</dt><dd id="ai-usage">—</dd></dl>
-<div id="ai-admin" hidden>
-<form id="ai-key-form"><label for="ai-key">공용 Anthropic API 키 (관리자, sk-ant-로 시작)</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sk-ant-..."><div class="settings-actions"><button class="primary" type="submit" id="ai-key-save">키 확인 후 저장</button><button type="button" id="ai-key-delete" hidden>등록한 키 삭제</button></div></form>
-<p class="hint">모든 사용자의 요청이 이 키로 호출되고, 요금은 이 키의 Anthropic 계정에 청구됩니다. 키는 서버에 암호화해 저장하며 다시 화면에 보여 주지 않습니다. 저장할 때 키가 동작하는지만 확인하며, 이때 기록 데이터는 보내지 않습니다. 새 키를 저장하면 기존 키를 대체합니다. 키는 Anthropic 콘솔(console.anthropic.com)의 API Keys 메뉴에서 만들고, 크레딧(결제) 등록이 필요합니다.</p>
-</div>
 <p id="ai-message" role="status" aria-live="polite"></p></section>
-<section class="card invite-card" id="invite-card" aria-labelledby="invite-heading" hidden>
-<h2 id="invite-heading">멤버 초대</h2>
-<p class="muted">관리자에게만 보여요. 링크를 받은 사람이 Google 계정으로 가입하면 멤버가 됩니다. 멤버의 기록은 그 사람에게만 보이고, 관리자도 볼 수 없어요.</p>
-<form id="invite-form">
-<label for="invite-note">누구에게 보낼 링크인가요? (선택, 나만 보는 메모)</label><input id="invite-note" name="note" maxlength="100" autocomplete="off" placeholder="예: 민수">
-<label for="invite-days">유효 기간</label><select id="invite-days" name="days"><option value="1">1일</option><option value="3">3일</option><option value="7" selected>7일</option><option value="14">14일</option><option value="30">30일</option></select>
-<div class="settings-actions"><button class="primary" type="submit" id="invite-create">초대 링크 만들기</button></div>
-</form>
-<div id="invite-result" class="invite-result" hidden>
-<label for="invite-url">새 초대 링크</label><input id="invite-url" readonly>
-<div class="settings-actions"><button type="button" id="invite-copy">복사</button><button type="button" id="invite-share" hidden>공유</button></div>
-<p class="hint" role="note"><strong>지금만 보여요.</strong> 서버는 링크를 다시 보여 주지 않으니 바로 전달해 주세요. 한 번만 쓸 수 있고, 링크를 가진 사람은 누구든 가입할 수 있어요. 메신저 개인 대화처럼 받을 사람에게만 보내 주세요.</p>
-</div>
-<p id="invite-message" role="status" aria-live="polite"></p>
-<h3>최근 초대</h3><div id="invite-list" class="invite-list"></div>
-</section>
-<section class="card perf-card" id="perf-card" aria-labelledby="perf-heading" hidden>
-<div class="section-heading"><h2 id="perf-heading">속도 통계</h2><div class="perf-days" role="group" aria-label="기간"><button type="button" data-days="1" aria-pressed="true">1일</button><button type="button" data-days="7" aria-pressed="false">7일</button><button type="button" data-days="14" aria-pressed="false">14일</button></div></div>
-<p class="muted">관리자에게만 보여요. 휴대폰에서 기다린 시간(체감)과 그중 서버 처리 시간을 나눠 보여 줍니다. 둘의 차이는 네트워크(Funnel) 구간이에요. 숫자는 보통(중앙값) / 느릴 때(상위 10%)이고, 기록은 14일 보관합니다.</p>
-<div id="perf-overall" class="perf-overall"></div>
-<h3>화면 열기</h3><div id="perf-pages" class="perf-table"></div>
-<h3>요청별</h3><div id="perf-routes" class="perf-table"></div>
-<h3>사용자별 기록 수</h3><div id="perf-users" class="perf-table"></div>
-<p id="perf-message" class="hint" role="status"></p></section>
 <section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
 <p class="muted">쓰던 운동·식단·체중·수면 기록 .xlsx 파일을 올리면 AI가 양식을 분석해 FitLog 기록으로 바꿔 줍니다. 양식이 서로 달라도 됩니다. 저장 전에 항목을 직접 확인하며, 비교만으로는 기록을 바꾸지 않습니다. 사용하려면 위 계정 카드에서 AI 외부 전송에 동의해 주세요.</p>
 <p class="excel-warning" role="note"><strong>큰 파일은 실패할 수 있어요.</strong> 행이 수백 개를 넘는 파일은 AI 분석 시간이 초과되어 실패할 수 있고, 실패해도 오늘 AI 사용 횟수 1회가 차감됩니다. 시트나 기간을 나눠 작은 파일로 올려 주세요.</p>

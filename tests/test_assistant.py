@@ -401,9 +401,11 @@ class AssistantPageTests(unittest.TestCase):
         self.assertIn('id="assistant-photo-input" type="file" accept="image/*"', home)
         # .assistant-actions uses display:flex; without this the hidden save row was always visible.
         self.assertIn(".assistant-card [hidden]{display:none!important}", client.get("/static/css/assistant.css").text)
-        settings = client.get("/settings").text
-        self.assertIn('id="ai-key"', settings)
-        self.assertIn('type="password"', settings)
+        # The shared key form moved to the admin page; settings keeps the status and consent.
+        admin = client.get("/admin").text
+        self.assertIn('id="ai-key"', admin)
+        self.assertIn('type="password"', admin)
+        self.assertNotIn('id="ai-key"', client.get("/settings").text)
 
 
 if __name__ == "__main__":
