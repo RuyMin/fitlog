@@ -1,0 +1,21 @@
+/* 관리자 화면 */
+.back-link{display:inline-block;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:4px}
+.admin-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.admin-nav .chip{display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:17px;background:var(--surface);color:var(--ink);font-size:13px;text-decoration:none}
+.preset-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:12px 0 4px}
+.preset-tools input,.preset-tools select{margin:0}
+.preset-list{max-height:60vh;overflow:auto;border-top:1px solid var(--line)}
+.preset-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.preset-item.is-hidden .preset-text{opacity:.55}
+.preset-text{flex:1;min-width:0}.preset-text span{font-size:12px;color:var(--muted)}
+.preset-title{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0}
+.preset-badge{font-size:11px;padding:2px 7px;border-radius:9px;background:var(--soft);color:var(--muted)}
+.preset-badge.added,.preset-badge.edited{color:var(--accent)}
+.preset-actions{display:flex;gap:2px;flex-shrink:0}
+.preset-actions button{min-height:36px;padding:0 8px;border:0;background:none;color:var(--accent);font-size:13px;font-weight:600}
+.preset-actions button.danger{color:var(--danger)}
+#preset-dialog form{display:flex;flex-direction:column;gap:10px}
+.muscle-pick{border:0;padding:0;margin:0}.muscle-pick legend{font-size:13px;color:var(--muted);margin-bottom:6px}
+.muscle-pick .chips{display:flex;flex-wrap:wrap;gap:6px}
+.muscle-pick button.chip{min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:16px;font-size:12px;background:var(--surface);color:var(--ink)}
+.muscle-pick button.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}

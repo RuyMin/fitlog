@@ -1,31 +1,90 @@
-"""Built-in exercise presets (app/static/data/exercise_presets.json): names, aliases and body-part/equipment/muscle tags.
+"""Built-in exercise presets: names, aliases and body-part/equipment/muscle tags.
 
-The file is read-only reference data shared by every user. It lives under /static/ so the workout page
-can link it by content hash and phones keep it until it changes (the API route stays for older pages). A user's own Exercise row links to a
-preset through `preset_id`; the preset never changes what the user has stored.
+The base list ships as app/static/data/exercise_presets.json. Admins change it from the admin page: their
+edits, hidden presets and added presets live in `preset_overrides` and are laid over the base here, so
+every user sees the same list and later releases can still add to the file. A user's own Exercise row
+links to a preset through `preset_id`; the preset never changes what the user has stored. A hidden
+preset stays in the catalog (marked `hidden`) so exercises already linked to it keep working; it only
+leaves the picker and name matching.
 """
+import copy
+import hashlib
 import json
 import re
 from functools import cache
 from pathlib import Path
 
 PATH = Path(__file__).resolve().parents[1] / "static" / "data" / "exercise_presets.json"
+_merged: dict = {}
 
 
 @cache
-def catalog() -> dict:
+def base() -> dict:
+    """The shipped list, without admin changes."""
     return json.loads(PATH.read_text(encoding="utf-8"))
 
 
-@cache
+def overlay(base_catalog: dict, rows: list) -> dict:
+    """`base_catalog` with the admin's rows (PresetOverride-like: preset_id, data, hidden) laid over it."""
+    result = copy.deepcopy(base_catalog)
+    changes = {row.preset_id: row for row in rows}
+    presets = []
+    for preset in result["presets"]:
+        row = changes.pop(preset["id"], None)
+        if row is not None:
+            if row.data:
+                preset.update(json.loads(row.data))
+                preset["edited"] = True
+            if row.hidden:
+                preset["hidden"] = True
+        presets.append(preset)
+    for row in sorted(changes.values(), key=lambda item: item.preset_id):
+        if row.data:
+            presets.append({"id": row.preset_id, **json.loads(row.data), "added": True, **({"hidden": True} if row.hidden else {})})
+    result["presets"] = presets
+    return result
+
+
+def catalog() -> dict:
+    """The list every user sees: the base with the admin's changes. Rebuilt only when those change."""
+    from sqlalchemy import func, select
+    from sqlalchemy.exc import OperationalError
+    from app.database import SessionLocal
+    from app.models import PresetOverride
+    try:
+        with SessionLocal() as session:
+            stamp = tuple(session.execute(select(func.count(), func.max(PresetOverride.updated_at))).one())
+            if _merged.get("stamp") != stamp:
+                rows = list(session.scalars(select(PresetOverride)))
+                _merged.update(stamp=stamp, catalog=overlay(base(), rows))
+    except OperationalError:
+        return base()  # before the table exists (a migration in progress)
+    return _merged["catalog"]
+
+
+def version() -> str:
+    """Short hash of the catalog, so pages can link it and phones keep it until it changes."""
+    data = catalog()
+    if _merged.get("hashed") is not data:
+        _merged.update(hashed=data, version=hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:12])
+    return _merged["version"]
+
+
+def visible() -> list[dict]:
+    return [preset for preset in catalog()["presets"] if not preset.get("hidden")]
+
+
+def find(preset_id: str | None) -> dict | None:
+    return next((p for p in catalog()["presets"] if p["id"] == preset_id), None) if preset_id else None
+
+
 def ids() -> frozenset[str]:
     return frozenset(preset["id"] for preset in catalog()["presets"])
 
 
 def variant_ids(preset_id: str | None) -> frozenset[str]:
     """Grip / foot-position / stance options a preset offers; none for custom exercises."""
-    preset = next((p for p in catalog()["presets"] if p["id"] == preset_id), None) if preset_id else None
-    return frozenset(item["id"] for item in (preset or {}).get("variants", []))
+    return frozenset(item["id"] for item in (find(preset_id) or {}).get("variants", []))
 
 
 def normalize(name: str) -> str:
@@ -35,7 +94,7 @@ def normalize(name: str) -> str:
 def match_name(name: str) -> str | None:
     """The preset whose name or alias equals `name` (ignoring spaces and case), when exactly one does."""
     key = normalize(name)
-    hits = {preset["id"] for preset in catalog()["presets"]
+    hits = {preset["id"] for preset in visible()
             if key in {normalize(preset["name"]), normalize(preset["name_en"]), *map(normalize, preset["aliases"])}}
     return next(iter(hits)) if len(hits) == 1 else None
 
@@ -62,7 +121,7 @@ def split_variant(name: str) -> tuple[str, str | None] | None:
     ("lat_pulldown", "parallel"), "랫 풀다운" → ("lat_pulldown", None). None when unsure."""
     text = fold(name)
     best = None
-    for preset in catalog()["presets"]:
+    for preset in visible():
         for key in {fold(preset["name"]), fold(preset["name_en"]), *map(fold, preset["aliases"])}:
             if not key or not (text.startswith(key) or text.endswith(key)):
                 continue

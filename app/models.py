@@ -1,4 +1,4 @@
-"""Schema v9; all timestamp values follow the UTC-naive storage convention.
+"""Schema v10; all timestamp values follow the UTC-naive storage convention.
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
@@ -151,6 +151,20 @@ class GoalProfile(Base):
     carbohydrate_g: Mapped[float | None] = mapped_column(Float)
     fat_g: Mapped[float | None] = mapped_column(Float)
     sleep_minutes: Mapped[int | None] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
+
+
+class PresetOverride(Base):
+    """An admin's change to the built-in exercise list (schema v10). For a built-in preset `data` holds the
+    edited fields (null keeps the original) and `hidden` takes it off the picker; a preset an admin added
+    has its whole definition in `data`. The shipped file stays the base, so later releases still add to it."""
+    __tablename__ = "preset_overrides"
+    __table_args__ = (CheckConstraint("length(trim(preset_id)) > 0", name="ck_preset_override_id"),)
+
+    preset_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    data: Mapped[str | None] = mapped_column(Text)
+    hidden: Mapped[bool] = mapped_column(Boolean(create_constraint=True), default=False)
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
 
 

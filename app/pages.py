@@ -30,9 +30,17 @@ def asset_hash(url_path: str) -> str | None:
     return cached[1]
 
 
+CATALOG_LINK = re.compile(r'/api/exercise-presets\?v=[^"\s]*')
+
+
 def render(name: str) -> str:
     text = (STATIC_DIR / name).read_text(encoding="utf-8")
-    return ASSET_LINK.sub(lambda m: f"{m[1]}?v={asset_hash(m[1]) or 'missing'}", text)
+    text = ASSET_LINK.sub(lambda m: f"{m[1]}?v={asset_hash(m[1]) or 'missing'}", text)
+    if CATALOG_LINK.search(text):
+        # The exercise list changes when an admin edits it, so it is linked by its own version.
+        from app.services import exercise_presets
+        text = CATALOG_LINK.sub(lambda m: f"/api/exercise-presets?v={exercise_presets.version()}", text)
+    return text
 
 
 def page(name: str, cache_control: str = "no-cache") -> HTMLResponse:

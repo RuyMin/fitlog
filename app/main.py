@@ -21,6 +21,7 @@ from app.api.goals import router as goals_router
 from app.api.health import router as health_router
 from app.api.invites import router as invites_router
 from app.api.perf import router as perf_router
+from app.api.presets import router as presets_router
 from app.api.workouts import router as workouts_router
 from app.api.records import router as records_router
 from app.api.statistics import router as statistics_router
@@ -51,6 +52,7 @@ app.include_router(goals_router)
 app.include_router(health_router)
 app.include_router(invites_router)
 app.include_router(perf_router)
+app.include_router(presets_router)
 app.include_router(workouts_router)
 app.include_router(records_router)
 app.include_router(statistics_router)
@@ -105,7 +107,7 @@ async def security_policy(request: Request, call_next: RequestResponseEndpoint) 
         response: Response = JSONResponse(status_code=403, content={"detail": "다른 사이트에서 보낸 요청은 처리할 수 없습니다."})
     else:
         response = await call_next(request)
-    if request.url.path.startswith(("/api/", "/auth/")):
+    if request.url.path.startswith(("/api/", "/auth/")) and "cache-control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
     # /api/health is polled by the container healthcheck and every page; it would drown the rest.
     if request.url.path.startswith("/api/") and request.url.path != "/api/health":
@@ -144,6 +146,11 @@ def body_page() -> HTMLResponse:
 @app.get("/sleep", include_in_schema=False)
 def records_page() -> HTMLResponse:
     return page("records.html")
+
+
+@app.get("/admin", include_in_schema=False)
+def admin_page() -> HTMLResponse:
+    return page("admin.html")
 
 
 @app.get("/settings", include_in_schema=False)

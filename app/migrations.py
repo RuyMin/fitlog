@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -434,7 +434,7 @@ def run_exercise(c: Connection, user_id: int, preset_id: str) -> int:
     found = c.exec_driver_sql("SELECT id FROM exercises WHERE user_id=? AND preset_id=?", (user_id, preset_id)).first()
     if found:
         return found[0]
-    preset = next(p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id)
+    preset = next(p for p in exercise_presets.base()["presets"] if p["id"] == preset_id)
     name = preset["name"]
     if c.exec_driver_sql("SELECT 1 FROM exercises WHERE user_id=? AND name=?", (user_id, name)).first():
         name += " (기록)"
@@ -453,7 +453,7 @@ def link_run_exercises(c: Connection) -> None:
             continue
         if c.exec_driver_sql("SELECT 1 FROM exercises WHERE user_id=? AND preset_id=?", (user_id, preset_id)).first():
             continue
-        preset = next(p for p in exercise_presets.catalog()["presets"] if p["id"] == preset_id)
+        preset = next(p for p in exercise_presets.base()["presets"] if p["id"] == preset_id)
         c.exec_driver_sql("UPDATE exercises SET preset_id=?, body_part=COALESCE(body_part, ?), category=COALESCE(category, ?) WHERE id=?",
                           (preset_id, preset["body_part"], preset["equipment"], exercise_id))
 
@@ -504,8 +504,15 @@ def migrate_v9(engine: Engine) -> None:
             raise
 
 
+def migrate_v10(engine: Engine) -> None:
+    """Admin changes to the built-in exercise list. preset_overrides is a new table with no existing rows,
+    so create_all builds it; this step only records the version."""
+    with engine.begin() as c:
+        c.exec_driver_sql("PRAGMA user_version=10")
+
+
 STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8,
-                                              9: migrate_v9}
+                                              9: migrate_v9, 10: migrate_v10}
 
 
 def finish_migration(engine: Engine) -> None:

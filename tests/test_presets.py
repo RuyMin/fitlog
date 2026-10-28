@@ -66,13 +66,14 @@ class PresetApiTests(unittest.TestCase):
         self.assertEqual(custom.status_code, 201)
         self.assertIsNone(custom.json()["preset_id"])
 
-    def test_workout_page_links_catalog_by_content_hash(self) -> None:
+    def test_workout_page_links_catalog_by_version(self) -> None:
         page = self.client.get("/workouts").text
-        match = re.search(r'id="preset-catalog" href="(/static/data/exercise_presets\.json\?v=([0-9a-f]{12}))"', page)
-        self.assertIsNotNone(match, "workouts page must preload the catalog by content hash")
+        match = re.search(r'id="preset-catalog" href="(/api/exercise-presets\?v=([0-9a-f]{12}))"', page)
+        self.assertIsNotNone(match, "workouts page must preload the catalog by its version")
         response = self.client.get(match[1])
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["cache-control"], "public, max-age=31536000, immutable")
+        self.assertEqual(response.headers["cache-control"], "private, max-age=31536000, immutable")
+        self.assertEqual(self.client.get("/api/exercise-presets?v=old").headers["cache-control"], "no-store")
         self.assertEqual(response.json(), self.client.get("/api/exercise-presets").json())
 
 
