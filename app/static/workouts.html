@@ -77,7 +77,8 @@
 <div class="picker-head"><div><h2 id="info-title"></h2><p id="info-sub" class="muted"></p></div><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
 <div class="tag-list" id="info-tags"></div>
 <p class="info-tracking" id="info-tracking"></p>
-<div class="info-tabs" role="tablist" aria-label="그림 종류"><button type="button" role="tab" id="tab-muscle" aria-selected="true">사용 근육</button><button type="button" role="tab" id="tab-motion" aria-selected="false">동작 <span class="soon">준비 중</span></button></div>
+<!-- 동작 그림이 생기면 hidden을 뗀다(그때까지 탭은 사용 근육 하나뿐). -->
+<div class="info-tabs" role="tablist" aria-label="그림 종류" hidden><button type="button" role="tab" id="tab-muscle" aria-selected="true">사용 근육</button><button type="button" role="tab" id="tab-motion" aria-selected="false">동작 <span class="soon">준비 중</span></button></div>
 <div id="info-variants" class="info-variants" hidden></div>
 <div id="info-muscle"></div>
 <div id="info-motion" class="motion-placeholder" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M10 9.5v5l4.5-2.5z"></path></svg><strong>동작 이미지는 다음 버전에서 추가돼요</strong><span>시작·끝 자세 그림이 이 자리에 들어갑니다.</span></div>
