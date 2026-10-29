@@ -17,7 +17,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
 .exercise-group h3{font-size:18px;overflow-wrap:anywhere}.set-row{padding:14px 0;border-top:1px solid var(--line);margin-top:12px}
 .set-heading{display:flex;align-items:center;gap:12px;justify-content:space-between}.set-heading strong{font-size:18px}
 .set-number{color:var(--muted);font-size:12px}.set-row .row-actions{margin-top:8px}
-.set-row.done .set-number{color:var(--accent)}.empty-state{padding:32px 20px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}
+.set-row.done .set-number{color:var(--accent)}.empty-state{padding:24px 16px;text-align:center;color:var(--muted)}
 dialog{width:min(540px,calc(100% - 24px));max-height:85dvh;overflow-y:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:24px}
 dialog::backdrop{background:#07180fb3}dialog h2{font-size:22px;margin-bottom:16px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}.hint{font-size:12px;color:var(--muted);margin:8px 0 16px}
