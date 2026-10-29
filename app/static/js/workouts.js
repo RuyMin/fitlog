@@ -37,11 +37,11 @@ async function api(path, method = "GET", body) {
       method, cache: "no-store", headers: body ? {"Content-Type": "application/json"} : {},
       body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000)
     });
-  } catch { throw new Error("서버에 연결하지 못했습니다. 저장 요청 중이었다면 새로고침으로 반영 여부를 확인한 뒤 다시 시도하세요."); }
+  } catch { throw new Error("연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요."); }
   const data = await response.json();
   if (!response.ok) {
     const detail = data.detail;
-    const error = new Error(Array.isArray(detail) ? detail.map((item) => item.msg).join("\n") : detail || "요청에 실패했습니다.");
+    const error = new Error(Array.isArray(detail) ? detail.map((item) => item.msg).join("\n") : detail || "처리하지 못했어요. 다시 시도해 주세요.");
     error.status = response.status;
     throw error;
   }
@@ -237,7 +237,7 @@ function save(workout, request) {
   const run = (queues.get(workout.id) || Promise.resolve()).then(request);
   queues.set(workout.id, run.catch(() => {}));
   return run.catch(async (error) => {
-    notice(error.message + " 서버의 기록으로 되돌렸어요.", true);
+    notice(error.message + " 저장된 기록으로 되돌렸어요.", true);
     await refreshWorkout(workout).catch(() => {});
   });
 }
@@ -480,7 +480,7 @@ function renderSession(workout, root, detail = false) {
   if (!open || detail) tools.append(button("수정", () => openWorkout(workout)));
   if (detail) tools.append(button("삭제", (control) => {
     if (!confirm("이 운동과 모든 세트를 삭제할까요?")) return;
-    mutate(control, async () => { await api("/workouts/" + workout.id, "DELETE"); notice("운동을 삭제했습니다."); location.hash = ""; });
+    mutate(control, async () => { await api("/workouts/" + workout.id, "DELETE"); notice("운동을 삭제했어요."); location.hash = ""; });
   }, "danger"));
   head.append(tools);
   root.append(head);
@@ -896,7 +896,7 @@ async function showRoute() {
     $("#list-view").inert = false;
     notice(error.message, true);
     if (showedCache) return; // keep the saved copy on screen rather than an empty error
-    (hash ? $("#workout-detail") : $("#workout-list")).replaceChildren(node("p", "기록을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
+    (hash ? $("#workout-detail") : $("#workout-list")).replaceChildren(node("p", "기록을 불러오지 못했어요. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
   }
 }
 
@@ -1171,7 +1171,7 @@ function renderExercises() {
     item.insertAdjacentHTML("beforeend", SVG_CHEVRON);
     return item;
   }));
-  if (!shown.length) list.append(node("p", query ? "맞는 종목이 없어요." : "등록된 종목이 없습니다.", "empty-state"));
+  if (!shown.length) list.append(node("p", query ? "맞는 종목이 없어요." : "등록된 종목이 없어요.", "empty-state"));
 }
 // The editor: name for every exercise; equipment, recording type, muscles (on the figure) and body part
 // for the user's own ones. A preset-linked exercise shows the preset's figure instead.
@@ -1278,7 +1278,7 @@ $("#workout-form").addEventListener("submit", (event) => {
       started_at: form.elements.started_at.value ? new Date(form.elements.started_at.value).toISOString() : null,
       ended_at: form.elements.ended_at.value ? new Date(form.elements.ended_at.value).toISOString() : null};
     await api("/workouts" + (state.editWorkout ? "/" + state.editWorkout : ""), state.editWorkout ? "PUT" : "POST", body);
-    $("#workout-dialog").close(); notice("운동을 저장했습니다."); await showRoute();
+    $("#workout-dialog").close(); notice("운동을 저장했어요."); await showRoute();
   });
 });
 $("#exercise-form").addEventListener("submit", (event) => {

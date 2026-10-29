@@ -21,7 +21,7 @@
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       const detail = data.detail;
-      throw new Error(Array.isArray(detail) ? detail.map((item) => item.msg.replace(/^Value error, /, "")).join("\n") : detail || "목표를 저장하지 못했습니다.");
+      throw new Error(Array.isArray(detail) ? detail.map((item) => item.msg.replace(/^Value error, /, "")).join("\n") : detail || "목표를 저장하지 못했어요.");
     }
     return data;
   }
@@ -158,5 +158,5 @@
     finally { $("goals-delete").disabled = false; }
   });
 
-  call("GET").then(fill).catch((error) => { $("goal-now").textContent = "목표를 불러오지 못했습니다. " + error.message; });
+  call("GET").then(fill).catch((error) => { $("goal-now").textContent = "목표를 불러오지 못했어요. " + error.message; });
 })();
