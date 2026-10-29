@@ -1,18 +1,59 @@
-.record-tabs{display:flex;gap:6px;background:var(--soft);border-radius:12px;padding:5px;margin-bottom:24px}
-.record-tabs a{flex:1;text-align:center;padding:10px 6px;border-radius:8px;font-size:14px;min-height:44px}
-.record-tabs a[aria-current=page]{background:var(--surface);color:var(--accent);font-weight:700}
-.record-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.record-heading h2{font-size:19px;overflow-wrap:anywhere}.record-kind{font-size:12px;white-space:nowrap;color:var(--accent);background:var(--soft);border-radius:6px;padding:4px 8px}
-.record-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
-.record-values p{font-size:13px;color:var(--muted)}.record-values strong{display:block;color:var(--ink);font-size:20px;font-weight:650}
-.record-card .row-actions{margin-top:16px}.record-card{overflow-wrap:anywhere}
-.duration-preview{font-weight:650;color:var(--accent);margin-top:10px}
-.quick-records{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
-.quick-records a{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 14px;min-height:44px;font-size:13px}
-.value .metric-value{font-size:inherit;color:inherit;font-weight:inherit}
-.value.compact{font-size:28px}
-#protein-goal{font-size:12px;color:var(--muted)}
-@media(min-width:1000px){#record-list{grid-template-columns:repeat(2,minmax(0,1fr))}.record-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 체중 · 체성분 and 수면 pages: a header with back and ＋ 기록, a summary card, and a dense list below. */
+.rec-page{display:flex;flex-direction:column;gap:14px}
+.rec-page #notice:empty{display:none}
+.rec-head{display:flex;align-items:center;gap:6px}
+.rec-head h1{flex:1;font-size:24px;margin:0}
+.rec-back{width:44px;height:44px;margin-left:-10px;display:grid;place-items:center;color:var(--ink)}
+.rec-back svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+main button.rec-add{min-height:40px;padding:0 16px;border-radius:20px;border:0;background:var(--brand);color:var(--brand-ink);font-weight:800;font-size:14px}
+.rec-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+.rec-periods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:3px;border-radius:16px;background:var(--bg)}
+main .rec-periods button{min-height:34px;border-radius:13px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:700;padding:0}
+main .rec-periods button[aria-pressed="true"]{background:var(--soft);color:var(--ink);font-weight:800}
+.rec-hint{margin:8px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+main button.rec-more{align-self:center;margin-top:8px;border-radius:20px}
 
-#today-sleep{word-break:keep-all;font-size:clamp(20px,5.6vw,28px)}
-@media(max-width:599px){.filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.filters label{min-width:0;margin:0}.filters button{width:100%}}
+/* Three small charts: label, last value and the change on the left; grid, line and min/max on the right. */
+.bm-charts{display:flex;flex-direction:column;gap:8px}
+.bm-chart{display:grid;grid-template-columns:78px minmax(0,1fr);gap:8px;align-items:center}
+.bm-chart svg{width:100%;height:auto;display:block;overflow:visible}
+.bm-side{display:flex;flex-direction:column;line-height:1.2}
+.bm-label{font-size:12px;font-weight:700;color:var(--muted)}
+.bm-value{font-size:20px;font-weight:700}.bm-value small{font-family:var(--font);font-size:11px;color:var(--muted);margin-left:2px}
+.bm-change{font-size:11px;font-weight:600;color:var(--muted)}.bm-change.good{color:var(--good)}.bm-change.bad{color:var(--meal)}
+.bm-grid{stroke:var(--line);stroke-width:1}.bm-grid-mid{stroke-dasharray:3 3}
+.bm-line{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bm-mark{stroke:var(--ink);stroke-opacity:.45;stroke-width:1}
+.bm-axis-label{font-family:var(--font-num);font-size:10px;fill:var(--muted)}
+.bm-empty{font-size:11px;fill:var(--muted)}
+.bm-axis{display:flex;justify-content:space-between;margin-left:86px;margin-right:34px;font-size:10px;color:var(--muted)}
+
+/* The table: date, then the three measures in the charts' colours; – where nothing was measured. */
+.rec-list{display:flex;flex-direction:column}
+.bm-row{display:grid;grid-template-columns:64px repeat(3,minmax(0,1fr));gap:8px;align-items:center;width:100%;height:44px;padding:0 12px;border:0;border-top:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:right;white-space:nowrap;cursor:pointer;border-radius:0}
+.bm-header{height:auto;padding-bottom:6px;border:0;background:none;font-size:11px;font-weight:700;color:var(--muted);cursor:default}
+.bm-month{margin:12px 0 6px;padding:0 4px;font-size:12px;font-weight:700;color:var(--muted)}
+.bm-month+.bm-row,.bm-month+.sleep-row{border-top:0;border-radius:16px 16px 0 0}
+.bm-row:has(+ .bm-month),.bm-row:last-child,.sleep-row:has(+ .bm-month),.sleep-row:last-child{border-radius:0 0 16px 16px}
+.bm-month+.bm-row:has(+ .bm-month),.bm-month+.bm-row:last-child,.bm-month+.sleep-row:has(+ .bm-month),.bm-month+.sleep-row:last-child{border-radius:16px}
+.bm-row.picked,.sleep-row:focus-visible{background:var(--soft)}
+.bm-date{text-align:left;font-size:13px;font-weight:700}
+.bm-row .num{font-size:14px;font-weight:600}
+.bm-weight{color:var(--body-ink);font-weight:700!important;font-size:15px!important}.bm-skeletal_muscle{color:var(--accent)}.bm-body_fat{color:var(--meal)}
+.bm-row .empty{color:var(--line)}
+#bm-rows .bm-month:first-child{margin-top:0}
+
+/* 수면 */
+.sleep-week{display:flex;flex-direction:column;gap:10px}
+.sleep-week-head{display:flex;justify-content:space-between;align-items:baseline;margin:0;font-size:13px;color:var(--muted)}.sleep-week-head strong{font-size:20px;color:var(--ink)}
+.sleep-bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:84px}
+.sleep-bar{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.sleep-bar i{display:block;width:100%;max-width:26px;border-radius:6px;background:var(--sleep-soft);min-height:3px}
+.sleep-bar.today i{background:var(--sleep)}
+.sleep-bar small{font-size:11px;color:var(--muted)}
+.sleep-row{display:flex;align-items:center;gap:12px;width:100%;height:48px;padding:0 14px;border:0;border-top:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:left;white-space:nowrap;cursor:pointer;border-radius:0}
+.sleep-row .bm-date{width:52px;flex:none}
+.sleep-times{flex:1;font-size:13px;color:var(--muted)}
+.sleep-row strong{font-size:15px;font-weight:600}
+.sleep-nap{font-family:var(--font);font-size:11px;font-weight:700;color:var(--sleep-ink);background:var(--sleep-soft);border-radius:6px;padding:1px 6px;margin-right:6px}
+#sleep-rows .bm-month:first-child{margin-top:0}

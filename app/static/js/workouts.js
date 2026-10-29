@@ -1,14 +1,20 @@
 "use strict";
-// Workouts: this week's summary, today's session with inline set tables, a month calendar of past sessions,
-// the preset picker (search + body part / equipment tags) and an exercise sheet with the muscle figure.
+// Workouts, in two tabs. 오늘: start by picking exercises (or repeat a recent routine), then log with only the
+// current exercise open, a rest timer after each set and a summary to finish. 기록: a folding calendar over the
+// month's sessions, each opening to its exercises. Also the preset picker and an exercise sheet with the muscle figure.
 const $ = (selector) => document.querySelector(selector);
 const state = {variants: {}, workouts: [], exercises: [], presets: [], catalog: null, current: null, route: 0,
-  editWorkout: null, picker: {workout: null, part: "전체", gear: "전체", picked: new Map()},
-  calendar: {month: null, day: null, months: new Map(), stale: false}};
+  editWorkout: null, picker: {workout: null, mode: null, part: "전체", gear: "전체", picked: new Map()},
+  calendar: {month: null, day: null, picked: false, months: new Map(), stale: false, expanded: false},
+  focus: null, rest: {timer: null, until: 0}, finish: null, routines: [], routineEdit: null};
+const DEFAULT_TITLE = "오늘 운동";
+const REST_SECONDS = 90;
 const pageSize = 20;
 const SVG_CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
 const SVG_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
 const SVG_PLUS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>';
+const SVG_DOWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
+const SVG_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"></path></svg>';
 const number = (value) => new Intl.NumberFormat("ko-KR", {maximumFractionDigits: 1}).format(value);
 
 function node(tag, text, className) {
@@ -31,11 +37,11 @@ async function api(path, method = "GET", body) {
       method, cache: "no-store", headers: body ? {"Content-Type": "application/json"} : {},
       body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000)
     });
-  } catch { throw new Error("서버에 연결하지 못했습니다. 저장 요청 중이었다면 새로고침으로 반영 여부를 확인한 뒤 다시 시도하세요."); }
+  } catch { throw new Error("연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요."); }
   const data = await response.json();
   if (!response.ok) {
     const detail = data.detail;
-    const error = new Error(Array.isArray(detail) ? detail.map((item) => item.msg).join("\n") : detail || "요청에 실패했습니다.");
+    const error = new Error(Array.isArray(detail) ? detail.map((item) => item.msg).join("\n") : detail || "처리하지 못했어요. 다시 시도해 주세요.");
     error.status = response.status;
     throw error;
   }
@@ -104,7 +110,22 @@ function thumb(muscles, label) {
 }
 function describe(exercise) {
   const preset = presetOf(exercise);
-  return [preset?.body_part || exercise.body_part, preset?.equipment || exercise.category].filter(Boolean).join(" · ") || "부위·장비 미지정";
+  return [preset?.body_part || exercise.body_part, preset?.equipment || exercise.category].filter(Boolean).join(" · ");
+}
+// A workout started from 오늘 is saved as "오늘 운동"; until it is renamed it shows the body parts it worked.
+function partsOf(workout) {
+  const parts = [];
+  for (const set of [...workout.sets].sort((a, b) => a.id - b.id)) {
+    const exercise = userExercise(set.exercise);
+    const part = presetOf(exercise)?.body_part || exercise.body_part;
+    if (part && !parts.includes(part)) parts.push(part);
+  }
+  return parts;
+}
+function titleOf(workout) {
+  if (workout.title !== DEFAULT_TITLE) return workout.title;
+  const parts = partsOf(workout);
+  return parts.length ? parts.slice(0, 2).join(" · ") + (parts.length > 2 ? " 외" : "") : DEFAULT_TITLE;
 }
 // ---- set fields by tracking type -----------------------------------------------------------------
 // Each preset says how it is recorded (its "tracking"); custom exercises use weight × reps.
@@ -216,7 +237,7 @@ function save(workout, request) {
   const run = (queues.get(workout.id) || Promise.resolve()).then(request);
   queues.set(workout.id, run.catch(() => {}));
   return run.catch(async (error) => {
-    notice(error.message + " 서버의 기록으로 되돌렸어요.", true);
+    notice(error.message + " 저장된 기록으로 되돌렸어요.", true);
     await refreshWorkout(workout).catch(() => {});
   });
 }
@@ -276,7 +297,8 @@ function setRow(workout, set, prev, tracking, variant = null) {
     const changes = {completed: !set.completed};
     const keys = [...new Set(config.fields.map((name) => FIELDS[name].key))];
     if (!set.completed && prev && keys.every((key) => set[key] == null)) for (const key of keys) changes[key] = prev[key] ?? null;
-    instant(workout, () => Object.assign(set, changes), () => api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set)));
+    instant(workout, () => { Object.assign(set, changes); if (set.completed && workout === todayWorkout()) afterSet(workout, set, config); },
+      () => api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set)));
   });
   const remove = node("button", "×", "set-remove"); remove.type = "button";
   remove.setAttribute("aria-label", set.exercise.name + " " + set.set_number + (config.cardio ? "구간" : "세트") + " 삭제");
@@ -352,19 +374,40 @@ function variantChips(workout, exercise, preset, sets, picked) {
   return box;
 }
 
-function exerciseBlock(workout, sets) {
+// A folded exercise (today's session shows only the one in progress): name, a short summary and how many
+// sets are done; tapping it opens it.
+function foldedBlock(exercise, sets, config) {
+  const block = node("article", null, "ex-block folded");
+  const done = sets.filter((set) => set.completed).length;
+  const toggle = button("", () => { state.focus = exercise.id; renderCurrent(); }, "ex-title");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.append(thumb(presetOf(exercise)?.muscles || exercise.muscles, exercise.name));
+  const weights = [...new Set(sets.map((set) => set.weight).filter((value) => value != null))].map(number);
+  const text = node("span", null, "ex-text");
+  text.append(node("strong", exercise.name), node("span", config.cardio ? cardioSummary(sets) || "기록 전"
+    : (weights.length ? weights.join("/") + "kg · " : "") + sets.length + "세트"));
+  toggle.append(text, node("span", done === sets.length ? "완료" : done + "/" + sets.length, "ex-count num" + (done === sets.length ? " complete" : "")));
+  block.append(toggle);
+  return block;
+}
+function exerciseBlock(workout, sets, folded = false) {
   const exercise = userExercise(sets[0].exercise);
   const preset = presetOf(exercise);
   const tracking = trackingOf(exercise), config = TRACKING[tracking];
+  if (folded) return foldedBlock(exercise, sets, config);
   const prev = previousSets(exercise.id, workout);
   const picked = preset?.variants ? pickedVariant(workout, exercise.id, sets) : null;
   const block = node("article", null, "ex-block" + (config.cardio ? " cardio" : ""));
   const title = button("", () => openInfo(exercise), "ex-title");
   title.append(thumb(variantOf(preset, picked)?.muscles || preset?.muscles || exercise.muscles, exercise.name));
   const text = node("span", null, "ex-text");
-  const last = prev.length ? (config.cardio ? " · 지난번 " + (cardioSummary(prev) || "기록 있음") : " · 지난번 " + setText(prev[0], tracking) + " × " + prev.length) : "";
-  text.append(node("strong", exercise.name), node("span", describe(exercise) + last));
+  const last = prev.length ? (config.cardio ? "지난번 " + (cardioSummary(prev) || "기록 있음") : "지난번 " + setText(prev[0], tracking) + " × " + prev.length) : "";
+  text.append(node("strong", exercise.name), node("span", [describe(exercise), last].filter(Boolean).join(" · ")));
   title.append(text);
+  if (workout === todayWorkout()) {
+    const done = sets.filter((set) => set.completed).length;
+    title.append(node("span", done + "/" + sets.length, "ex-count num"));
+  }
   title.insertAdjacentHTML("beforeend", SVG_CHEVRON);
   block.append(title);
   if (preset?.variants) block.append(variantChips(workout, exercise, preset, sets, picked));
@@ -404,124 +447,317 @@ function exerciseBlock(workout, sets) {
   block.append(actions);
   return block;
 }
-function renderSession(workout, root, detail = false) {
-  root.replaceChildren();
-  const head = node("div", null, "session-head");
-  const titles = node("div");
-  const running = workout.started_at && !workout.ended_at && workout.workout_date === localDate();
-  const status = running ? "● 진행 중 · " + Math.max(1, Math.round((Date.now() - new Date(workout.started_at)) / 60000)) + "분"
-    : workout.workout_date + (workout.body_part ? " · " + workout.body_part : "");
-  titles.append(node("p", status, running ? "session-status running" : "session-status"), node("h2", workout.title));
-  head.append(titles);
-  const tools = node("div", null, "session-tools");
-  if (running) tools.append(button("운동 끝내기", () => {
-    notice("운동을 마쳤습니다. 수고했어요!");
-    instant(workout, () => { workout.ended_at = new Date().toISOString(); },
-      () => api("/workouts/" + workout.id, "PUT", {workout_date: workout.workout_date, title: workout.title, body_part: workout.body_part,
-        memo: workout.memo, started_at: workout.started_at, ended_at: workout.ended_at}));
-  }));
-  tools.append(button("수정", () => openWorkout(workout)));
-  if (detail) tools.append(button("삭제", (control) => {
-    if (!confirm("이 운동과 모든 세트를 삭제할까요?")) return;
-    mutate(control, async () => { await api("/workouts/" + workout.id, "DELETE"); notice("운동을 삭제했습니다."); location.hash = ""; });
-  }, "danger"));
-  head.append(tools);
-  root.append(head);
-  if (workout.memo) root.append(node("p", workout.memo, "memo"));
+const todayWorkout = () => state.workouts.find((item) => item.workout_date === localDate()) || null;
+function exerciseGroups(workout) {
   const groups = new Map();
   for (const set of [...workout.sets].sort((a, b) => a.id - b.id)) {
     if (!groups.has(set.exercise_id)) groups.set(set.exercise_id, []);
     groups.get(set.exercise_id).push(set);
   }
-  for (const sets of groups.values()) root.append(exerciseBlock(workout, sets.sort((a, b) => a.set_number - b.set_number)));
-  if (!groups.size) root.append(node("p", "아직 운동이 없어요. 아래에서 운동을 추가해 보세요.", "empty-state"));
-  const add = button("", () => openPicker(workout), "primary add-exercise");
-  add.innerHTML = SVG_PLUS + "<span>운동 추가</span>";
+  for (const sets of groups.values()) sets.sort((a, b) => a.set_number - b.set_number);
+  return groups;
+}
+// The exercise open in today's session: the one last opened, else the first with a set still to do.
+function focusOf(groups) {
+  if (groups.has(state.focus)) return state.focus;
+  const ids = [...groups.keys()];
+  return ids.find((id) => groups.get(id).some((set) => !set.completed)) ?? ids.at(-1) ?? null;
+}
+const minutesSince = (value) => Math.max(1, Math.round((Date.now() - new Date(value)) / 60000));
+// Today's session (focus: one exercise open, the rest folded) or a past one opened from 기록 (all open).
+function renderSession(workout, root, detail = false) {
+  root.replaceChildren();
+  const focus = !detail && workout === todayWorkout();
+  const head = node("div", null, "session-head");
+  const titles = node("div");
+  const open = !workout.ended_at && workout.workout_date === localDate();
+  const status = open ? (workout.started_at ? "● 진행 중 · " + minutesSince(workout.started_at) + "분" : "● 진행 중")
+    : (workout.workout_date === localDate() ? "오늘 · 끝냄" : workout.workout_date) + (workout.body_part ? " · " + workout.body_part : "");
+  titles.append(node("p", status, open ? "session-status running" : "session-status"), node("h2", titleOf(workout)));
+  head.append(titles);
+  const tools = node("div", null, "session-tools");
+  if (open && workout.sets.length) tools.append(button("끝내기", () => openFinish(workout), "finish-button"));
+  if (!open || detail) tools.append(button("수정", () => openWorkout(workout)));
+  if (detail) tools.append(button("삭제", (control) => {
+    if (!confirm("이 운동과 모든 세트를 삭제할까요?")) return;
+    mutate(control, async () => { await api("/workouts/" + workout.id, "DELETE"); notice("운동을 삭제했어요."); location.hash = ""; });
+  }, "danger"));
+  head.append(tools);
+  root.append(head);
+  const groups = exerciseGroups(workout);
+  if (focus && workout.sets.length) {
+    const done = workout.sets.filter((set) => set.completed).length;
+    const progress = node("div", null, "session-progress");
+    const bar = node("span", null, "progress-track"), fill = node("span", null, "progress-fill");
+    fill.style.width = Math.round(done / workout.sets.length * 100) + "%";
+    bar.append(fill);
+    progress.append(bar, node("span", done + "/" + workout.sets.length, "num"));
+    progress.setAttribute("aria-label", "세트 " + workout.sets.length + "개 중 " + done + "개 완료");
+    root.append(progress);
+  }
+  if (workout.memo) root.append(node("p", workout.memo, "memo"));
+  const opened = focus ? focusOf(groups) : null;
+  for (const [id, sets] of groups) root.append(exerciseBlock(workout, sets, focus && id !== opened));
+  if (!groups.size) root.append(node("p", "아직 종목이 없어요. 아래에서 종목을 추가해 보세요.", "empty-state"));
+  const add = button("", () => openPicker(workout), focus ? "dashed add-more" : "primary add-exercise");
+  add.innerHTML = SVG_PLUS + "<span>종목 추가</span>";
   root.append(add);
+}
+// Monday-to-Sunday count of sessions, for the start card.
+function weekCount() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const monday = new Date(today); monday.setDate(today.getDate() - (today.getDay() + 6) % 7);
+  return state.workouts.filter((item) => item.workout_date >= localDate(monday)).length;
+}
+function whenText(workout) {
+  const days = Math.round((new Date(localDate() + "T12:00:00") - new Date(workout.workout_date + "T12:00:00")) / 86400000);
+  const date = new Date(workout.workout_date + "T12:00:00");
+  return days === 1 ? "어제" : days < 7 ? days + "일 전" : (date.getMonth() + 1) + "월 " + date.getDate() + "일";
+}
+// The last few distinct sessions before today, to start again with their numbers.
+function recentRoutines() {
+  const seen = new Set(), routines = [];
+  for (const workout of state.workouts) {
+    const title = titleOf(workout);
+    if (workout.workout_date >= localDate() || !workout.sets.length || seen.has(title)) continue;
+    seen.add(title); routines.push(workout);
+    if (routines.length === 3) break;
+  }
+  return routines;
 }
 function renderToday(today) {
   const root = $("#today-card");
-  if (today) { renderSession(today, root); return; }
-  root.replaceChildren();
-  const start = node("div", null, "start-card");
-  start.append(node("h2", "오늘 운동을 시작해 볼까요?"), node("p", "운동을 추가하면 세트를 바로 기록할 수 있어요. 지난 운동의 ‘다시 하기’로 같은 구성을 불러올 수도 있어요.", "muted"));
-  const go = button("", (control) => mutate(control, async () => {
-    const workout = await api("/workouts", "POST", {workout_date: localDate(), title: "오늘 운동", started_at: new Date().toISOString()});
-    state.workouts.unshift(workout); renderToday(workout); openPicker(workout);
-  }), "primary add-exercise");
-  go.innerHTML = SVG_PLUS + "<span>오늘 운동 시작</span>";
-  start.append(go);
-  root.append(start);
+  if (today) { root.className = "session-card focus"; renderSession(today, root); return; }
+  stopRest();
+  root.className = "today-start";
+  const start = node("section", null, "start-card");
+  const now = new Date();
+  start.append(node("p", (now.getMonth() + 1) + "월 " + now.getDate() + "일 · 이번 주 " + weekCount() + "회", "start-sub"));
+  const next = nextRoutine();
+  if (next) {
+    // With routines: the next one in the rotation, ready to start; the others one tap away.
+    const title = node("h2");
+    title.append("오늘은 ", node("em", next.name), " 할 차례예요");
+    start.append(title, node("p", routineSummary(next), "start-plan"));
+    const go = button("", (control) => mutate(control, () => startRoutine(next)), "primary start-button");
+    go.innerHTML = SVG_PLAY;
+    go.append(node("span", next.name + " 시작"));
+    start.append(go);
+    const others = state.routines.filter((item) => item !== next);
+    const row = node("div", null, "start-others");
+    for (const routine of others) row.append(button(routine.name, (control) => mutate(control, () => startRoutine(routine)), "chip"));
+    row.append(button("직접 고르기", (control) => mutate(control, () => openPicker(null, "start")), "chip ghost"));
+    start.append(row);
+  } else {
+    start.append(node("h2", "오늘은 무엇을 할까요?"));
+    const go = button("", (control) => mutate(control, () => openPicker(null, "start")), "primary start-button");
+    go.innerHTML = SVG_PLAY + "<span>종목 골라서 시작</span>";
+    start.append(go, button("자주 하는 구성을 루틴으로 저장해 두면 순서대로 알려 드려요 ›", () => openRoutines(), "link-button start-hint"));
+  }
+  const parts = [start];
+  const routines = recentRoutines();
+  if (routines.length) {
+    const box = node("section", null, "routines");
+    const heading = node("div", null, "routines-head");
+    heading.append(node("h2", "최근 운동 다시 하기"), node("span", "지난번 무게로 채워져요"));
+    box.append(heading);
+    for (const workout of routines) {
+      const row = node("div", null, "routine");
+      const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
+      const text = node("span", null, "routine-text");
+      const minutes = workout.started_at && workout.ended_at ? " · " + Math.round((new Date(workout.ended_at) - new Date(workout.started_at)) / 60000) + "분" : "";
+      text.append(node("strong", titleOf(workout)), node("span", names.slice(0, 3).join(" · ") + (names.length > 3 ? " 외 " + (names.length - 3) : "")),
+        node("small", whenText(workout) + " · " + workout.sets.length + "세트" + minutes));
+      const again = button("시작", (control) => mutate(control, () => repeat(workout)), "routine-start");
+      again.setAttribute("aria-label", titleOf(workout) + " 다시 시작");
+      row.append(text, again);
+      box.append(row);
+    }
+    parts.push(box);
+  }
+  root.replaceChildren(...parts);
 }
 
 // ---- list ---------------------------------------------------------------------------------------
+// One line per exercise of a past session: its heaviest done set and how many sets (cardio: its totals).
+function exerciseLines(workout) {
+  return [...exerciseGroups(workout).values()].map((sets) => {
+    const exercise = userExercise(sets[0].exercise), tracking = trackingOf(exercise);
+    const done = sets.filter((set) => set.completed);
+    const shown = done.length ? done : sets;
+    if (TRACKING[tracking].cardio) return [exercise.name, cardioSummary(shown) || "기록 없음"];
+    const best = shown.reduce((a, b) => (b.weight ?? -1) > (a.weight ?? -1) ? b : a);
+    return [exercise.name, setText(best, tracking) + " · " + shown.length + "세트"];
+  });
+}
+// A past session folds to a line (date, name, what it held) and opens to its exercises.
 function pastItem(workout) {
-  const item = node("div", null, "past-item");
-  const link = node("a", null, "past-link"); link.href = "/workouts#" + workout.id;
+  const item = node("details", null, "past-item");
+  const summary = node("summary", null, "past-summary");
+  const date = new Date(workout.workout_date + "T12:00:00");
+  const day = node("span", null, "past-date");
+  day.append(node("small", WEEKDAYS[date.getDay()]), node("b", String(date.getDate()), "num"));
   const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
   // Strength work counts sets; a run or other cardio shows its distance, time and pace instead.
   const cardio = workout.sets.filter((set) => TRACKING[trackingOf(userExercise(set.exercise))].cardio);
   const strength = workout.sets.length - cardio.length;
   const amount = [strength && strength + "세트", cardioSummary(cardio)].filter(Boolean).join(" · ");
   const text = node("span", null, "past-text");
-  text.append(node("strong", workout.title), node("span", (names.slice(0, 3).join(" · ") || "세트 없음") + (names.length > 3 ? " 외" : "") + (amount ? " · " + amount : "")));
-  link.append(text);
-  link.insertAdjacentHTML("beforeend", SVG_CHEVRON);
-  item.append(link);
-  if (workout.sets.length) item.append(button("다시 하기", (control) => mutate(control, () => repeat(workout)), "small"));
+  text.append(node("strong", titleOf(workout)), node("span", (names.slice(0, 2).join(" · ") || "세트 없음") + (names.length > 2 ? " 외 " + (names.length - 2) : "") + (amount ? " · " + amount : "")));
+  summary.append(day, text);
+  summary.insertAdjacentHTML("beforeend", SVG_DOWN);
+  const body = node("div", null, "past-body");
+  for (const [name, value] of exerciseLines(workout)) {
+    const line = node("p", null, "past-line");
+    line.append(node("span", name), node("span", value, "num"));
+    body.append(line);
+  }
+  const actions = node("div", null, "past-actions");
+  if (workout.sets.length && workout.workout_date !== localDate()) actions.append(button("오늘 다시 하기", (control) => mutate(control, () => repeat(workout)), "primary"));
+  const edit = node("a", "수정", "past-edit"); edit.href = "/workouts#" + workout.id;
+  actions.append(edit);
+  body.append(actions);
+  item.append(summary, body);
   return item;
 }
+// Plans copy over; outcomes (calories, heart rate) do not.
+const OUTCOMES = {calories: null, heart_rate: null, max_heart_rate: null, cadence: null, max_cadence: null, steps: null, elevation_gain_m: null, best_pace_seconds: null};
 // Copy a past session's exercises and numbers into today's workout as unfinished sets.
 async function repeat(source) {
-  let today = state.workouts.find((item) => item.workout_date === localDate());
+  let today = todayWorkout();
   if (!today) {
-    today = await api("/workouts", "POST", {workout_date: localDate(), title: source.title, body_part: source.body_part, started_at: new Date().toISOString()});
+    today = await api("/workouts", "POST", {workout_date: localDate(), title: titleOf(source), body_part: source.body_part, started_at: new Date().toISOString()});
     state.workouts.unshift(today);
   }
   const used = new Map();
   for (const set of today.sets) used.set(set.exercise_id, Math.max(used.get(set.exercise_id) || 0, set.set_number));
   const copies = [...source.sets].sort((a, b) => a.id - b.id).map((set) => {
     const next = (used.get(set.exercise_id) || 0) + 1; used.set(set.exercise_id, next);
-    // Plans copy over; outcomes (calories, heart rate) do not.
-    return setPayload(set, {set_number: next, completed: false, memo: null, calories: null, heart_rate: null,
-      max_heart_rate: null, cadence: null, max_cadence: null, steps: null, elevation_gain_m: null, best_pace_seconds: null});
+    return setPayload(set, {set_number: next, completed: false, memo: null, ...OUTCOMES});
   });
   Object.assign(today, await api("/workouts/" + today.id + "/sets/batch", "POST", copies));
-  notice("‘" + source.title + "’ 구성을 오늘 운동에 불러왔어요.");
-  if (location.hash) location.hash = ""; else { renderWeek(); renderCurrent(); renderCalendar(); }
+  notice("‘" + titleOf(source) + "’ 구성을 불러왔어요. 지난번 무게로 채웠어요.");
+  showView("today");
+  if (location.hash) location.hash = ""; else { renderCurrent(); renderCalendar(); }
   window.scrollTo({top: 0, behavior: "smooth"});
 }
-function renderWeek() {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const monday = new Date(today); monday.setDate(today.getDate() - (today.getDay() + 6) % 7);
-  const days = Array.from({length: 7}, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return localDate(d); });
-  const week = state.workouts.filter((item) => item.workout_date >= days[0] && item.workout_date <= days[6]);
-  const done = week.flatMap((item) => item.sets.filter((set) => set.completed));
-  const volume = done.filter((set) => !TRACKING[trackingOf(userExercise(set.exercise))].cardio).reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
-  $("#week-count").textContent = week.length;
-  $("#week-sets").textContent = done.filter((set) => !TRACKING[trackingOf(userExercise(set.exercise))].cardio).length;
-  $("#week-volume").textContent = volume >= 1000 ? number(volume / 1000) + " t" : number(volume) + " kg";
-  const cardio = done.filter((set) => TRACKING[trackingOf(userExercise(set.exercise))].cardio);
-  const minutes = Math.round(cardio.reduce((sum, set) => sum + (set.duration_seconds || 0), 0) / 60);
-  const metres = cardio.reduce((sum, set) => sum + (rowDistance(set) || 0), 0);
-  $("#week-cardio").textContent = minutes || metres ? "유산소 " + [minutes && minutes + "분", metres && number(metres / 1000) + "km"].filter(Boolean).join(" · ") : "";
-  const bars = $("#week-bars"); bars.replaceChildren();
-  ["월", "화", "수", "목", "금", "토", "일"].forEach((name, i) => {
-    const trained = week.some((item) => item.workout_date === days[i]);
-    const item = node("li", null, (trained ? "on" : "") + (days[i] === localDate() ? " today" : ""));
-    item.setAttribute("aria-label", name + "요일 " + (trained ? "운동함" : "운동 안 함"));
-    item.append(node("span", name)); bars.append(item);
-  });
+// ---- routines -------------------------------------------------------------------------------------
+async function loadRoutines() {
+  state.routines = await api("/routines");
+  window.fitlogCache.set("routines", state.routines);
 }
+const exerciseById = (id) => state.exercises.find((item) => item.id === id);
+// The routine after the last one done before today, in list order; the first when none was done yet.
+function nextRoutine() {
+  const routines = state.routines;
+  if (!routines.length) return null;
+  const last = state.workouts.find((item) => item.workout_date < localDate() && routines.some((routine) => routine.id === item.routine_id));
+  if (!last) return routines[0];
+  return routines[(routines.findIndex((routine) => routine.id === last.routine_id) + 1) % routines.length];
+}
+function routineSummary(routine) {
+  return routine.items.map((item) => (exerciseById(item.exercise_id)?.name || "종목") + " " + item.sets).join(" · ");
+}
+// Today's workout from a routine: each exercise with its set count, filled from its last session.
+async function startRoutine(routine) {
+  if (!state.exercises.length) await loadExercises();
+  let today = todayWorkout();
+  if (!today) {
+    today = await api("/workouts", "POST", {workout_date: localDate(), title: routine.name, routine_id: routine.id, started_at: new Date().toISOString()});
+    state.workouts.unshift(today);
+  }
+  const additions = [];
+  for (const item of routine.items) {
+    const prev = previousSets(item.exercise_id, today);
+    const taken = Math.max(0, ...today.sets.filter((set) => set.exercise_id === item.exercise_id).map((set) => set.set_number));
+    for (let index = 0; index < item.sets; index++) {
+      const source = prev[index] || prev.at(-1);
+      additions.push(source ? setPayload(source, {set_number: taken + index + 1, completed: false, memo: null, ...OUTCOMES})
+        : {exercise_id: item.exercise_id, set_number: taken + index + 1, weight: null, reps: null, completed: false, memo: null});
+    }
+  }
+  state.focus = routine.items[0]?.exercise_id ?? null;
+  Object.assign(today, await api("/workouts/" + today.id + "/sets/batch", "POST", additions));
+  notice("‘" + routine.name + "’ 루틴을 시작했어요. 지난번 무게로 채웠어요.");
+  showView("today");
+  renderCurrent(); renderCalendar();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+async function openRoutines() {
+  try {
+    $("#menu-dialog").close();
+    await Promise.all([loadExercises(), loadRoutines()]);
+    renderRoutines();
+    $("#routine-dialog").showModal();
+  } catch (error) { notice(error.message, true); }
+}
+function renderRoutines() {
+  const list = $("#routine-list");
+  $("#routine-message").textContent = "";
+  if (!state.routines.length) { list.replaceChildren(node("p", "아직 루틴이 없어요. 운동을 끝낼 때 '이 구성을 루틴으로 저장'으로도 만들 수 있어요.", "empty-state")); return; }
+  list.replaceChildren(...state.routines.map((routine, index) => {
+    const row = node("div", null, "routine-row");
+    const open = button("", () => openRoutineEditor(routine), "routine-open");
+    open.append(node("strong", (index + 1) + ". " + routine.name), node("span", routineSummary(routine)));
+    const move = (by) => mutate(null, async () => {
+      const ids = state.routines.map((item) => item.id);
+      [ids[index], ids[index + by]] = [ids[index + by], ids[index]];
+      state.routines = await api("/routines/order", "PUT", {ids});
+      renderRoutines(); renderCurrent();
+    });
+    const up = button("↑", () => move(-1), "routine-move"); up.disabled = index === 0; up.setAttribute("aria-label", routine.name + " 위로");
+    const down = button("↓", () => move(1), "routine-move"); down.disabled = index === state.routines.length - 1; down.setAttribute("aria-label", routine.name + " 아래로");
+    row.append(open, up, down);
+    return row;
+  }));
+}
+function openRoutineEditor(routine = null) {
+  state.routineEdit = {id: routine?.id ?? null, items: routine ? routine.items.map((item) => ({...item})) : []};
+  const form = $("#routine-form");
+  fill(form, {name: routine?.name || ""});
+  $("#routine-editor-title").textContent = routine ? "루틴 고치기" : "새 루틴";
+  $("#routine-delete").hidden = !routine;
+  renderRoutineEditor();
+  $("#routine-editor").showModal();
+}
+function renderRoutineEditor() {
+  const edit = state.routineEdit, box = $("#routine-items");
+  if (!edit.items.length) { box.replaceChildren(node("p", "아래 '+ 종목 넣기'로 종목을 골라 주세요.", "empty-state")); return; }
+  box.replaceChildren(...edit.items.map((item, index) => {
+    const row = node("div", null, "routine-item");
+    row.append(node("span", exerciseById(item.exercise_id)?.name || "종목", "routine-item-name"));
+    const step = (by) => { item.sets = Math.min(20, Math.max(1, item.sets + by)); renderRoutineEditor(); };
+    const less = button("−", () => step(-1), "step"); less.setAttribute("aria-label", "세트 줄이기");
+    const more = button("+", () => step(1), "step"); more.setAttribute("aria-label", "세트 늘리기");
+    const up = button("↑", () => { [edit.items[index - 1], edit.items[index]] = [edit.items[index], edit.items[index - 1]]; renderRoutineEditor(); }, "step");
+    up.disabled = index === 0; up.setAttribute("aria-label", "위로");
+    const remove = button("×", () => { edit.items.splice(index, 1); renderRoutineEditor(); }, "step remove"); remove.setAttribute("aria-label", "빼기");
+    row.append(less, node("span", item.sets + "세트", "routine-sets num"), more, up, remove);
+    return row;
+  }));
+}
+// A finished session's done sets as a routine: its exercises in order, each with how many sets were done.
+function routineFrom(workout, name) {
+  const items = [...exerciseGroups(workout).values()].map((sets) => ({exercise_id: sets[0].exercise_id, sets: Math.min(20, sets.filter((set) => set.completed).length)}))
+    .filter((item) => item.sets > 0);
+  return {name: name.slice(0, 100), items};
+}
+
 function showList(items) {
   state.workouts = items;
-  renderWeek();
-  renderToday(state.workouts.find((item) => item.workout_date === localDate()));
+  renderToday(todayWorkout());
   renderCalendar();
+}
+// 오늘 / 기록 tabs; the choice lasts while the app is open.
+function showView(view) {
+  const history = view === "history";
+  $("#today-view").hidden = history; $("#history-view").hidden = !history;
+  $("#tab-today").setAttribute("aria-selected", String(!history)); $("#tab-history").setAttribute("aria-selected", String(history));
+  try { sessionStorage.setItem("workouts:view", view); } catch {}
 }
 
 // ---- calendar -----------------------------------------------------------------------------------
-// A month grid with a dot on each day with a workout; tapping a day lists that day's sessions below.
+// A month grid (folded to the two weeks around the picked day) and the picked day's sessions below it.
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const monthOf = (day) => day.slice(0, 7);
 function shiftMonth(month, by) {
@@ -538,34 +774,46 @@ function renderCalendar() {
   const calendar = state.calendar, today = localDate();
   calendar.month ??= monthOf(today);
   const month = calendar.month, items = monthWorkouts(month);
-  // Until a day is picked, show the latest session before today (today's is the card above).
-  if (!calendar.day || monthOf(calendar.day) !== month) {
-    calendar.day = items.find((item) => item.workout_date < today)?.workout_date || (month === monthOf(today) ? today : month + "-01");
+  // Until a day is tapped (calendar.picked): today when there was a session today, else the month's latest session day.
+  if (!calendar.picked || monthOf(calendar.day || "") !== month) {
+    calendar.picked = false;
+    calendar.day = items.find((item) => item.workout_date <= today)?.workout_date || (month === monthOf(today) ? today : month + "-01");
   }
   const [year, index] = month.split("-").map(Number);
-  $("#cal-title").textContent = year + "년 " + index + "월";
+  $("#cal-title").textContent = (year === Number(today.slice(0, 4)) ? "" : year + "년 ") + index + "월";
   $("#cal-next").disabled = month >= monthOf(today);
+  const sets = items.reduce((sum, item) => sum + item.sets.filter((set) => set.completed).length, 0);
+  $("#cal-stats").textContent = (items.length ? items.length + "회 · " + sets + "세트 · " : "") + "통계 ›";
   const counts = items.reduce((map, item) => map.set(item.workout_date, (map.get(item.workout_date) || 0) + 1), new Map());
   const first = new Date(year, index - 1, 1), length = new Date(year, index, 0).getDate();
   const cells = Array.from({length: (first.getDay() + 6) % 7}, () => node("span", null, "cal-blank"));
   for (let date = 1; date <= length; date++) {
     const day = month + "-" + String(date).padStart(2, "0"), count = counts.get(day) || 0;
-    const cell = button(String(date), () => { calendar.day = day; renderCalendar(); },
+    const cell = button(String(date), () => { calendar.day = day; calendar.picked = true; renderCalendar(); },
       "cal-date" + (count ? " on" : "") + (day === today ? " today" : "") + (day > today ? " future" : ""));
     cell.setAttribute("aria-pressed", String(day === calendar.day));
     cell.setAttribute("aria-label", index + "월 " + date + "일" + (day === today ? " 오늘" : "") + (count ? ", 운동 " + count + "회" : ""));
     cells.push(cell);
   }
-  $("#cal-grid").replaceChildren(...cells);
+  // Folded: the week of the picked day (else today, else the month's last week) and the one before it.
+  const anchor = calendar.day || (month === monthOf(today) ? today : month + "-" + String(length).padStart(2, "0"));
+  const row = Math.floor((cells.length - length + Number(anchor.slice(8)) - 1) / 7);
+  const shown = calendar.expanded ? cells : cells.slice(Math.max(0, row - 1) * 7, (row + 1) * 7);
+  $("#cal-grid").replaceChildren(...shown);
+  $("#cal-expand").textContent = calendar.expanded ? "달력 접기" : "달력 펼치기";
+  $("#cal-expand").setAttribute("aria-expanded", String(calendar.expanded));
   const picked = items.filter((item) => item.workout_date === calendar.day);
-  const date = new Date(calendar.day + "T12:00:00");
   const panel = $("#cal-day");
+  const date = new Date(calendar.day + "T12:00:00");
   const head = node("p", null, "cal-day-head");
   head.append(node("strong", (date.getMonth() + 1) + "월 " + date.getDate() + "일 " + WEEKDAYS[date.getDay()] + "요일"),
     node("span", picked.length ? "운동 " + picked.length + "회" : ""));
   panel.replaceChildren(head);
-  if (picked.length) { const list = node("div", null, "past-list"); list.append(...picked.map(pastItem)); panel.append(list); }
-  else panel.append(node("p", calendar.day > today ? "아직 오지 않은 날이에요." : state.calendar.months.has(month) ? "이 날은 운동 기록이 없어요." : "기록을 불러오는 중…", "empty-state"));
+  if (picked.length) {
+    const list = node("div", null, "past-list"); list.append(...picked.map(pastItem)); panel.append(list);
+    if (picked.length === 1) list.firstChild.open = true;
+  }
+  else panel.append(node("p", calendar.day > today ? "아직 오지 않은 날이에요." : !state.calendar.months.has(month) ? "기록을 불러오는 중…" : "이 날은 운동 기록이 없어요.", "empty-state"));
   // A saved copy is read-only (다시 하기 writes) until the month's current copy is in.
   panel.inert = calendar.stale;
 }
@@ -615,6 +863,19 @@ async function showRoute() {
     if (!hash) {
       state.calendar.month ??= monthOf(localDate());
       loadMonth(state.calendar.month).catch((error) => { if (route === state.route) notice(error.message, true); });
+      // Routines: this phone's copy at once, then the server's (they only change the start card).
+      state.routines = window.fitlogCache.get("routines") || state.routines;
+      loadRoutines().then(() => {
+        if (route !== state.route) return;
+        // /workouts?start=<routine id> (the home's 다음 할 일) starts that routine once, unless today already has a session.
+        const start = Number(new URLSearchParams(location.search).get("start"));
+        if (start) {
+          history.replaceState(null, "", location.pathname);
+          const routine = state.routines.find((item) => item.id === start);
+          if (routine && !todayWorkout()) { mutate(null, () => startRoutine(routine)); return; }
+        }
+        if (!todayWorkout()) renderToday(null);
+      }).catch(() => {});
       await window.fitlogShow(window.fitlogData.workouts, (items, stale) => {
         if (route !== state.route) return;
         showList(items);
@@ -635,7 +896,7 @@ async function showRoute() {
     $("#list-view").inert = false;
     notice(error.message, true);
     if (showedCache) return; // keep the saved copy on screen rather than an empty error
-    (hash ? $("#workout-detail") : $("#workout-list")).replaceChildren(node("p", "기록을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
+    (hash ? $("#workout-detail") : $("#workout-list")).replaceChildren(node("p", "기록을 불러오지 못했어요. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
   }
 }
 
@@ -655,7 +916,7 @@ function candidates() {
   return [...custom, ...presets];
 }
 function renderPicker() {
-  const picker = state.picker, browse = !picker.workout; // browse: look exercises up without adding them
+  const picker = state.picker, browse = !picker.workout && !picker.mode; // browse: look exercises up without adding them
   const query = squash($("#picker-query").value);
   const chips = (root, values, current, pick) => {
     root.replaceChildren(...values.map((value) => {
@@ -698,13 +959,17 @@ function renderPicker() {
   $("#picker-custom").textContent = "‘" + typed + "’ 내 종목으로 만들기" + (picker.part !== "전체" ? " · " + picker.part : "") + (!["전체", "기구"].includes(picker.gear) ? " · " + picker.gear : "");
   $("#picker-selected").textContent = picker.picked.size + "개 선택";
   $("#picker-add").disabled = !picker.picked.size;
+  $("#picker-add").textContent = picker.mode === "start" ? (picker.picked.size ? picker.picked.size + "개로 시작" : "종목을 골라 주세요")
+    : picker.mode === "routine" ? "루틴에 넣기" : "종목 추가";
 }
-async function openPicker(workout = null) {
+// workout: add to it. mode "start": today's workout is made when the picked exercises are added; "routine": they
+// go into the routine being edited. Neither: just browse.
+async function openPicker(workout = null, mode = null) {
   try {
     await Promise.all([loadCatalog(), loadExercises()]);
-    Object.assign(state.picker, {workout, picked: new Map()});
-    $("#picker-title").textContent = workout ? "운동 추가" : "운동 종목";
-    $("#picker-foot").hidden = !workout;
+    Object.assign(state.picker, {workout, mode, picked: new Map()});
+    $("#picker-title").textContent = mode === "start" ? "종목 고르기" : mode === "routine" ? "루틴에 넣을 종목" : workout ? "종목 추가" : "종목 둘러보기";
+    $("#picker-foot").hidden = !workout && !mode;
     $("#picker-query").value = "";
     renderPicker();
     $("#picker-dialog").showModal();
@@ -721,19 +986,103 @@ async function ensureExercise(item) {
   state.exercises.push(created);
   return created;
 }
+// Each picked exercise comes with the sets of its last session (numbers filled, not done), else one empty set.
 async function addPicked(items) {
-  const workout = state.picker.workout;
+  let workout = state.picker.workout;
   const additions = [];
   // New exercises are created side by side; then one request adds all the sets.
   const exercises = await Promise.all(items.map(ensureExercise));
+  if (state.picker.mode === "routine") {
+    const edit = state.routineEdit;
+    for (const exercise of exercises) {
+      if (edit.items.some((item) => item.exercise_id === exercise.id)) continue;
+      edit.items.push({exercise_id: exercise.id, sets: previousSets(exercise.id, {id: 0, workout_date: "9999-12-31"}).length || 3});
+    }
+    $("#picker-dialog").close();
+    renderRoutineEditor();
+    return;
+  }
+  if (!workout) {
+    workout = await api("/workouts", "POST", {workout_date: localDate(), title: DEFAULT_TITLE, started_at: new Date().toISOString()});
+    state.workouts.unshift(workout);
+  }
+  let filled = 0;
   for (const exercise of exercises) {
     const sets = workout.sets.filter((set) => set.exercise_id === exercise.id);
-    additions.push({exercise_id: exercise.id, set_number: Math.max(0, ...sets.map((set) => set.set_number)) + 1,
-      weight: null, reps: null, completed: false, memo: null});
+    const next = Math.max(0, ...sets.map((set) => set.set_number)) + 1;
+    const prev = previousSets(exercise.id, workout);
+    if (prev.length) filled++;
+    if (prev.length) additions.push(...prev.map((set, index) => setPayload(set, {set_number: next + index, completed: false, memo: null, ...OUTCOMES})));
+    else additions.push({exercise_id: exercise.id, set_number: next, weight: null, reps: null, completed: false, memo: null});
   }
+  if (!workout.sets.length) state.focus = exercises[0].id;
   applyWorkout(workout, await api("/workouts/" + workout.id + "/sets/batch", "POST", additions));
   $("#picker-dialog").close();
-  notice(items.length + "개 운동을 추가했어요. 세트 표에 중량과 횟수를 적어 주세요.");
+  if (workout === todayWorkout()) showView("today");
+  notice(items.length + "개 종목을 추가했어요." + (filled ? " 지난번 무게와 횟수로 채웠어요." : ""));
+}
+
+// ---- during a session: rest timer, next exercise, finish ---------------------------------------------
+// After a set is ticked: rest, and when the exercise is done, open the next one with sets left.
+function afterSet(workout, set, config) {
+  const groups = exerciseGroups(workout), sets = groups.get(set.exercise_id) || [];
+  const left = sets.find((item) => !item.completed);
+  if (!left) {
+    const ids = [...groups.keys()], at = ids.indexOf(set.exercise_id);
+    const next = [...ids.slice(at + 1), ...ids.slice(0, at)].find((id) => groups.get(id).some((item) => !item.completed));
+    if (next != null) state.focus = next;
+  }
+  if (config.cardio) return;
+  const nextSet = left || [...groups.values()].flat().find((item) => !item.completed);
+  startRest(nextSet ? "다음 " + nextSet.exercise.name + " " + nextSet.set_number + "세트" : "마지막 세트까지 끝났어요");
+}
+function startRest(label) {
+  state.rest.until = Date.now() + REST_SECONDS * 1000;
+  $("#rest-label").textContent = "휴식 · " + label;
+  clearInterval(state.rest.timer);
+  state.rest.timer = setInterval(tickRest, 500);
+  tickRest();
+  $("#rest-bar").hidden = false;
+}
+function tickRest() {
+  const left = Math.ceil((state.rest.until - Date.now()) / 1000);
+  if (left <= 0) { stopRest(); navigator.vibrate?.(300); return; }
+  $("#rest-clock").textContent = clock(left);
+}
+function stopRest() { clearInterval(state.rest.timer); state.rest.timer = null; $("#rest-bar").hidden = true; }
+
+// The finish sheet: what was done, what improved, a name, a memo, and whether to drop sets left unticked.
+function bestWeights(exerciseId, sets) { return Math.max(0, ...sets.filter((set) => set.exercise_id === exerciseId && set.completed).map((set) => set.weight || 0)); }
+function openFinish(workout) {
+  state.finish = workout;
+  const done = workout.sets.filter((set) => set.completed), left = workout.sets.length - done.length;
+  const strength = done.filter((set) => !TRACKING[trackingOf(userExercise(set.exercise))].cardio);
+  const volume = strength.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
+  const start = workout.started_at ? new Date(workout.started_at) : null;
+  const stats = [["세트", String(done.length)], ["볼륨", volume >= 1000 ? number(volume / 1000) + "t" : number(volume) + "kg"],
+    ["시간", start ? minutesSince(start) + "분" : "—"]];
+  $("#finish-stats").replaceChildren(...stats.map(([label, value]) => { const cell = node("p"); cell.append(node("span", label), node("strong", value, "num")); return cell; }));
+  $("#finish-time").textContent = workout.workout_date.slice(5).replace("-", "월 ").replace(/^0/, "") + "일" + (start ? " · " + start.toTimeString().slice(0, 5) + " 시작" : "");
+  // Heaviest weight per exercise against every earlier session loaded on this page.
+  const earlier = state.workouts.filter((item) => item.id !== workout.id && item.workout_date <= workout.workout_date).flatMap((item) => item.sets);
+  const better = [...new Set(strength.map((set) => set.exercise_id))].map((id) => {
+    const now = bestWeights(id, workout.sets), before = bestWeights(id, earlier);
+    return {name: strength.find((set) => set.exercise_id === id).exercise.name, now, before};
+  }).filter((item) => item.before > 0 && item.now > item.before).slice(0, 3);
+  $("#finish-best").hidden = !better.length;
+  $("#finish-best-list").replaceChildren(...better.map((item) => {
+    const line = node("p", null, "best-line");
+    line.append(node("strong", item.name + " " + number(item.now) + "kg"), node("span", "최고 무게 · 지난 기록 " + number(item.before) + "kg"));
+    return line;
+  }));
+  const form = $("#finish-form");
+  fill(form, {title: titleOf(workout), memo: workout.memo});
+  form.elements.drop.checked = true;
+  $("#finish-drop-row").hidden = !left || !done.length;
+  $("#finish-drop-text").textContent = "체크하지 않은 세트 " + left + "개는 지우기";
+  form.elements.save_routine.checked = false;
+  $("#finish-save-row").hidden = workout.routine_id != null || !done.length;
+  $("#finish-dialog").showModal();
 }
 
 // ---- exercise sheet -----------------------------------------------------------------------------
@@ -822,7 +1171,7 @@ function renderExercises() {
     item.insertAdjacentHTML("beforeend", SVG_CHEVRON);
     return item;
   }));
-  if (!shown.length) list.append(node("p", query ? "맞는 종목이 없어요." : "등록된 종목이 없습니다.", "empty-state"));
+  if (!shown.length) list.append(node("p", query ? "맞는 종목이 없어요." : "등록된 종목이 없어요.", "empty-state"));
 }
 // The editor: name for every exercise; equipment, recording type, muscles (on the figure) and body part
 // for the user's own ones. A preset-linked exercise shows the preset's figure instead.
@@ -929,7 +1278,7 @@ $("#workout-form").addEventListener("submit", (event) => {
       started_at: form.elements.started_at.value ? new Date(form.elements.started_at.value).toISOString() : null,
       ended_at: form.elements.ended_at.value ? new Date(form.elements.ended_at.value).toISOString() : null};
     await api("/workouts" + (state.editWorkout ? "/" + state.editWorkout : ""), state.editWorkout ? "PUT" : "POST", body);
-    $("#workout-dialog").close(); notice("운동을 저장했습니다."); await showRoute();
+    $("#workout-dialog").close(); notice("운동을 저장했어요."); await showRoute();
   });
 });
 $("#exercise-form").addEventListener("submit", (event) => {
@@ -961,6 +1310,7 @@ document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener(
 }));
 $("#exercise-dialog").addEventListener("close", () => showRoute());
 $("#manage-exercises").addEventListener("click", async () => {
+  $("#menu-dialog").close();
   try { await loadExercises(); $("#exercise-query").value = ""; renderExercises(); $("#cleanup-message").textContent = ""; $("#muscle-fix-message").textContent = ""; $("#exercise-dialog").showModal();
     renderCleanup().catch((error) => notice(error.message, true)); renderMuscleFix().catch((error) => notice(error.message, true)); }
   catch (error) { notice(error.message, true); }
@@ -974,10 +1324,65 @@ $("#exercise-delete").addEventListener("click", () => submitForm($("#exercise-fo
   $("#exercise-editor").close();
   await loadExercises(); renderExercises(); renderMuscleFix().catch(() => {}); renderCleanup().catch(() => {});
 }));
-$("#browse-exercises").addEventListener("click", () => openPicker());
+$("#browse-exercises").addEventListener("click", () => { $("#menu-dialog").close(); openPicker(); });
+$("#menu-button").addEventListener("click", () => $("#menu-dialog").showModal());
+$("#manage-routines").addEventListener("click", () => openRoutines());
+$("#routine-new").addEventListener("click", () => openRoutineEditor());
+$("#routine-add").addEventListener("click", () => openPicker(null, "routine"));
+$("#routine-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget, edit = state.routineEdit;
+  submitForm(form, async () => {
+    if (!edit.items.length) throw new Error("종목을 하나 이상 넣어 주세요.");
+    const saved = await api("/routines" + (edit.id ? "/" + edit.id : ""), edit.id ? "PUT" : "POST", {name: form.elements.name.value.trim(), items: edit.items});
+    const index = state.routines.findIndex((item) => item.id === saved.id);
+    if (index >= 0) state.routines[index] = saved; else state.routines.push(saved);
+    $("#routine-editor").close();
+    renderRoutines(); renderCurrent();
+  });
+});
+$("#routine-delete").addEventListener("click", () => submitForm($("#routine-form"), async () => {
+  const edit = state.routineEdit;
+  if (!confirm("이 루틴을 삭제할까요? 지난 운동 기록은 그대로 남아요.")) return;
+  await api("/routines/" + edit.id, "DELETE");
+  state.routines = state.routines.filter((item) => item.id !== edit.id);
+  $("#routine-editor").close();
+  renderRoutines(); renderCurrent();
+}));
+$("#tab-today").addEventListener("click", () => showView("today"));
+$("#tab-history").addEventListener("click", () => showView("history"));
+$("#cal-expand").addEventListener("click", () => { state.calendar.expanded = !state.calendar.expanded; renderCalendar(); });
+$("#rest-more").addEventListener("click", () => { state.rest.until += 30000; tickRest(); });
+$("#rest-skip").addEventListener("click", stopRest);
+$("#finish-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget, workout = state.finish;
+  submitForm(form, async () => {
+    // Pending set saves land first, so a set ticked just before finishing is not dropped.
+    await (queues.get(workout.id) || Promise.resolve());
+    if (form.elements.drop.checked && !$("#finish-drop-row").hidden) {
+      for (const set of workout.sets.filter((item) => !item.completed)) await api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE");
+      workout.sets = workout.sets.filter((item) => item.completed);
+    }
+    const body = {workout_date: workout.workout_date, title: form.elements.title.value.trim(), body_part: workout.body_part,
+      memo: textValue(form, "memo"), started_at: workout.started_at, ended_at: new Date().toISOString()};
+    if (form.elements.save_routine.checked && !$("#finish-save-row").hidden) {
+      const routine = await api("/routines", "POST", routineFrom(workout, body.title));
+      state.routines.push(routine);
+      body.routine_id = routine.id;
+    }
+    await api("/workouts/" + workout.id, "PUT", body);
+    Object.assign(workout, body);
+    $("#finish-dialog").close();
+    stopRest(); state.focus = null;
+    notice("운동을 저장했어요. 수고했어요!");
+    renderCurrent(); renderCalendar();
+  });
+});
 $("#cal-prev").addEventListener("click", () => moveMonth(-1));
 $("#cal-next").addEventListener("click", () => moveMonth(1));
 window.addEventListener("hashchange", showRoute);
+try { showView(sessionStorage.getItem("workouts:view") === "history" ? "history" : "today"); } catch { showView("today"); }
 window.fitlogOnSync = showRoute;
 FitAnatomy.load().catch(() => {});
 showRoute();

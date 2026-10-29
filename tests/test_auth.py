@@ -49,7 +49,8 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/me").status_code, 401)
         login(self.client, self.user)
         self.assertEqual(self.client.get("/api/me").json(),
-                         {"id": self.user.id, "email": "owner@example.com", "display_name": None, "role": "admin", "version": config.APP_VERSION})
+                         {"id": self.user.id, "email": "owner@example.com", "display_name": None, "role": "admin", "version": config.APP_VERSION,
+                          "tracking": None, "needs_setup": True})
         # Sleep reserves the writer with BEGIN IMMEDIATE on the request session the lookup already used.
         self.assertEqual(self.client.post("/api/sleep", json=SLEEP).status_code, 201)
         self.assertEqual(self.client.post("/api/meals", json=MEAL).status_code, 201)
@@ -177,7 +178,7 @@ class SessionTests(unittest.TestCase):
         static = Path(__file__).resolve().parents[1] / "app" / "static"
         app_js = (static / "js" / "app.js").read_text(encoding="utf-8")
         self.assertIn('location.replace("/login?next="', app_js)
-        for page in ["index.html", "body.html", "meals.html", "records.html", "settings.html", "statistics.html", "workouts.html"]:
+        for page in ["index.html", "body.html", "body-metrics.html", "meals.html", "records.html", "settings.html", "statistics.html", "workouts.html"]:
             scripts = re.findall(r'<script[^>]*src="([^"]+)"', (static / page).read_text(encoding="utf-8"))
             self.assertEqual(scripts[0].split("?")[0], "/static/js/app.js", page)
         settings = (static / "settings.html").read_text(encoding="utf-8")

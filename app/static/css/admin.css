@@ -18,4 +18,4 @@
 #preset-dialog .field-label{margin:4px 0 -4px}
 #preset-dialog .chips{display:flex;flex-wrap:wrap;gap:6px}
 #preset-dialog button.chip{min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:16px;font-size:12px;background:var(--surface);color:var(--ink)}
-#preset-dialog button.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+#preset-dialog button.chip.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:700}

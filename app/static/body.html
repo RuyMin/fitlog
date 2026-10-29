@@ -1,11 +1,12 @@
 <!doctype html>
 <html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#183f35"><title>FitLog · 몸·추이</title>
+<meta name="theme-color" content="#f4f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17191b" media="(prefers-color-scheme: dark)"><title>FitLog · 몸</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-<link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/body.css?v=20261023.2">
-<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/body.js?v=20261023.2" defer></script>
+<link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/quick.css?v=20261023.2"><link rel="stylesheet" href="/static/css/body.css?v=20261023.2">
+<script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/quick.js?v=20261023.2" defer></script><script src="/static/js/body.js?v=20261023.2" defer></script>
 </head><body>
 <a class="skip" href="#main">본문으로 이동</a>
 <aside class="sidebar">
@@ -19,43 +20,28 @@
 <a href="/body" data-nav="/body /body-metrics /sleep /statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
 <a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
 </nav>
-<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+<p class="sidebar-footer">나의 건강 기록<br><span>한 번에 하루씩, 나의 속도로.</span></p>
 </aside>
 <main id="main" class="body-page">
-<header class="topbar"><div><p id="today" class="date"></p><h1>몸 · 추이</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
-
-<div class="period" role="group" aria-label="기간">
-<button type="button" data-days="30" aria-pressed="false">1개월</button>
-<button type="button" data-days="90" aria-pressed="true">3개월</button>
-<button type="button" data-days="365" aria-pressed="false">1년</button>
-</div>
+<header class="topbar"><div><p id="today" class="date"></p><h1>몸</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
 <p id="notice" role="status" aria-live="polite"></p>
 
-<section class="card composition" aria-labelledby="composition-title">
-<div class="section-heading"><h2 id="composition-title">체성분</h2><span id="measured-at"></span></div>
-<div id="composition-rows" class="composition-rows"></div>
-<p class="composition-note">막대는 선택한 기간의 <strong>최저~최고 사이에서 지금 위치</strong>예요. 의학적 표준치가 아니며, 변화량은 직전 측정과 비교한 값이에요.</p>
-<a class="card-action" href="/body-metrics#new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>측정 추가</a>
-</section>
+<a class="body-card" href="/body-metrics" aria-labelledby="weight-title">
+<div class="body-card-head"><h2 id="weight-title">체중</h2><span id="weight-when"></span></div>
+<div class="body-weight"><div class="body-big"><strong id="weight-now" class="num">–</strong><span id="weight-change" class="num"></span></div><svg id="weight-spark" viewBox="0 0 180 56" role="img" aria-label="최근 3개월 체중"></svg></div>
+<div class="body-comp"><span>골격근 <b id="muscle-now" class="num">–</b> kg <i id="muscle-change" class="num"></i></span><span>체지방 <b id="fat-now" class="num">–</b> % <i id="fat-change" class="num"></i></span></div>
+</a>
 
-<section class="card trends" aria-labelledby="trend-title">
-<div class="section-heading"><h2 id="trend-title">변화</h2><span id="trend-range"></span></div>
-<div id="trend-charts" class="trend-charts"></div>
-</section>
+<a class="body-card" href="/sleep" aria-labelledby="sleep-title">
+<div class="body-card-head"><h2 id="sleep-title">수면</h2><span id="sleep-average"></span></div>
+<div class="body-sleep"><div class="body-big"><small>어젯밤</small><strong id="sleep-last" class="num">–</strong><span id="sleep-goal-note"></span></div><div id="sleep-bars" class="body-bars" aria-hidden="true"></div></div>
+</a>
 
-<section class="card sleep-week" aria-labelledby="sleep-title">
-<div class="section-heading"><h2 id="sleep-title">수면</h2><span id="sleep-note"></span></div>
-<div class="sleep-bars" id="sleep-bars"><span class="sleep-goal-line" id="sleep-goal-line" hidden></span></div>
-<a class="card-action" href="/sleep#new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>수면 기록</a>
-</section>
+<a class="body-card body-stats" href="/statistics"><span class="body-stats-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 15l4-5 4 3 5-7"></path></svg></span><span class="body-stats-text"><strong>운동 통계</strong><span id="stats-line">이번 달 운동을 불러오는 중</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
 
-<nav class="body-links" aria-label="기록 관리">
-<a href="/body-metrics"><span>체중·신체 기록 전체</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
-<a href="/sleep"><span>수면 기록 전체</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
-<a href="/statistics"><span>운동 통계</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
-</nav>
+<div class="body-actions"><button type="button" data-quick="weight">+ 체중 기록</button><button type="button" data-quick="sleep">+ 수면 기록</button></div>
 
 <p id="pwa-note" class="muted pwa-note" role="status"></p>
-<noscript>몸·추이 화면에는 JavaScript와 서버 연결이 필요합니다.</noscript>
+<noscript>이 화면은 JavaScript를 켜야 볼 수 있어요.</noscript>
 </main>
 </body></html>

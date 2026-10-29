@@ -56,6 +56,9 @@ class StatisticsTests(unittest.TestCase):
         squat = result["exercises"][0]
         self.assertEqual(squat["name"], "Squat")
         self.assertEqual(squat["max_weight"], 65)
+        # First day in the period (9/20, done sets only) for the change shown beside the best.
+        self.assertEqual(squat["first_max_weight"], 60)
+        self.assertIsNone(squat["body_part"])
         self.assertEqual(squat["volume_kg_reps"], 805)
         self.assertEqual([point["volume_kg_reps"] for point in squat["daily_volume"]], [480,325])
         self.assertEqual(result["exercises"][1]["volume_kg_reps"], 0)
@@ -166,5 +169,5 @@ class StatisticsTests(unittest.TestCase):
         self.assertEqual(response.status_code,200,response.text)
         self.assertEqual(response.headers["cache-control"],"no-store")
         self.assertEqual(counts(),before)
-        for path in ["/statistics","/static/js/statistics.js","/static/js/charts.js","/static/css/statistics.css"]:
+        for path in ["/statistics","/static/js/statistics.js","/static/css/statistics.css"]:
             self.assertEqual(self.client.get(path).status_code,200)

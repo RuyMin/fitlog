@@ -143,8 +143,12 @@ def body_page() -> HTMLResponse:
 
 
 @app.get("/body-metrics", include_in_schema=False)
+def body_metrics_page() -> HTMLResponse:
+    return page("body-metrics.html")
+
+
 @app.get("/sleep", include_in_schema=False)
-def records_page() -> HTMLResponse:
+def sleep_page() -> HTMLResponse:
     return page("records.html")
 
 
@@ -161,6 +165,11 @@ def settings_page() -> HTMLResponse:
 @app.get("/statistics", include_in_schema=False)
 def statistics_page() -> HTMLResponse:
     return page("statistics.html")
+
+
+@app.get("/welcome", include_in_schema=False)
+def welcome_page() -> HTMLResponse:
+    return page("welcome.html")
 
 
 @app.get("/workouts", include_in_schema=False)

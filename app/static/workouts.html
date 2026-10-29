@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#183f35"><title>FitLog · 운동 기록</title>
+<meta name="theme-color" content="#f4f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17191b" media="(prefers-color-scheme: dark)"><title>FitLog · 운동 기록</title>
 <link rel="manifest" href="/manifest.json"><link rel="icon" href="/static/icons/icon.svg">
 <link rel="stylesheet" href="/static/css/app.css?v=20261023.2"><link rel="stylesheet" href="/static/css/workouts.css?v=20261023.2"><link rel="stylesheet" href="/static/css/anatomy.css?v=20261023.2"><link rel="preload" id="anatomy-sprite" href="/static/img/anatomy.svg?v=1" as="fetch" crossorigin="anonymous"><link rel="preload" id="preset-catalog" href="/api/exercise-presets?v=1" as="fetch" crossorigin="anonymous"><link rel="stylesheet" href="/static/css/workout-log.css?v=20261023.2">
 <script src="/static/js/app.js?v=20261023.2" defer></script><script src="/static/js/anatomy.js?v=20261023.2" defer></script><script src="/static/js/workouts.js?v=20261023.2" defer></script>
@@ -20,32 +21,65 @@
 <a href="/body" data-nav="/body /body-metrics /sleep /statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
 <a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
 </nav>
-<p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
+<p class="sidebar-footer">나의 건강 기록<br><span>한 번에 하루씩, 나의 속도로.</span></p>
 </aside>
 <main id="main" class="workouts-page">
-<header class="topbar"><div><p id="today" class="date"></p><h1>운동</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
+<header class="topbar"><div><p id="today" class="date"></p><h1>운동</h1></div><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><button type="button" id="menu-button" class="profile-link menu-button" aria-label="종목 메뉴" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
 <p id="notice" role="status" aria-live="polite"></p>
 
 <section id="list-view" class="workouts-list-view">
-<section class="week-card" aria-labelledby="week-title">
-<div class="week-head"><h2 id="week-title">이번 주</h2><a href="/statistics">운동 통계 ›</a></div>
-<div class="week-stats"><p><strong id="week-count">—</strong> 회<span>운동</span></p><p><strong id="week-sets">—</strong> 세트<span>완료 세트</span></p><p><strong id="week-volume">—</strong><span>볼륨</span></p></div>
-<ol class="week-bars" id="week-bars" aria-label="이번 주 운동한 날"></ol>
-<p class="week-cardio" id="week-cardio"></p>
-</section>
-<section id="today-card" class="session-card" aria-live="polite"></section>
-<section class="calendar-card" aria-labelledby="past-title">
-<div class="section-heading"><h2 id="past-title">운동 캘린더</h2><div class="heading-links"><button type="button" id="browse-exercises" class="link-button">종목 둘러보기</button><button type="button" id="manage-exercises" class="link-button">내 종목 관리</button></div></div>
-<div class="cal-head"><button type="button" id="cal-prev" class="icon-button" aria-label="이전 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><h3 id="cal-title" aria-live="polite"></h3><button type="button" id="cal-next" class="icon-button" aria-label="다음 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></div>
+<div class="wo-tabs" role="tablist" aria-label="운동 보기"><button type="button" role="tab" id="tab-today" aria-selected="true" aria-controls="today-view">오늘</button><button type="button" role="tab" id="tab-history" aria-selected="false" aria-controls="history-view">기록</button></div>
+<section id="today-view" role="tabpanel" aria-labelledby="tab-today"><div id="today-card" aria-live="polite"></div></section>
+<section id="history-view" role="tabpanel" aria-labelledby="tab-history" hidden>
+<section class="calendar-card" aria-labelledby="cal-title">
+<div class="cal-head"><button type="button" id="cal-prev" class="icon-button" aria-label="이전 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><h2 id="cal-title" aria-live="polite"></h2><button type="button" id="cal-next" class="icon-button" aria-label="다음 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button><a id="cal-stats" class="cal-stats" href="/statistics"></a></div>
 <ol class="cal-weekdays" aria-hidden="true"><li>월</li><li>화</li><li>수</li><li>목</li><li>금</li><li>토</li><li>일</li></ol>
 <div id="cal-grid" class="cal-grid" role="group" aria-labelledby="cal-title"></div>
+<button type="button" id="cal-expand" class="cal-expand" aria-expanded="false">달력 펼치기</button>
+</section>
 <div id="cal-day" class="cal-day" aria-live="polite"></div>
 </section>
 </section>
-
+<div id="rest-bar" class="rest-bar" role="status" hidden><span class="rest-text"><span id="rest-label">휴식</span><b id="rest-clock" class="num">1:30</b></span><button type="button" id="rest-more">+30초</button><button type="button" id="rest-skip" class="rest-skip">건너뛰기</button></div>
+<dialog id="menu-dialog" class="sheet-dialog" aria-labelledby="menu-title">
+<div class="menu-sheet"><h2 id="menu-title">종목</h2>
+<button type="button" id="manage-routines" class="menu-row"><strong>루틴 관리</strong><span>자주 하는 운동 구성을 저장하고 돌아가며 하기</span></button>
+<button type="button" id="browse-exercises" class="menu-row"><strong>종목 둘러보기</strong><span>쓰는 근육과 내 기록</span></button>
+<button type="button" id="manage-exercises" class="menu-row"><strong>내 종목 관리</strong><span>이름·근육·기록 방식 고치기, 겹치는 종목 합치기</span></button>
+<button type="button" class="menu-close" data-close>닫기</button></div>
+</dialog>
+<dialog id="finish-dialog" class="sheet-dialog" aria-labelledby="finish-title">
+<form id="finish-form" class="finish">
+<p id="finish-time" class="muted"></p><h2 id="finish-title">수고했어요!</h2>
+<div id="finish-stats" class="finish-stats"></div>
+<section id="finish-best" class="finish-best" hidden><h3>오늘 좋아진 것</h3><div id="finish-best-list"></div></section>
+<div class="finish-fields"><label>이름<input name="title" maxlength="200" required></label><label>메모<input name="memo" maxlength="2000" placeholder="컨디션, 느낀 점 (선택)"></label></div>
+<label id="finish-save-row" class="finish-drop"><input type="checkbox" name="save_routine"><span>이 구성을 루틴으로 저장</span></label>
+<label id="finish-drop-row" class="finish-drop"><input type="checkbox" name="drop" checked><span id="finish-drop-text"></span></label>
+<p class="form-error" role="alert"></p>
+<button type="submit" class="primary">저장하고 닫기</button>
+<button type="button" class="link-button" data-close>아직 안 끝났어요</button>
+</form>
+</dialog>
+<dialog id="routine-dialog" class="sheet-dialog" aria-labelledby="routine-title">
+<div class="menu-sheet"><div class="picker-head"><h2 id="routine-title">루틴</h2><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<p class="hint">위에서부터 돌아가며 해요. 마지막에 한 루틴 다음 것을 '할 차례'로 보여 줘요.</p>
+<div id="routine-list" class="routine-list"></div>
+<p id="routine-message" class="form-error" role="alert"></p>
+<button type="button" id="routine-new" class="primary">+ 새 루틴</button></div>
+</dialog>
+<dialog id="routine-editor" class="sheet-dialog" aria-labelledby="routine-editor-title">
+<form id="routine-form" class="menu-sheet"><div class="picker-head"><h2 id="routine-editor-title">새 루틴</h2><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<label>이름 *<input name="name" maxlength="100" placeholder="예: 하체, 가슴 · 삼두" required></label>
+<div id="routine-items" class="routine-items"></div>
+<button type="button" id="routine-add" class="dashed">+ 종목 넣기</button>
+<p class="form-error" role="alert"></p>
+<div class="routine-buttons"><button type="button" id="routine-delete" class="danger">삭제</button><button type="submit" class="primary">저장</button></div>
+</form>
+</dialog>
 <section id="detail-view" hidden><a href="/workouts" class="back-link">← 운동 목록</a><div id="workout-detail" class="session-card"></div></section>
 <p id="pwa-note" class="muted pwa-note" role="status"></p>
-<noscript>운동 기록에는 JavaScript와 서버 연결이 필요합니다.</noscript>
+<noscript>이 화면은 JavaScript를 켜야 볼 수 있어요.</noscript>
 </main>
 
 <dialog id="workout-dialog" aria-labelledby="workout-form-title">

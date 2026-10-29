@@ -243,12 +243,12 @@ for (const link of document.querySelectorAll(".navigation [data-nav]")) {
 }
 
 const today = document.querySelector("#today");
-today.textContent = new Intl.DateTimeFormat("ko-KR", {
+if (today) today.textContent = new Intl.DateTimeFormat("ko-KR", {
   month: "long", day: "numeric", weekday: "long"
 }).format(new Date());
 
 function showServer(ok, version) {
-  serverState = ok ? {text: "● 서버 연결됨", className: "status ok"} : {text: "서버 연결을 확인해 주세요", className: "status error"};
+  serverState = ok ? {text: "", className: "status ok"} : {text: "연결이 안 돼요", className: "status error"};
   paintStatus();
   // The home footer and settings footer carry this element; other pages skip it.
   const label = document.querySelector("#app-version");
@@ -272,14 +272,10 @@ async function checkHealth() {
 }
 window.addEventListener("online", checkHealth);
 window.addEventListener("offline", () => {
-  serverState = {text: "오프라인 · 저장된 화면", className: "status error"};
+  serverState = {text: "인터넷 연결 없음", className: "status error"};
   paintStatus();
 });
-const pwaNote = document.querySelector("#pwa-note");
 if ("serviceWorker" in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register("/service-worker.js").catch(() => {
-    pwaNote.textContent = "앱 캐시를 준비하지 못했습니다. 온라인으로 계속 사용할 수 있어요.";
-  });
-} else if (!window.isSecureContext) {
-  pwaNote.textContent = "홈 화면 설치와 앱 캐시를 사용하려면 HTTPS로 접속해 주세요.";
+  // A failed registration only costs the offline copy; the app keeps working online, so nothing is shown.
+  navigator.serviceWorker.register("/service-worker.js").catch(() => {});
 }

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import BodyMetric, Exercise, SleepRecord, Workout, WorkoutSet
+from app.services import exercise_presets
 from app.services.records import utc_naive
 from app.statistics_schemas import (
     DailyStatistics, ExerciseStatistics, ExerciseVolumePoint, StatisticsResponse,
@@ -38,7 +39,8 @@ def get_statistics(
     for _, day in workouts:
         days[day].workouts_count += 1
     sets_query = select(
-        Workout.workout_date, WorkoutSet.exercise_id, Exercise.name, WorkoutSet.weight, WorkoutSet.reps
+        Workout.workout_date, WorkoutSet.exercise_id, Exercise.name, WorkoutSet.weight, WorkoutSet.reps,
+        Exercise.preset_id, Exercise.body_part,
     ).join(WorkoutSet, WorkoutSet.workout_id == Workout.id).join(
         Exercise, Exercise.id == WorkoutSet.exercise_id
     ).where(Workout.user_id == user_id, Workout.workout_date >= date_from, Workout.workout_date <= date_to)
@@ -46,13 +48,21 @@ def get_statistics(
         sets_query = sets_query.where(WorkoutSet.completed.is_(True))
     exercises: dict[int, ExerciseStatistics] = {}
     exercise_days: dict[int, dict[date, ExerciseVolumePoint]] = {}
-    for day, exercise_id, name, weight, reps in session.execute(sets_query):
+    first_day: dict[int, tuple[date, float | None]] = {}
+    for day, exercise_id, name, weight, reps, preset_id, body_part in session.execute(sets_query):
         if exercise_id not in exercises:
+            preset = exercise_presets.find(preset_id)
             exercises[exercise_id] = ExerciseStatistics(
                 exercise_id=exercise_id, name=name, sets_count=0, known_volume_sets=0,
                 max_weight=None, volume_kg_reps=None, daily_volume=[],
+                body_part=(preset or {}).get("body_part") or body_part,
             )
             exercise_days[exercise_id] = {}
+        seen = first_day.get(exercise_id)
+        if seen is None or day < seen[0]:
+            first_day[exercise_id] = (day, weight)
+        elif day == seen[0] and weight is not None:
+            first_day[exercise_id] = (day, weight if seen[1] is None else max(seen[1], weight))
         exercise = exercises[exercise_id]
         point = exercise_days[exercise_id].setdefault(day, ExerciseVolumePoint(date=day))
         exercise.sets_count += 1
@@ -67,6 +77,7 @@ def get_statistics(
                 target.volume_kg_reps = (target.volume_kg_reps or 0) + volume
     for exercise_id, exercise in exercises.items():
         exercise.daily_volume = [point for _, point in sorted(exercise_days[exercise_id].items())]
+        exercise.first_max_weight = first_day[exercise_id][1]
     start = utc_naive(datetime.combine(date_from, time.min, zone))
     end = utc_naive(datetime.combine(date_to + timedelta(days=1), time.min, zone))
     # Ascending timestamp + id means the final weight on a local day wins.

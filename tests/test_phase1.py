@@ -32,11 +32,11 @@ class PhaseOneTests(unittest.TestCase):
         result = self.client.get("/api/health")
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json(), {"status": "ok", "app": "FitLog", "version": config.APP_VERSION})
-        self.assertEqual(config.APP_VERSION, "1.4.0")
+        self.assertEqual(config.APP_VERSION, "1.10.1")
         self.assertTrue(DATABASE_PATH.is_file())
         self.assertTrue((Path(_TEMP.name) / "uploads").is_dir())
         self.assertEqual(set(inspect(engine).get_table_names()), {
-            "users", "auth_sessions", "invites", "oauth_attempts", "consents", "ai_credentials", "ai_usage", "workouts", "exercises", "workout_sets", "meals", "body_metrics", "sleep_records", "sync_state", "import_archives", "excel_previews", "perf_events", "goal_profiles", "preset_overrides"
+            "users", "auth_sessions", "invites", "oauth_attempts", "consents", "ai_credentials", "ai_usage", "workouts", "exercises", "workout_sets", "meals", "body_metrics", "sleep_records", "sync_state", "import_archives", "excel_previews", "perf_events", "goal_profiles", "preset_overrides", "routines"
         })
         with engine.connect() as connection:
             self.assertEqual(connection.scalar(text("PRAGMA foreign_keys")), 1)

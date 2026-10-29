@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 15
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -580,8 +580,34 @@ def migrate_v13(engine: Engine) -> None:
         c.exec_driver_sql("PRAGMA user_version=13")
 
 
+def migrate_v14(engine: Engine) -> None:
+    """What each user chose to record on the first-run screen; NULL until they answer it."""
+    with engine.begin() as c:
+        c.exec_driver_sql("ALTER TABLE users ADD COLUMN tracking VARCHAR(40)")
+        c.exec_driver_sql("PRAGMA user_version=14")
+
+
+def migrate_v15(engine: Engine) -> None:
+    """Saved routines, and which routine a session was started from (NULL for every existing session)."""
+    with engine.begin() as c:
+        c.exec_driver_sql("""CREATE TABLE IF NOT EXISTS routines (
+            id INTEGER NOT NULL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
+            name VARCHAR(100) NOT NULL,
+            position INTEGER NOT NULL,
+            items JSON NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            CONSTRAINT ck_routine_name CHECK (length(trim(name)) > 0))""")
+        c.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_routines_user ON routines (user_id, position)")
+        if "routine_id" not in {row[1] for row in c.exec_driver_sql("PRAGMA table_info(workouts)")}:
+            c.exec_driver_sql("ALTER TABLE workouts ADD COLUMN routine_id INTEGER")
+        c.exec_driver_sql("PRAGMA user_version=15")
+
+
 STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8,
-                                              9: migrate_v9, 10: migrate_v10, 11: migrate_v11, 12: migrate_v12, 13: migrate_v13}
+                                              9: migrate_v9, 10: migrate_v10, 11: migrate_v11, 12: migrate_v12, 13: migrate_v13,
+                                              14: migrate_v14, 15: migrate_v15}
 
 
 def finish_migration(engine: Engine) -> None:

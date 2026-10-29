@@ -26,13 +26,13 @@ async function api(path, method = "GET", body) {
     response = await fetch("/api" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
       headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
   } catch {
-    throw new Error("서버에 연결하지 못했습니다. 저장 중이었다면 새로고침으로 반영 여부를 확인한 뒤 다시 시도하세요.");
+    throw new Error("연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요.");
   }
   const data = await response.json();
   if (!response.ok) {
     const labels = {eaten_at: "식사 시각", meal_type: "식사 구분", name: "음식·식사 이름", calories: "열량", protein: "단백질", carbohydrates: "탄수화물", fat: "지방", memo: "메모"};
     const detail = data.detail;
-    throw new Error(Array.isArray(detail) ? detail.map((item) => (labels[item.loc.at(-1)] ? labels[item.loc.at(-1)] + ": " : "") + item.msg).join("\n") : detail || "요청에 실패했습니다.");
+    throw new Error(Array.isArray(detail) ? detail.map((item) => (labels[item.loc.at(-1)] ? labels[item.loc.at(-1)] + ": " : "") + item.msg).join("\n") : detail || "처리하지 못했어요. 다시 시도해 주세요.");
   }
   return data;
 }
@@ -199,16 +199,16 @@ $("meal-form").addEventListener("submit", async (event) => {
       name: form.elements.name.value.trim(), memo: form.elements.memo.value.trim() || null};
     for (const name of ["calories", "protein", "carbohydrates", "fat"]) body[name] = form.elements[name].value === "" ? null : Number(form.elements[name].value);
     await api("/meals" + (state.editing ? "/" + state.editing.id : ""), state.editing ? "PUT" : "POST", body);
-    $("meal-dialog").close(); notice("식단을 저장했습니다.");
+    $("meal-dialog").close(); notice("식단을 저장했어요.");
     const saved = keyOf(new Date(body.eaten_at));
     if (saved !== state.day) setDay(saved); else await loadWeek();
   } catch (error) { form.querySelector(".form-error").textContent = error.message; }
   finally { busy(false); }
 });
 $("delete-meal").addEventListener("click", async () => {
-  if (!state.editing || !confirm("이 식단 기록을 삭제할까요? 삭제 후 되돌릴 수 없습니다.")) return;
+  if (!state.editing || !confirm("이 식단 기록을 삭제할까요? 삭제하면 되돌릴 수 없어요.")) return;
   busy(true);
-  try { await api("/meals/" + state.editing.id, "DELETE"); $("meal-dialog").close(); notice("식단을 삭제했습니다."); await loadWeek(); }
+  try { await api("/meals/" + state.editing.id, "DELETE"); $("meal-dialog").close(); notice("식단을 삭제했어요."); await loadWeek(); }
   catch (error) { $("meal-form").querySelector(".form-error").textContent = error.message; }
   finally { busy(false); }
 });
@@ -227,7 +227,7 @@ function loadAll() {
   loadWeek().catch((error) => {
     notice(error.message, true);
     if ($("meal-list").inert) { $("meal-list").inert = false; return; } // keep the saved copy on screen
-    $("meal-list").replaceChildren(element("p", "식단을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
+    $("meal-list").replaceChildren(element("p", "식단을 불러오지 못했어요. 연결을 확인하고 새로고침해 주세요.", "empty-state"));
   });
 }
 window.fitlogOnSync = loadAll;
