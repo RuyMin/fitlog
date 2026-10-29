@@ -14,6 +14,7 @@ const SVG_CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6
 const SVG_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
 const SVG_PLUS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>';
 const SVG_DOWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
+const SVG_MORE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h.01M12 12h.01M18 12h.01"></path></svg>';
 const SVG_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"></path></svg>';
 const number = (value) => new Intl.NumberFormat("ko-KR", {maximumFractionDigits: 1}).format(value);
 
@@ -409,7 +410,18 @@ function exerciseBlock(workout, sets, folded = false) {
     title.append(node("span", done + "/" + sets.length, "ex-count num"));
   }
   title.insertAdjacentHTML("beforeend", SVG_CHEVRON);
-  block.append(title);
+  // Taking the exercise out sits behind ⋯, away from 세트 추가, so neither is pressed by mistake.
+  const menu = node("details", null, "ex-menu"), more = node("summary");
+  more.setAttribute("aria-label", exercise.name + " 메뉴"); more.innerHTML = SVG_MORE;
+  menu.append(more, button("종목 빼기", () => {
+    menu.open = false;
+    if (!confirm(exercise.name + "의 " + (config.cardio ? "기록" : "세트 " + sets.length + "개") + "를 이 운동에서 지울까요?")) return;
+    instant(workout, () => { workout.sets = workout.sets.filter((item) => item.exercise_id !== exercise.id); },
+      () => api("/workouts/" + workout.id + "/exercises/" + exercise.id, "DELETE"));
+  }, "danger"));
+  const head = node("div", null, "ex-head");
+  head.append(title, menu);
+  block.append(head);
   if (preset?.variants) block.append(variantChips(workout, exercise, preset, sets, picked));
   const table = node("div", null, "set-table"); table.setAttribute("role", "table");
   table.setAttribute("aria-label", exercise.name + (config.cardio ? " 구간" : " 세트"));
@@ -439,11 +451,7 @@ function exerciseBlock(workout, sets, folded = false) {
       ...Object.fromEntries(CARDIO_FIELDS.map((key) => [key, null])), ...copy,
       set_number: Math.max(...sets.map((set) => set.set_number)) + 1, completed: false, memo: null, variant: picked}));
     if (created?.id) { workout.sets.push(created); renderCurrent(); }
-  }), "dashed"), button("종목 빼기", () => {
-    if (!confirm(exercise.name + "의 " + (config.cardio ? "기록" : "세트 " + sets.length + "개") + "를 이 운동에서 지울까요?")) return;
-    instant(workout, () => { workout.sets = workout.sets.filter((item) => item.exercise_id !== exercise.id); },
-      () => api("/workouts/" + workout.id + "/exercises/" + exercise.id, "DELETE"));
-  }, "link-button danger"));
+  }), "set-add"));
   block.append(actions);
   return block;
 }
@@ -499,7 +507,7 @@ function renderSession(workout, root, detail = false) {
   const opened = focus ? focusOf(groups) : null;
   for (const [id, sets] of groups) root.append(exerciseBlock(workout, sets, focus && id !== opened));
   if (!groups.size) root.append(node("p", "아직 종목이 없어요. 아래에서 종목을 추가해 보세요.", "empty-state"));
-  const add = button("", () => openPicker(workout), focus ? "dashed add-more" : "primary add-exercise");
+  const add = button("", () => openPicker(workout), "primary add-exercise");
   add.innerHTML = SVG_PLUS + "<span>종목 추가</span>";
   root.append(add);
 }
@@ -1297,6 +1305,10 @@ $("#exercise-form").addEventListener("submit", (event) => {
 });
 $("#picker-query").addEventListener("input", renderPicker);
 $("#picker-add").addEventListener("click", (event) => mutate(event.currentTarget, () => addPicked([...state.picker.picked.values()])));
+// An open ⋯ menu closes on a tap anywhere else.
+document.addEventListener("click", (event) => {
+  for (const menu of document.querySelectorAll(".ex-menu[open]")) if (!menu.contains(event.target)) menu.open = false;
+});
 $("#picker-custom").addEventListener("click", (event) => mutate(event.currentTarget, async () => {
   const picker = state.picker;
   await addPicked([{key: "new", name: $("#picker-query").value.trim(), part: picker.part === "전체" ? null : picker.part,
