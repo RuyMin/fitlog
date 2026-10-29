@@ -43,6 +43,12 @@
 /* 다음 할 일: the one next thing, coloured by its kind, with up to three more lines (still to do, or done). */
 .next-card{background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:10px}
 .next-card[hidden]{display:none}
+/* Until the first answer: the card's place is kept with two quiet bars, so nothing below it moves much. */
+.next-card.pending{min-height:168px;border-color:var(--line)}
+.next-card.pending #next-title,.next-card.pending .next-detail{height:22px;width:62%;border-radius:11px;background:var(--soft)}
+.next-card.pending .next-detail{height:14px;width:40%}
+@media(prefers-reduced-motion:no-preference){.next-card.next-in>*{animation:next-in .3s ease both}}
+@keyframes next-in{from{opacity:0;transform:translateY(4px)}}
 .next-card[data-kind="meal"]{border-color:var(--meal)}.next-card[data-kind="sleep"]{border-color:var(--sleep)}.next-card[data-kind="body"]{border-color:var(--body-ink)}.next-card[data-kind="done"]{border-color:var(--line)}
 .next-kicker{margin:0;font-size:12px;font-weight:800;color:var(--accent)}
 .next-card[data-kind="meal"] .next-kicker,.next-card[data-kind="meal"] .next-accent{color:var(--meal)}
