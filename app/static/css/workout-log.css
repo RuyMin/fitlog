@@ -94,6 +94,7 @@ dialog button.picker-custom{min-height:50px;border:1.5px dashed var(--line);back
 .tag{font-size:12px;padding:3px 10px;border-radius:14px;background:var(--soft)}
 .tag:first-child{background:var(--brand);color:var(--brand-ink);font-weight:700}
 .info-tabs{display:flex;background:var(--soft);border-radius:12px;padding:3px}
+.info-tabs[hidden]{display:none}
 dialog .info-tabs button{flex:1;min-height:36px;border:0;border-radius:10px;background:none;font-size:13px;font-weight:600;color:var(--muted)}
 dialog .info-tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);font-weight:700}
 .soon{font-size:10px;color:var(--meal-ink);background:var(--meal-soft);border-radius:6px;padding:1px 5px}
