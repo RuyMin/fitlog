@@ -865,7 +865,17 @@ async function showRoute() {
       loadMonth(state.calendar.month).catch((error) => { if (route === state.route) notice(error.message, true); });
       // Routines: this phone's copy at once, then the server's (they only change the start card).
       state.routines = window.fitlogCache.get("routines") || state.routines;
-      loadRoutines().then(() => { if (route === state.route && !todayWorkout()) renderToday(null); }).catch(() => {});
+      loadRoutines().then(() => {
+        if (route !== state.route) return;
+        // /workouts?start=<routine id> (the home's 다음 할 일) starts that routine once, unless today already has a session.
+        const start = Number(new URLSearchParams(location.search).get("start"));
+        if (start) {
+          history.replaceState(null, "", location.pathname);
+          const routine = state.routines.find((item) => item.id === start);
+          if (routine && !todayWorkout()) { mutate(null, () => startRoutine(routine)); return; }
+        }
+        if (!todayWorkout()) renderToday(null);
+      }).catch(() => {});
       await window.fitlogShow(window.fitlogData.workouts, (items, stale) => {
         if (route !== state.route) return;
         showList(items);

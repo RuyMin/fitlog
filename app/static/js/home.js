@@ -1,94 +1,134 @@
 "use strict";
+// Home: the one next thing to do (a routine's turn, last night's sleep, the protein left …) with a short
+// list of the rest, then today's four numbers against their goals and the week. Before the first record
+// a checklist takes their place.
 const $home = (id) => document.getElementById(id);
 const formatNumber = (value) => new Intl.NumberFormat("ko-KR", {maximumFractionDigits:1}).format(value);
 const hoursText = (minutes) => Math.floor(minutes / 60) + ":" + String(Math.round(minutes % 60)).padStart(2, "0");
+const lengthText = (minutes) => (minutes >= 60 ? Math.floor(minutes / 60) + "시간 " : "") + Math.round(minutes % 60) + "분";
 const homeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul";
-const timeOf = (iso) => new Intl.DateTimeFormat("ko-KR", {hour: "2-digit", minute: "2-digit", hour12: false, timeZone: homeZone}).format(new Date(iso));
+const homeToday = new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
+const ALL_KINDS = ["work", "meal", "body", "sleep"];
+const homeState = {data: null, me: null, routines: null, workouts: null, exercises: null};
 
-// One goal ring: the percentage label, the arc (pathLength is 100) and "value / target".
-function ring(name, value, target, valueText, targetText) {
-  const percent = value == null ? 0 : Math.round(value / target * 100);
-  $home("ring-" + name).setAttribute("stroke-dasharray", Math.min(percent, 100) + " 100");
-  $home("pct-" + name).textContent = value == null ? "—" : percent + "%";
-  $home("val-" + name).textContent = value == null ? "—" : valueText;
-  $home("target-" + name).textContent = targetText;
-  return value != null && percent >= 100;
+// ---- 오늘: four numbers, each with a bar to its goal ---------------------------------------------------
+function cell(key, value, goal, bar, note) {
+  $home("val-" + key).textContent = value;
+  $home("goal-" + key).textContent = goal;
+  $home("bar-" + key).style.width = Math.max(0, Math.min(100, Math.round(bar * 100))) + "%";
+  $home("note-" + key).textContent = note;
 }
-
-function weightTile(data) {
-  const latest = data.latest_weight;
-  $home("latest-weight").textContent = latest ? formatNumber(latest.weight) : "—";
-  const points = data.weights;
-  const line = $home("weight-line");
-  if (points.length >= 2) {
-    const values = points.map((p) => p.weight), low = Math.min(...values), span = Math.max(...values) - low || 1;
-    const first = Date.parse(points[0].measured_at), range = Date.parse(points.at(-1).measured_at) - first || 1;
-    line.setAttribute("points", points.map((p) => [((Date.parse(p.measured_at) - first) / range * 140).toFixed(1), (24 - (p.weight - low) / span * 20).toFixed(1)].join(",")).join(" "));
-    const change = values.at(-1) - values[0];
-    $home("weight-note").textContent = Math.abs(change) < 0.05 ? "최근 30일 변화 없음" : "최근 30일 " + (change > 0 ? "+" : "−") + formatNumber(Math.abs(change)) + "kg";
-  } else {
-    line.setAttribute("points", "");
-    $home("weight-note").textContent = latest ? "최근 측정 · " + new Date(latest.measured_at).toLocaleDateString("ko-KR") : "아직 체중 기록이 없어요";
-  }
-}
-
-function mealTile(data) {
-  $home("today-kcal").textContent = data.calories == null ? "—" : formatNumber(Math.round(data.calories));
-  const parts = {carb: (data.carbohydrates_grams || 0) * 4, protein: (data.protein_grams || 0) * 4, fat: (data.fat_grams || 0) * 9};
-  const total = parts.carb + parts.protein + parts.fat;
-  $home("macro-bar").hidden = !total;
-  for (const [key, kcal] of Object.entries(parts)) $home("macro-" + key).style.flex = String(kcal);
-  const share = (kcal) => Math.round(kcal / total * 100);
-  $home("protein-note").textContent = !data.meals_count ? "오늘은 아직 식단 기록이 없어요"
-    : total ? data.meals_count + "끼 · 탄 " + share(parts.carb) + " · 단 " + share(parts.protein) + " · 지 " + share(parts.fat) + "%"
-    : data.meals_count + "끼 · 영양 정보 없음";
-}
-
-function sleepTile(data) {
-  $home("today-sleep").replaceChildren();
-  if (data.sleep_minutes == null) { $home("today-sleep").textContent = "—"; }
-  else {
-    const hours = document.createElement("b"); hours.textContent = Math.floor(data.sleep_minutes / 60);
-    const minutes = document.createElement("b"); minutes.textContent = data.sleep_minutes % 60;
-    $home("today-sleep").append(hours, "시간 ", minutes, "분");
-  }
-  const start = data.main_sleep_start, end = data.main_sleep_end;
-  $home("sleep-bar").hidden = !start;
-  if (start) {
-    // The bar spans 18:00 the evening before the wake-up day to 12:00 noon.
-    const wake = new Date(end), noon = new Date(wake); noon.setHours(12, 0, 0, 0);
-    if (wake > noon) noon.setDate(noon.getDate() + 1);
-    const origin = noon.getTime() - 18 * 3600000, width = 18 * 3600000;
-    const left = Math.max(0, (Date.parse(start) - origin) / width), right = Math.min(1, (wake.getTime() - origin) / width);
-    $home("sleep-span").style.left = (left * 100).toFixed(1) + "%";
-    $home("sleep-span").style.width = (Math.max(right - left, 0.02) * 100).toFixed(1) + "%";
-  }
-  $home("sleep-note").textContent = start ? timeOf(start) + " → " + timeOf(end) + (data.sleep_records_count > 1 ? " 외 " + (data.sleep_records_count - 1) + "회" : "") : "오늘 끝난 수면 기록이 없어요";
-}
-
-function weekStrip(data) {
+function showToday(data) {
+  const next = nextRoutine();
+  cell("work", String(data.completed_sets), data.total_sets > data.completed_sets ? " / " + data.total_sets + "세트" : "세트", data.total_sets ? data.completed_sets / data.total_sets : 0,
+    data.workouts_count ? data.workout_titles.slice(0, 2).join(" · ") + (data.volume_kg ? " · " + formatNumber(Math.round(data.volume_kg / 100) / 10) + "t" : "")
+      : next ? next.name + " 할 차례" : "오늘은 아직");
+  const kcal = data.calories;
+  cell("kcal", kcal == null ? "–" : formatNumber(Math.round(kcal)), " / " + formatNumber(data.calorie_goal_kcal), (kcal || 0) / data.calorie_goal_kcal,
+    !data.meals_count ? "아직 기록 전" : data.meals_count + "끼 · " + (kcal != null && kcal < data.calorie_goal_kcal ? formatNumber(Math.round(data.calorie_goal_kcal - kcal)) + "kcal 남음" : "목표 도달"));
+  const protein = data.protein_grams;
+  cell("protein", protein == null ? "–" : formatNumber(Math.round(protein)), " / " + formatNumber(data.protein_goal_grams) + "g", (protein || 0) / data.protein_goal_grams,
+    protein == null ? "아직 기록 전" : protein >= data.protein_goal_grams ? "목표 달성" : formatNumber(Math.round(data.protein_goal_grams - protein)) + "g 남음");
+  const sleep = data.sleep_minutes;
+  cell("sleep", sleep == null ? "–" : hoursText(sleep), " / " + hoursText(data.sleep_goal_minutes), (sleep || 0) / data.sleep_goal_minutes,
+    sleep == null ? "어젯밤 기록 전" : sleep >= data.sleep_goal_minutes ? "목표 달성" : lengthText(data.sleep_goal_minutes - sleep) + " 모자람");
   const list = $home("week-days"); list.replaceChildren();
   const names = ["월", "화", "수", "목", "금", "토", "일"];
   data.week.forEach((day, index) => {
     const item = document.createElement("li");
-    item.className = [day.workout && "workout", day.logged && "logged", day.date === data.date && "today"].filter(Boolean).join(" ");
-    const label = (day.workout ? "운동함" : day.logged ? "기록함" : day.date > data.date ? "" : "기록 없음");
-    item.setAttribute("aria-label", names[index] + "요일 " + Number(day.date.slice(8)) + "일" + (label ? ", " + label : "") + (day.date === data.date ? ", 오늘" : ""));
-    const number = document.createElement("b"); number.textContent = Number(day.date.slice(8)); number.setAttribute("aria-hidden", "true");
-    const name = document.createElement("span"); name.textContent = names[index]; name.setAttribute("aria-hidden", "true");
-    item.append(name, number); list.append(item);
+    item.className = [day.workout && "workout", day.date === data.date && "today"].filter(Boolean).join(" ");
+    item.textContent = names[index];
+    item.setAttribute("aria-label", names[index] + "요일" + (day.workout ? " 운동함" : "") + (day.date === data.date ? ", 오늘" : ""));
+    list.append(item);
   });
-  $home("week-note").textContent = "운동 " + data.week.filter((d) => d.workout).length + "일 · 기록 " + data.week.filter((d) => d.logged).length + "일";
+  $home("week-count").textContent = data.week.filter((day) => day.workout).length;
+}
+
+// ---- 다음 할 일 -------------------------------------------------------------------------------------
+// The routine after the last one done before today (as on the 운동 tab), once the lists are in.
+function nextRoutine() {
+  const routines = homeState.routines;
+  if (!routines?.length || !homeState.workouts) return null;
+  const last = homeState.workouts.find((item) => item.workout_date < homeToday && routines.some((routine) => routine.id === item.routine_id));
+  if (!last) return routines[0];
+  return routines[(routines.findIndex((routine) => routine.id === last.routine_id) + 1) % routines.length];
+}
+function quick(kind) { return () => window.FitQuick.open(kind, {onSaved: () => window.fitlogOnSync?.()}).catch(() => {}); }
+// Things still to do today, most useful first for the hour, and things already done.
+function todo(data, tracking) {
+  const hour = new Date().getHours(), pending = [], done = [];
+  const has = (kind) => tracking.includes(kind);
+  if (has("work")) {
+    const left = data.total_sets - data.completed_sets;
+    if (data.workouts_count && left > 0) pending.push({kind: "work", title: ["", data.workout_titles[0], " 이어서 하기"], detail: data.total_sets + "세트 중 " + data.completed_sets + "세트 했어요",
+      label: "이어서 하기", go: "/workouts", line: data.workout_titles[0] + " 이어서 하기 · " + data.completed_sets + "/" + data.total_sets + "세트"});
+    else if (data.workouts_count) done.push(data.workout_titles[0] + " 운동 끝 · " + data.completed_sets + "세트");
+    else if (hour < 22) {
+      const routine = nextRoutine();
+      const names = routine && homeState.exercises ? routine.items.map((item) => (homeState.exercises.find((exercise) => exercise.id === item.exercise_id)?.name || "종목") + " " + item.sets).join(" · ") : "";
+      pending.push(routine ? {kind: "work", accent: routine.name, title: ["오늘은 ", routine.name, " 할 차례예요"], detail: names, label: routine.name + " 시작", go: "/workouts?start=" + routine.id, line: routine.name + " 할 차례"}
+        : {kind: "work", title: ["오늘 ", "운동", "을 시작해 볼까요?"], detail: "종목을 고르면 지난번 무게로 채워져요", label: "운동하러 가기", go: "/workouts", line: "운동 시작하기"});
+    }
+  }
+  if (has("sleep")) {
+    if (data.sleep_minutes != null) done.push("수면 " + lengthText(data.sleep_minutes));
+    else if (hour < 15) pending.push({kind: "sleep", title: ["어젯밤 ", "수면", "을 기록할까요?"], detail: "평소 잠든 시각으로 채워져요", label: "수면 기록하기", go: quick("sleep"), line: "어젯밤 수면 기록하기"});
+  }
+  if (has("body")) {
+    const today = data.latest_weight && new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date(data.latest_weight.measured_at)) === homeToday;
+    if (today) done.push("체중 " + formatNumber(data.latest_weight.weight) + "kg");
+    else if (hour < 12) pending.push({kind: "body", title: ["아침 ", "체중", "을 재 볼까요?"], detail: data.latest_weight ? "지난번 " + formatNumber(data.latest_weight.weight) + "kg" : "숫자 하나면 돼요",
+      label: "체중 기록하기", go: quick("weight"), line: "아침 체중 재기" + (data.latest_weight ? " · 지난번 " + formatNumber(data.latest_weight.weight) + "kg" : "")});
+  }
+  if (has("meal")) {
+    const left = data.protein_goal_grams - (data.protein_grams || 0);
+    if (data.meals_count) done.push(data.meals_count + "끼 · " + formatNumber(Math.round(data.calories || 0)) + "kcal");
+    if (data.meals_count && hour >= 14 && left > 5) pending.push({kind: "meal", accent: formatNumber(Math.round(left)) + "g", title: ["단백질 ", formatNumber(Math.round(left)) + "g", " 남았어요"],
+      detail: "목표 " + formatNumber(data.protein_goal_grams) + "g 중 " + formatNumber(Math.round(data.protein_grams || 0)) + "g 먹었어요", label: "식사 기록하기", go: quick("meal"), line: "단백질 " + formatNumber(Math.round(left)) + "g 남음"});
+    else if (!data.meals_count && hour >= 7) pending.push({kind: "meal", title: ["오늘 ", "첫 끼", "를 기록할까요?"], detail: "이름과 열량만 적으면 돼요", label: "식사 기록하기", go: quick("meal"), line: "첫 끼 기록하기"});
+  }
+  // The workout leads when it is due; in the afternoon the protein left comes before sleep and weight.
+  const order = hour >= 14 ? ["work", "meal", "sleep", "body"] : ["work", "sleep", "body", "meal"];
+  pending.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  return {pending, done};
+}
+function showNext(data, tracking) {
+  const {pending, done} = todo(data, tracking);
+  const card = $home("next"), first = pending[0];
+  card.hidden = false;
+  card.dataset.kind = first?.kind || "done";
+  const title = $home("next-title"); title.replaceChildren();
+  if (first) {
+    const [before, strong, after] = first.title;
+    const mark = document.createElement("span"); mark.className = "next-accent"; mark.textContent = strong;
+    title.append(before, mark, after);
+  } else title.textContent = done.length ? "오늘 할 일을 다 했어요" : "오늘은 쉬어 가는 날";
+  $home("next-detail").textContent = first?.detail || "";
+  const action = $home("next-action");
+  action.hidden = !first;
+  if (first) { action.textContent = first.label; action.onclick = typeof first.go === "string" ? () => location.assign(first.go) : first.go; }
+  const rows = [...pending.slice(1).map((item) => ({text: item.line, go: item.go, kind: item.kind})), ...done.map((text) => ({text, done: true}))].slice(0, 3);
+  $home("next-list").replaceChildren(...rows.map((row) => {
+    const item = document.createElement("li");
+    const box = document.createElement(row.done ? "span" : "button");
+    if (!row.done) { box.type = "button"; box.addEventListener("click", typeof row.go === "string" ? () => location.assign(row.go) : row.go); }
+    box.className = "next-row" + (row.done ? " done" : " kind-" + row.kind);
+    const mark = document.createElement("span"); mark.className = "next-mark"; mark.setAttribute("aria-hidden", "true");
+    const text = document.createElement("span"); text.textContent = row.text;
+    box.append(mark, text);
+    if (row.done) box.setAttribute("aria-label", "끝남: " + row.text);
+    item.append(box);
+    return item;
+  }));
 }
 
 // What the account records (설정 › 홈에 보일 기록) and, until the first record, the 첫 기록 남기기 checklist.
 const homeStart = (() => {
-  const ALL = ["work", "meal", "body", "sleep"];
-  let me, data, met;
+  let data;
   window.fitlogMe.then((answer) => {
-    me = answer;
+    homeState.me = answer;
     // A new account answers 무엇을 기록할까요? first; one that already has records never sees it.
-    if (me?.needs_setup) { location.replace("/welcome"); return; }
+    if (answer?.needs_setup) { location.replace("/welcome"); return; }
     paint();
   });
   function step(id, done) {
@@ -96,21 +136,17 @@ const homeStart = (() => {
     return done;
   }
   function paint() {
+    const me = homeState.me;
     if (!me || !data) return;
-    const tracking = me.tracking || ALL;
-    for (const element of document.querySelectorAll(".home [data-kind]")) element.hidden = !tracking.includes(element.dataset.kind);
-    const rings = Object.keys(met).filter((name) => !$home("ring-" + name).closest(".goal").hidden);
-    $home("goals-note").textContent = rings.length + "개 중 " + rings.filter((name) => met[name]).length + "개 달성";
-
-    // Before the first record the goal rings and the week are all empty: the checklist takes their place.
+    const tracking = me.tracking || ALL_KINDS;
+    for (const element of document.querySelectorAll(".home [data-kind]:not(#next)")) element.hidden = !tracking.includes(element.dataset.kind);
+    // Before the first record the numbers and the week are all empty: the checklist takes their place.
     const first = !data.has_records;
     $home("first-day").hidden = $home("first-form").hidden = !first;
-    $home("quick-record").hidden = $home("week").hidden = first;
-    $home("goals").hidden = first || !rings.length;
-    if (first) $home("recent").hidden = true;
-    $home("home-title").textContent = first ? "반가워요" : "오늘의 기록";
-    document.querySelector(".tiles").classList.toggle("is-empty", first);
-    if (!first) return;
+    $home("quick-record").hidden = $home("today-card").hidden = first;
+    $home("home-title").textContent = first ? "반가워요" : "오늘";
+    if (first) { $home("next").hidden = true; return; }
+    showNext(data, tracking);
     $home("step-record-title").textContent = tracking.includes("work") ? "오늘 한 운동 적기" : "오늘 첫 기록 적기";
     const done = [step("step-pick", Boolean(me.tracking)), step("step-record", false), step("step-goal", data.goal_source !== "default")];
     $home("first-day-count").textContent = done.filter(Boolean).length + "/3";
@@ -126,22 +162,13 @@ const homeStart = (() => {
     $home("assistant-text").value = text.value.trim();
     openSheet();
   });
-  return {show(summary, goals) { data = summary; met = goals; paint(); }};
+  return {show(summary) { data = summary; paint(); }};
 })();
 
-const homeToday =new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
-
 function showSummary(data) {
-  const met = {
-    protein: ring("protein", data.protein_grams, data.protein_goal_grams, formatNumber(data.protein_grams), formatNumber(data.protein_goal_grams) + "g"),
-    kcal: ring("kcal", data.calories, data.calorie_goal_kcal, formatNumber(Math.round(data.calories)), formatNumber(data.calorie_goal_kcal)),
-    sleep: ring("sleep", data.sleep_minutes, data.sleep_goal_minutes, hoursText(data.sleep_minutes), hoursText(data.sleep_goal_minutes)),
-  };
-  $home("today-sets").textContent = data.total_sets;
-  $home("today-workouts").textContent = !data.workouts_count ? "오늘은 아직 운동 기록이 없어요"
-    : data.workout_titles.slice(0, 2).join(" · ") + (data.volume_kg ? " · 볼륨 " + formatNumber(Math.round(data.volume_kg)) + "kg" : "");
-  weightTile(data); mealTile(data); sleepTile(data); weekStrip(data);
-  homeStart.show(data, met);
+  homeState.data = data;
+  showToday(data);
+  homeStart.show(data);
 }
 // Data comes through app.js (fitlogShow): the saved copy first, then the current one.
 async function loadSummary() {
@@ -150,39 +177,19 @@ async function loadSummary() {
     await window.fitlogShow(window.fitlogData.dashboard, (data) => { showSummary(data); shown = true; });
   } catch {
     if (shown) return;
-    $home("goals-note").textContent = "연결 후 새로고침해 주세요";
-    for (const id of ["today-workouts", "weight-note", "protein-note", "sleep-note"]) $home(id).textContent = "연결 후 새로고침해 주세요";
+    $home("next").hidden = false;
+    $home("next-title").textContent = "연결 후 새로고침해 주세요";
   }
 }
-
-function showRecent(recent) {
-  const target = $home("recent-workouts");
-  target.replaceChildren();
-  if (!recent.length) {
-    const empty = document.createElement("p"); empty.className = "empty";
-    empty.textContent = "아직 운동 기록이 없습니다. 첫 운동을 남겨보세요."; target.append(empty);
-  }
-  for (const workout of recent) {
-    const link = document.createElement("a"); link.href = "/workouts#" + workout.id;
-    link.className = "recent-item" + (workout.workout_date === homeToday ? " is-today" : "");
-    const date = document.createElement("span"); date.className = "recent-date";
-    const day = document.createElement("b"); day.textContent = Number(workout.workout_date.slice(8));
-    date.append(Number(workout.workout_date.slice(5, 7)) + "월", day);
-    const text = document.createElement("span"); text.className = "recent-text";
-    const title = document.createElement("strong"); title.textContent = workout.title;
-    const names = [...new Set(workout.sets.map((set) => set.exercise.name))];
-    const detail = document.createElement("span");
-    detail.textContent = [names.slice(0, 3).join(" · ") + (names.length > 3 ? " 외" : ""), workout.sets.length + "세트"].filter(Boolean).join(" · ");
-    text.append(title, detail);
-    link.append(date, text);
-    link.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>');
-    target.append(link);
-  }
-}
-async function loadRecent() {
-  let shown = false;
-  try { await window.fitlogShow(window.fitlogData.recent, (recent) => { showRecent(recent); shown = true; }); }
-  catch { if (!shown) $home("recent-workouts").textContent = "운동 기록을 불러오지 못했습니다. 연결 후 새로고침해 주세요."; }
+// Routines, recent sessions and exercise names only shape the next-thing card, so they load beside it.
+async function loadLists() {
+  const routines = fetch("/api/routines", {cache: "no-store"}).then((response) => response.ok ? response.json() : []).catch(() => []);
+  await Promise.all([
+    window.fitlogShow(window.fitlogData.workouts, (items) => { homeState.workouts = items; }).catch(() => {}),
+    window.fitlogShow(window.fitlogData.exercises, (items) => { homeState.exercises = items; }).catch(() => {}),
+    routines.then((items) => { homeState.routines = items; })
+  ]);
+  if (homeState.data) showSummary(homeState.data);
 }
 
 // The record sheet opens from the ＋ menu item (/#record), the quick-record bar and the photo button.
@@ -207,6 +214,6 @@ $home("quick-photo").addEventListener("click", () => window.fitlogPhotoRecord())
 window.addEventListener("hashchange", () => { if (location.hash === "#record") openSheet(); });
 if (location.hash === "#record") openSheet();
 
-window.fitlogOnSync = () => { loadSummary(); loadRecent(); };
+window.fitlogOnSync = () => { loadSummary(); loadLists(); };
 loadSummary();
-loadRecent();
+loadLists();
