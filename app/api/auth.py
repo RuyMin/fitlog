@@ -19,7 +19,7 @@ from app.config import APP_VERSION
 from app.database import get_session
 from app.models import TRACKING_KINDS, User
 from app.schemas import TrackingInput
-from app.services import accounts, dashboard
+from app.services import accounts, dashboard, freshness
 
 router = APIRouter(tags=["auth"])
 DB = Annotated[Session, Depends(get_session)]
@@ -114,6 +114,12 @@ def me(user: CurrentUser, db: DB) -> dict:
     return {"id": user.id, "email": user.email, "display_name": user.display_name, "role": user.role, "version": APP_VERSION,
             # The first-run screen is for new accounts only: someone who already has records skips it.
             "tracking": tracking, "needs_setup": tracking is None and not dashboard.has_records(db, user.id)}
+
+
+@router.get("/api/me/changed")
+def changed(user: CurrentUser, request: Request) -> dict:
+    # Asked when the app comes back from the background: reload everything only if records changed elsewhere.
+    return {"changed": freshness.check(user.id, freshness.session_key(request.cookies.get(cookie_name())))}
 
 
 @router.put("/api/me/tracking")
