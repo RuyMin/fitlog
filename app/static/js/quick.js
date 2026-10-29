@@ -51,7 +51,7 @@
   const ICON_CAMERA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>';
   function frame(kind, record, inner) {
     const box = sheet();
-    box.innerHTML = '<form class="quick-form" novalidate><div class="quick-grip"></div><div class="quick-head"><h2 id="quick-title"></h2><div class="quick-tools"></div>'
+    box.innerHTML = '<form class="quick-form" novalidate><div class="quick-grip"></div><div class="quick-head"><h2 id="quick-title" tabindex="-1" autofocus></h2><div class="quick-tools"></div>'
       + '<button type="button" class="quick-close" aria-label="닫기">' + ICON_CLOSE + '</button></div>' + inner
       + '<p class="form-error" role="alert"></p><div class="quick-actions">'
       + (record ? '<button type="button" class="quick-delete">삭제</button>' : "") + '<button type="submit" class="quick-save">저장</button></div></form>';

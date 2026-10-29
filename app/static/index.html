@@ -27,7 +27,7 @@
 <nav class="navigation" aria-label="주 메뉴">
 <a href="/" data-nav="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>홈</span></a>
 <a href="/workouts" data-nav="/workouts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>운동</span></a>
-<a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>기록하기</span></a>
+<a href="/#record" class="nav-record"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5L14 10l6.5 2-6.5 2-2 6.5-2-6.5-6.5-2 6.5-2z"></path></svg><span>AI로 기록</span></a>
 <a href="/meals" data-nav="/meals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg><span>식단</span></a>
 <a href="/body" data-nav="/body /body-metrics /sleep /statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8M15 7h5v5"></path></svg><span>몸·추이</span></a>
 <a href="/settings" data-nav="/settings" class="nav-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg><span>설정</span></a>
@@ -85,16 +85,9 @@
 
     <dialog id="record-sheet" class="record-sheet" aria-labelledby="sheet-title">
       <div class="sheet-body">
-        <div class="sheet-head"><h2 id="sheet-title">무엇을 기록할까요?</h2><button type="button" id="sheet-close" class="sheet-close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
-        <nav class="record-tiles" aria-label="직접 기록">
-          <a href="/workouts" class="record-tile tile-work"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg></span><strong>운동</strong><span data-hint="workout">세트 기록하기</span></a>
-          <button type="button" class="record-tile tile-meal" data-quick="meal"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg></span><strong>식사</strong><span data-hint="meal">이름과 열량만</span></button>
-          <button type="button" class="record-tile tile-body" data-quick="weight"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span><strong>체중</strong><span data-hint="weight">숫자 하나</span></button>
-          <button type="button" class="record-tile tile-sleep" data-quick="sleep"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></span><strong>수면</strong><span data-hint="sleep">잔 시각과 깬 시각</span></button>
-        </nav>
-        <h3 class="sheet-subtitle">한 번에 적기</h3>
+        <div class="sheet-head"><h2 id="sheet-title" tabindex="-1" autofocus>AI로 기록하기</h2><button type="button" id="sheet-close" class="sheet-close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
         <section class="assistant-card" aria-labelledby="assistant-title">
-          <h3 id="assistant-title" class="assistant-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>AI로 한 번에 기록</h3>
+          <h3 id="assistant-title" class="assistant-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>말하듯 적으면 운동·식사·체중·수면으로 나눠 줘요</h3>
           <p id="assistant-setup" class="assistant-setup" hidden></p>
           <form id="assistant-form" hidden>
             <label for="assistant-text" class="visually-hidden">오늘 한 일을 자유롭게 적어 주세요</label>
@@ -106,6 +99,16 @@
           <p id="assistant-message" class="assistant-message" role="status" aria-live="polite"></p>
           <div id="assistant-drafts"></div>
           <div class="assistant-actions" id="assistant-save-row" hidden><button type="button" class="assistant-primary" id="assistant-save">선택한 기록 저장</button><button type="button" id="assistant-discard">초안 버리기</button></div>
+        </section>
+        <!-- Shown only while AI can't be used (not set up, today's limit used, no connection); every kind also has its own add button in its tab. -->
+        <section id="direct-record" class="direct-record" aria-labelledby="direct-title" hidden>
+          <h3 id="direct-title" class="sheet-subtitle">직접 기록하기</h3>
+          <nav class="record-tiles" aria-label="직접 기록">
+          <a href="/workouts" class="record-tile tile-work"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg></span><strong>운동</strong><span data-hint="workout">세트 기록하기</span></a>
+          <button type="button" class="record-tile tile-meal" data-quick="meal"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 5-1 8h2v10"></path></svg></span><strong>식사</strong><span data-hint="meal">이름과 열량만</span></button>
+          <button type="button" class="record-tile tile-body" data-quick="weight"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-1.5"></path></svg></span><strong>체중</strong><span data-hint="weight">숫자 하나</span></button>
+          <button type="button" class="record-tile tile-sleep" data-quick="sleep"><span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></span><strong>수면</strong><span data-hint="sleep">잔 시각과 깬 시각</span></button>
+        </nav>
         </section>
         <a class="excel-link" href="/settings#excel-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 12l6 6M15 12l-6 6"></path></svg><span><strong>엑셀 파일 가져오기</strong><span class="muted">예전 기록표를 AI가 읽어 옮겨요</span></span></a>
       </div>

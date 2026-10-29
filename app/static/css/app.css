@@ -25,6 +25,8 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-off
 /* While a popup is open the page behind it stays still; a scroll that reaches the popup's end stops there. */
 html:has(dialog[open]){overflow:hidden}
 dialog{overscroll-behavior:contain}
+/* Popups open with focus on their title (tabindex=-1 autofocus), not on the close button, so no ring shows on open. */
+dialog [tabindex="-1"]:focus{outline:none}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Sidebar on wide screens, bottom tab bar on phones. */

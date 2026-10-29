@@ -99,10 +99,12 @@
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   }
 
+  // The record sheet is AI first; its direct-record list appears only when the AI can't be used right now.
+  const direct = (show) => { const list = document.getElementById("direct-record"); if (list) list.hidden = !show; };
   async function loadStatus() {
     try {
       const r = await fetch("/api/assistant/status", {cache: "no-store", signal: AbortSignal.timeout(10000)});
-      if (!r.ok) return;
+      if (!r.ok) { direct(true); return; }
       const s = await r.json();
       const noKey = s.can_manage_key ? ERRORS.no_key_admin : ERRORS.no_key;
       const setup = !s.server_ready ? ERRORS.server_not_configured : !s.key_configured ? noKey : !s.consent ? ERRORS.no_consent : "";
@@ -112,7 +114,8 @@
       if (setup && s.server_ready && (s.key_configured || s.can_manage_key)) { const link = node("a", "설정으로 이동 →"); link.href = "/settings"; $("assistant-setup").append(link); }
       $("assistant-form").hidden = Boolean(setup);
       $("assistant-usage").textContent = `오늘 ${s.used_today}/${s.daily_limit}회 사용`;
-    } catch { /* the rest of the home page still works without the assistant */ }
+      direct(Boolean(setup) || s.used_today >= s.daily_limit);
+    } catch { direct(true); /* the rest of the home page still works without the assistant */ }
   }
 
   function field(kind, data, [name, label, type]) {
