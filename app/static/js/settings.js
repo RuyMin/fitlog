@@ -10,9 +10,12 @@
     if (entry.withdrawn_at) return "철회함 · " + when(entry.withdrawn_at);
     return entry.active ? "동의함 · " + when(entry.granted_at) : `이전 고지(${entry.version})에 동의함 · 다시 확인 필요`;
   }
+  // The first load asks for consents alongside /api/me instead of after it.
+  let firstConsents = fetch("/api/me/consents", {cache: "no-store", signal: AbortSignal.timeout(10000)});
   async function consents(me) {
     try {
-      const r = await fetch("/api/me/consents", {cache: "no-store", signal: AbortSignal.timeout(10000)});
+      const early = firstConsents; firstConsents = null;
+      const r = await (early || fetch("/api/me/consents", {cache: "no-store", signal: AbortSignal.timeout(10000)}));
       if (!r.ok) throw new Error();
       const data = await r.json();
       $("consent-service").textContent = consentText(data.service, me.role === "admin");
@@ -70,11 +73,6 @@
     $("row-tracking").textContent = (me.tracking || Object.keys(KINDS)).map((kind) => KINDS[kind]).filter(Boolean).join(" · ");
     consents(me);
   });
-  fetch("/api/me/goals", {cache: "no-store"}).then((r) => r.ok ? r.json() : null).then((data) => {
-    if (!data) return;
-    const g = data.goals, n = (value) => new Intl.NumberFormat("ko-KR").format(Math.round(value));
-    $("row-goals").textContent = n(g.calorie_kcal) + "kcal · 단백질 " + n(g.protein_g) + "g · 수면 " + Math.round(g.sleep_minutes / 6) / 10 + "시간";
-  }).catch(() => { $("row-goals").textContent = "열량 · 단백질 · 수면"; });
   $("logout-row").addEventListener("click", () => $("logout").click());
 
   // One screen at a time: the list, or the panel the #hash names (old links like #excel-heading still work).

@@ -43,6 +43,9 @@
 
   // The goals in effect now, with where they come from.
   function showNow(goals) {
+    // The settings list row shows the same goals, so it needs no request of its own.
+    const row = $("row-goals");
+    if (row) row.textContent = number(Math.round(goals.calorie_kcal)) + "kcal · 단백질 " + number(Math.round(goals.protein_g)) + "g · 수면 " + number(goals.sleep_minutes / 60) + "시간";
     const box = $("goal-now"); box.replaceChildren();
     const head = element("p", null, "goal-now-head");
     head.append(element("span", "지금 적용 중", "goal-now-label"), element("b", SOURCE[goals.source], "goal-badge goal-" + goals.source));
@@ -158,5 +161,5 @@
     finally { $("goals-delete").disabled = false; }
   });
 
-  call("GET").then(fill).catch((error) => { $("goal-now").textContent = "목표를 불러오지 못했어요. " + error.message; });
+  call("GET").then(fill).catch((error) => { $("goal-now").textContent = "목표를 불러오지 못했어요. " + error.message; if ($("row-goals")) $("row-goals").textContent = "열량 · 단백질 · 수면"; });
 })();
