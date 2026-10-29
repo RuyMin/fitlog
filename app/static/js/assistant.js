@@ -100,7 +100,9 @@
   }
 
   // The record sheet is AI first; its direct-record list appears only when the AI can't be used right now.
-  const direct = (show) => { const list = document.getElementById("direct-record"); if (list) list.hidden = !show; };
+  // A failed draft keeps it open too (say, the AI account is out of credit), until a draft works again.
+  let draftFailed = false;
+  const direct = (show) => { const list = document.getElementById("direct-record"); if (list) list.hidden = !(show || draftFailed); };
   async function loadStatus() {
     try {
       const r = await fetch("/api/assistant/status", {cache: "no-store", signal: AbortSignal.timeout(10000)});
@@ -244,9 +246,16 @@
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul"}),
         signal: AbortSignal.timeout(120000)});
       const data = await r.json();
-      if (!r.ok) throw new Error(errorText(data, "초안을 만들지 못했습니다."));
+      if (!r.ok) throw new Error(errorText(data, "초안을 만들지 못했어요."));
+      draftFailed = false;
       render(data);
-    } catch (error) { message(error.name === "TimeoutError" ? "응답이 늦어 중단했습니다. 다시 시도해 주세요." : error.message, true); }
+    } catch (error) {
+      draftFailed = true;
+      // No connection (TypeError) or a non-JSON answer (SyntaxError) gets plain words, not the browser's.
+      const text = error.name === "TimeoutError" ? "AI 응답이 늦어 멈췄어요. 잠시 후 다시 해 주세요."
+        : error instanceof TypeError || error instanceof SyntaxError ? ERRORS.unreachable : error.message;
+      message(text + " 아래에서 직접 기록할 수도 있어요.", true);
+    }
     finally { button.disabled = false; loadStatus(); }
   });
 
