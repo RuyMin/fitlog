@@ -50,6 +50,10 @@ class ExerciseStatistics(BaseModel):
     sets_count: int
     known_volume_sets: int
     max_weight: float | None
+    # The heaviest weight on the exercise's first day in the period, so the page can show how far it moved.
+    first_max_weight: float | None = None
+    # The preset's body part (else the user's own), for sets per body part.
+    body_part: str | None = None
     volume_kg_reps: float | None
     daily_volume: list[ExerciseVolumePoint]
 
