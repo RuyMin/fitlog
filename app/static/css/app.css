@@ -46,7 +46,7 @@ main{max-width:1120px;margin:auto;padding:16px 16px 120px}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .topbar-actions{display:flex;align-items:center;gap:8px}
 .eyebrow{font-size:10px;letter-spacing:2px;font-weight:700;color:var(--muted)}
-.status{font-size:11px;color:var(--muted);background:var(--soft);padding:5px 10px;border-radius:20px}.status.ok{color:var(--good)}.status.error{color:var(--danger)}
+.status{font-size:11px;color:var(--muted);background:var(--soft);padding:5px 10px;border-radius:20px}.status.ok{color:var(--good)}.topbar .status:not(.loading):not(.error){display:none}.status.error{color:var(--danger)}
 .status.loading{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
 .status.loading::before{content:"";width:8px;height:8px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:status-spin .8s linear infinite}
 @keyframes status-spin{to{transform:rotate(360deg)}}

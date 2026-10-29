@@ -20,7 +20,7 @@
     return data;
   }
   function setBusy(value){busy=value;for(const id of ["excel-file","excel-timezone","excel-compare","excel-save","excel-cancel","excel-select-all","excel-select-none"])$(id).disabled=value;$("excel-entries").querySelectorAll("input").forEach(n=>n.disabled=value);}
-  function showError(error){message(error.name==="TimeoutError"?"응답 대기 시간이 지났습니다. 저장을 요청했다면 같은 저장 버튼으로 결과를 확인할 수 있습니다.":error.message==="Failed to fetch"?"서버에 연결하지 못했습니다. 연결을 확인해 주세요.":error.message);}
+  function showError(error){message(error.name==="TimeoutError"?"시간이 너무 오래 걸려 기다리기를 멈췄어요. 저장을 눌렀다면 같은 저장 버튼으로 결과를 확인할 수 있어요.":error.message==="Failed to fetch"?"연결이 안 돼요. 인터넷 연결을 확인해 주세요.":error.message);}
   function summary(){ $("excel-selection").textContent=`${chosen.size}개 선택 · 선택하지 않은 기록은 유지합니다.`;$("excel-save").textContent=chosen.size?`선택한 ${chosen.size}개 기록 저장`:"원본 파일만 보관"; }
   function changeSelection(entry,checked){
     if(checked){chosen.add(entry.key);if(entry.parent!=null){const parent=draft.entries.find(e=>e.key===entry.parent);if(parent&&parent.status==="new")chosen.add(parent.key);}}

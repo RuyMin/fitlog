@@ -22,7 +22,7 @@
       toggle.textContent = active ? "AI 외부 전송 동의 철회" : "고지를 확인했고 AI 외부 전송에 동의";
       toggle.dataset.active = active ? "1" : "";
       toggle.hidden = false;
-    } catch { $("consent-ai").textContent = "동의 내역을 확인하지 못했습니다."; }
+    } catch { $("consent-ai").textContent = "동의 내역을 확인하지 못했어요."; }
   }
   $("consent-ai-toggle").addEventListener("click", async () => {
     const toggle = $("consent-ai-toggle"), active = toggle.dataset.active === "1";
@@ -31,10 +31,10 @@
     try {
       const r = await fetch("/api/me/consents/ai_transfer", {method: active ? "DELETE" : "POST", cache: "no-store", signal: AbortSignal.timeout(10000)});
       if (!r.ok) throw new Error();
-      $("account-message").textContent = active ? "AI 외부 전송 동의를 철회했습니다." : "AI 외부 전송에 동의했습니다.";
+      $("account-message").textContent = active ? "AI 외부 전송 동의를 철회했어요." : "AI 외부 전송에 동의했어요.";
       await consents(await window.fitlogMe);
       aiStatus();
-    } catch { $("account-message").textContent = "동의 상태를 바꾸지 못했습니다. 다시 시도해 주세요."; }
+    } catch { $("account-message").textContent = "동의 상태를 바꾸지 못했어요. 다시 시도해 주세요."; }
     finally { toggle.disabled = false; }
   });
   $("logout").addEventListener("click", async () => {
@@ -53,8 +53,8 @@
       $("ai-consent").textContent = s.consent ? "동의함" : "동의 필요 (위 계정 카드에서 동의)";
       $("ai-usage").textContent = `${s.used_today} / ${s.daily_limit}회 (모델 ${s.model})`;
       $("row-ai").textContent = !s.key_configured ? "공용 키 등록 전" : !s.consent ? "AI 외부 전송 동의가 필요해요" : "오늘 " + s.used_today + "/" + s.daily_limit + "회 사용";
-      if (!s.server_ready) $("ai-message").textContent = "관리자가 서버의 AI 설정을 아직 하지 않았습니다.";
-    } catch { $("ai-key-hint").textContent = "상태를 확인하지 못했습니다."; }
+      if (!s.server_ready) $("ai-message").textContent = "관리자가 AI 기능을 아직 설정하지 않았어요.";
+    } catch { $("ai-key-hint").textContent = "상태를 확인하지 못했어요."; }
   }
   aiStatus();
 

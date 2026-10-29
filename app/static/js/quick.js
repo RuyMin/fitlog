@@ -20,7 +20,7 @@
     try {
       response = await fetch("/api" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
         headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
-    } catch { throw new Error("서버에 연결하지 못했어요. 연결을 확인하고 다시 저장해 주세요."); }
+    } catch { throw new Error("연결이 안 돼요. 인터넷 연결을 확인하고 다시 저장해 주세요."); }
     const data = await response.json();
     if (!response.ok) {
       const detail = data.detail;
