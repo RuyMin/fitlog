@@ -77,24 +77,39 @@
 
   // One screen at a time: the list, or the panel the #hash names (old links like #excel-heading still work).
   const ALIASES = {"excel-heading": "excel", "goals-heading": "goals", "ai-card": "ai", "account-heading": "account"};
-  function route() {
+  function target() {
     const key = ALIASES[location.hash.slice(1)] || location.hash.slice(1);
-    const panel = key && document.querySelector('.set-panel[data-panel="' + key + '"]');
+    return key && document.querySelector('.set-panel[data-panel="' + key + '"]');
+  }
+  let current = null;
+  function route() {
+    const panel = current = target() || null;
     $("settings-home").hidden = Boolean(panel);
     for (const item of document.querySelectorAll(".set-panel")) item.hidden = item !== panel;
     window.scrollTo(0, 0);
   }
+  // Panels slide in from the right and back out to the left, where the browser can (app.css, data-slide).
+  function slide() {
+    // Going back fires both popstate and hashchange; only the first one has anything to show.
+    const panel = target() || null;
+    if (panel === current) return;
+    current = panel;
+    if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return route();
+    const root = document.documentElement;
+    root.dataset.slide = panel ? "forward" : "back";
+    document.startViewTransition(route).finished.finally(() => delete root.dataset.slide);
+  }
   for (const back of document.querySelectorAll(".set-back")) back.addEventListener("click", (event) => {
     event.preventDefault();
-    if (history.state?.settingsPanel) history.back(); else { history.replaceState(null, "", location.pathname); route(); }
+    if (history.state?.settingsPanel) history.back(); else { history.replaceState(null, "", location.pathname); slide(); }
   });
   // Rows push a history entry, so the phone's back button returns to the list.
   for (const link of document.querySelectorAll('#settings-home a[href^="#"]')) link.addEventListener("click", (event) => {
     event.preventDefault();
     history.pushState({settingsPanel: true}, "", link.getAttribute("href"));
-    route();
+    slide();
   });
-  window.addEventListener("popstate", route);
-  window.addEventListener("hashchange", route);
+  window.addEventListener("popstate", slide);
+  window.addEventListener("hashchange", slide);
   route();
 })();
