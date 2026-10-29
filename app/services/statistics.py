@@ -40,7 +40,7 @@ def get_statistics(
         days[day].workouts_count += 1
     sets_query = select(
         Workout.workout_date, WorkoutSet.exercise_id, Exercise.name, WorkoutSet.weight, WorkoutSet.reps,
-        Exercise.preset_id, Exercise.body_part,
+        WorkoutSet.left_reps, Exercise.preset_id, Exercise.body_part,
     ).join(WorkoutSet, WorkoutSet.workout_id == Workout.id).join(
         Exercise, Exercise.id == WorkoutSet.exercise_id
     ).where(Workout.user_id == user_id, Workout.workout_date >= date_from, Workout.workout_date <= date_to)
@@ -49,7 +49,7 @@ def get_statistics(
     exercises: dict[int, ExerciseStatistics] = {}
     exercise_days: dict[int, dict[date, ExerciseVolumePoint]] = {}
     first_day: dict[int, tuple[date, float | None]] = {}
-    for day, exercise_id, name, weight, reps, preset_id, body_part in session.execute(sets_query):
+    for day, exercise_id, name, weight, reps, left_reps, preset_id, body_part in session.execute(sets_query):
         if exercise_id not in exercises:
             preset = exercise_presets.find(preset_id)
             exercises[exercise_id] = ExerciseStatistics(
@@ -71,7 +71,7 @@ def get_statistics(
         if weight is not None:
             exercise.max_weight = weight if exercise.max_weight is None else max(exercise.max_weight, weight)
         if weight is not None and reps is not None:
-            volume = weight * reps
+            volume = weight * (reps + (left_reps or 0))  # one-side sets count both sides
             for target in (exercise, point, days[day]):
                 target.known_volume_sets += 1
                 target.volume_kg_reps = (target.volume_kg_reps or 0) + volume

@@ -32,6 +32,8 @@ class ExerciseInput(InputModel):
     # Only for exercises without a preset; the first one is drawn as the main muscle.
     muscles: Annotated[list[str], Field(max_length=8)] | None = None
     tracking: Annotated[str, Field(max_length=20)] | None = None
+    # Left out of an update, the exercise keeps its setting (app.services.workouts.save_exercise).
+    one_side: bool | None = None
 
     @model_validator(mode="after")
     def known_preset(self) -> Self:
@@ -79,6 +81,8 @@ class SetInput(InputModel):
     set_number: Annotated[int, Field(gt=0, le=10000, strict=True)]
     weight: Annotated[float, Field(ge=0, le=10000)] | None = None
     reps: Annotated[int, Field(ge=0, le=100000, strict=True)] | None = None
+    # One-side exercises: the left side's reps; `reps` is then the right side.
+    left_reps: Annotated[int, Field(ge=0, le=100000, strict=True)] | None = None
     completed: bool = False
     memo: Memo | None = None
     duration_seconds: Annotated[int, Field(ge=0, le=86400, strict=True)] | None = None

@@ -20,7 +20,7 @@ def get_dashboard(session: Session, user_id: int, day: date, zone: ZoneInfo) -> 
     total_sets, completed_sets = session.execute(select(
         func.count(WorkoutSet.id), func.sum(WorkoutSet.completed.cast(Integer))
     ).where(WorkoutSet.workout_id.in_(workout_ids))).one()
-    volume = session.scalar(select(func.sum(WorkoutSet.weight * WorkoutSet.reps)).where(
+    volume = session.scalar(select(func.sum(WorkoutSet.weight * (WorkoutSet.reps + func.coalesce(WorkoutSet.left_reps, 0)))).where(
         WorkoutSet.workout_id.in_(workout_ids), WorkoutSet.completed.is_(True)))
     titles = list(session.scalars(select(Workout.title).where(Workout.user_id == user_id, Workout.workout_date == day).order_by(Workout.id)))
     meals_count, known_count, protein, calories, carbohydrates, fat = session.execute(select(

@@ -266,6 +266,8 @@ class Exercise(Owned, Base):
     muscles: Mapped[list[str] | None] = mapped_column(JSON)
     # How an exercise without a preset is recorded (schema v13; the list's tracking ids). None: weight × reps.
     tracking: Mapped[str | None] = mapped_column(String(20))
+    # Recorded one side at a time, left and right reps apart (schema v16). None: as the preset says (its "side").
+    one_side: Mapped[bool | None] = mapped_column(Boolean(create_constraint=False))
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
 
@@ -294,6 +296,8 @@ class WorkoutSet(Owned, SyncFields, Base):
         CheckConstraint("set_number > 0", name="ck_set_number"),
         CheckConstraint("weight IS NULL OR weight >= 0", name="ck_set_weight"),
         CheckConstraint("reps IS NULL OR reps >= 0", name="ck_set_reps"),
+        # One-side exercises (schema v16): `reps` is the right side, this the left.
+        CheckConstraint("left_reps IS NULL OR left_reps >= 0", name="ck_set_left_reps"),
         # Cardio and timed sets (schema v5); which ones a row uses depends on the exercise.
         CheckConstraint("duration_seconds IS NULL OR duration_seconds >= 0", name="ck_set_duration"),
         CheckConstraint("distance_m IS NULL OR distance_m >= 0", name="ck_set_distance"),
@@ -321,6 +325,7 @@ class WorkoutSet(Owned, SyncFields, Base):
     set_number: Mapped[int] = mapped_column(Integer)
     weight: Mapped[float | None] = mapped_column(Float)
     reps: Mapped[int | None] = mapped_column(Integer)
+    left_reps: Mapped[int | None] = mapped_column(Integer)
     completed: Mapped[bool] = mapped_column(Boolean(create_constraint=True), default=False)
     memo: Mapped[str | None] = mapped_column(Text)
     workout: Mapped[Workout] = relationship(back_populates="sets", primaryjoin="Workout.id == foreign(WorkoutSet.workout_id)")

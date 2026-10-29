@@ -32,7 +32,7 @@ class PhaseOneTests(unittest.TestCase):
         result = self.client.get("/api/health")
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json(), {"status": "ok", "app": "FitLog", "version": config.APP_VERSION})
-        self.assertEqual(config.APP_VERSION, "1.10.7")
+        self.assertEqual(config.APP_VERSION, "1.11.0")
         self.assertTrue(DATABASE_PATH.is_file())
         self.assertTrue((Path(_TEMP.name) / "uploads").is_dir())
         self.assertEqual(set(inspect(engine).get_table_names()), {

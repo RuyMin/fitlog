@@ -53,6 +53,7 @@
 <p id="finish-time" class="muted"></p><h2 id="finish-title">수고했어요!</h2>
 <div id="finish-stats" class="finish-stats"></div>
 <section id="finish-best" class="finish-best" hidden><h3>오늘 좋아진 것</h3><div id="finish-best-list"></div></section>
+<div id="finish-sides" class="finish-sides" hidden></div>
 <div class="finish-fields"><label>이름<input name="title" maxlength="200" required></label><label>메모<input name="memo" maxlength="2000" placeholder="컨디션, 느낀 점 (선택)"></label></div>
 <label id="finish-save-row" class="finish-drop"><input type="checkbox" name="save_routine"><span>이 구성을 루틴으로 저장</span></label>
 <label id="finish-drop-row" class="finish-drop"><input type="checkbox" name="drop" checked><span id="finish-drop-text"></span></label>
@@ -111,6 +112,7 @@
 <div class="picker-head"><div><h2 id="info-title"></h2><p id="info-sub" class="muted"></p></div><button type="button" class="icon-button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
 <div class="tag-list" id="info-tags"></div>
 <p class="info-tracking" id="info-tracking"></p>
+<label class="info-side" id="info-side" hidden><span><strong>한쪽씩 기록</strong><small>왼쪽·오른쪽 횟수를 따로 적어요</small></span><input type="checkbox" id="info-side-input" role="switch"></label>
 <!-- 동작 그림이 생기면 hidden을 뗀다(그때까지 탭은 사용 근육 하나뿐). -->
 <div class="info-tabs" role="tablist" aria-label="그림 종류" hidden><button type="button" role="tab" id="tab-muscle" aria-selected="true">사용 근육</button><button type="button" role="tab" id="tab-motion" aria-selected="false">동작 <span class="soon">준비 중</span></button></div>
 <div id="info-variants" class="info-variants" hidden></div>

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import Connection, Engine
 
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 TABLES = ("workouts", "workout_sets", "meals", "body_metrics", "sleep_records")
 
 
@@ -605,9 +605,20 @@ def migrate_v15(engine: Engine) -> None:
         c.exec_driver_sql("PRAGMA user_version=15")
 
 
+def migrate_v16(engine: Engine) -> None:
+    """One-side exercises: a per-exercise switch (NULL follows the preset) and left-side reps on sets (NULL for
+    every existing set, which keeps counting as one number)."""
+    with engine.begin() as c:
+        if "one_side" not in columns(c, "exercises"):
+            c.exec_driver_sql("ALTER TABLE exercises ADD COLUMN one_side BOOLEAN")
+        if "left_reps" not in columns(c, "workout_sets"):
+            c.exec_driver_sql("ALTER TABLE workout_sets ADD COLUMN left_reps INTEGER CONSTRAINT ck_set_left_reps CHECK (left_reps IS NULL OR left_reps >= 0)")
+        c.exec_driver_sql("PRAGMA user_version=16")
+
+
 STEPS: dict[int, Callable[[Engine], None]] = {2: migrate_v2, 3: migrate_v3, 4: migrate_v4, 5: migrate_v5, 6: migrate_v6, 7: migrate_v7, 8: migrate_v8,
                                               9: migrate_v9, 10: migrate_v10, 11: migrate_v11, 12: migrate_v12, 13: migrate_v13,
-                                              14: migrate_v14, 15: migrate_v15}
+                                              14: migrate_v14, 15: migrate_v15, 16: migrate_v16}
 
 
 def finish_migration(engine: Engine) -> None:

@@ -109,9 +109,12 @@ function thumb(muscles, label) {
   else box.append(node("span", (label || "?").slice(0, 1), "ex-initial"));
   return box;
 }
+// Body part and equipment; a dumbbell or kettlebell preset also says what its weight means (preset "load").
 function describe(exercise) {
   const preset = presetOf(exercise);
-  return [preset?.body_part || exercise.body_part, preset?.equipment || exercise.category].filter(Boolean).join(" · ");
+  const gear = preset?.equipment || exercise.category;
+  const load = preset?.load === "single" ? gear + " 1개" : preset?.load === "per_hand" ? gear + " · 한 손 무게" : gear;
+  return [preset?.body_part || exercise.body_part, load].filter(Boolean).join(" · ");
 }
 // A workout started from 오늘 is saved as "오늘 운동"; until it is renamed it shows the body parts it worked.
 function partsOf(workout) {
@@ -135,6 +138,8 @@ const CARDIO_FIELDS = ["duration_seconds", "distance_m", "speed_kmh", "incline_p
 const FIELDS = {
   weight: {key: "weight", label: "kg", mode: "decimal"},
   reps: {key: "reps", label: "회", mode: "numeric"},
+  left: {key: "left_reps", label: "왼쪽", mode: "numeric"},
+  right: {key: "reps", label: "오른쪽", mode: "numeric"},
   count: {key: "reps", label: "횟수", mode: "numeric"},
   seconds: {key: "duration_seconds", label: "초", mode: "numeric"},
   time: {key: "duration_seconds", label: "시간", mode: "time"},
@@ -157,6 +162,15 @@ const TRACKING = {
 };
 // A preset decides how its exercise is recorded; a user's own exercise says so itself (default weight × reps).
 const trackingOf = (exercise) => [presetOf(exercise)?.tracking, exercise?.tracking].find((tracking) => TRACKING[tracking]) || "weight_reps";
+// One side at a time (one-arm row, split squat …): the exercise's own switch, else the preset's "side".
+const oneSide = (exercise) => ["weight_reps", "reps"].includes(trackingOf(exercise)) && (exercise?.one_side ?? presetOf(exercise)?.side === "one");
+// The set table's columns: one-side exercises get left and right reps under one weight, and no "previous" column.
+function configOf(exercise) {
+  const config = TRACKING[trackingOf(exercise)];
+  return oneSide(exercise) ? {...config, fields: ["weight", "left", "right"], oneSide: true} : config;
+}
+const gridOf = (config) => config.oneSide ? "28px repeat(3,minmax(0,1fr)) 40px 24px"
+  : (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
 function clock(seconds) {
   if (seconds == null) return "";
   const h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = Math.round(seconds % 60);
@@ -201,6 +215,7 @@ function setText(set, tracking = "weight_reps") {
   return config.fields.map((name) => {
     const field = FIELDS[name], value = set[field.key];
     if (value == null) return "—";
+    if (name === "reps" && set.left_reps != null) return set.left_reps + "/" + value;  // left/right
     return name === "weight" ? number(value) + "kg" : name === "seconds" ? value + "초" : String(value);
   }).join(" × ");
 }
@@ -217,7 +232,7 @@ const userExercise = (exercise) => state.exercises.find((item) => item.id === ex
 
 // ---- session editor ------------------------------------------------------------------------------
 function setPayload(set, changes = {}) {
-  const payload = {exercise_id: set.exercise_id, set_number: set.set_number, weight: set.weight, reps: set.reps, completed: set.completed, memo: set.memo, variant: set.variant ?? null};
+  const payload = {exercise_id: set.exercise_id, set_number: set.set_number, weight: set.weight, reps: set.reps, left_reps: set.left_reps ?? null, completed: set.completed, memo: set.memo, variant: set.variant ?? null};
   for (const key of CARDIO_FIELDS) payload[key] = set[key] ?? null;
   return {...payload, ...changes};
 }
@@ -275,11 +290,11 @@ function fieldInput(workout, set, field, prev, label) {
   return cell;
 }
 function setRow(workout, set, prev, tracking, variant = null) {
-  const config = TRACKING[tracking];
+  const config = configOf(userExercise(set.exercise));
   const row = node("div", null, "set-line" + (set.completed ? " done" : ""));
   row.setAttribute("role", "row");
   row.append(node("span", String(set.set_number), "set-no"));
-  if (!config.cardio) {
+  if (!config.cardio && !config.oneSide) {
     const cell = node("span", null, "set-prev");
     if (variant) cell.append(node("b", variant.label, "set-variant"));
     cell.append(node("span", prev ? setText(prev, tracking).replace(/kg/g, "").replace(/ × /g, "×") : "—"));
@@ -298,6 +313,12 @@ function setRow(workout, set, prev, tracking, variant = null) {
     const changes = {completed: !set.completed};
     const keys = [...new Set(config.fields.map((name) => FIELDS[name].key))];
     if (!set.completed && prev && keys.every((key) => set[key] == null)) for (const key of keys) changes[key] = prev[key] ?? null;
+    // One side typed in: the other side did as many unless it says otherwise.
+    if (!set.completed && config.oneSide) {
+      const left = changes.left_reps !== undefined ? changes.left_reps : set.left_reps, right = changes.reps !== undefined ? changes.reps : set.reps;
+      if (left == null && right != null) changes.left_reps = right;
+      if (right == null && left != null) changes.reps = left;
+    }
     instant(workout, () => { Object.assign(set, changes); if (set.completed && workout === todayWorkout()) afterSet(workout, set, config); },
       () => api("/workouts/" + workout.id + "/sets/" + set.id, "PUT", setPayload(set)));
   });
@@ -307,8 +328,8 @@ function setRow(workout, set, prev, tracking, variant = null) {
     () => { workout.sets = workout.sets.filter((item) => item.id !== set.id); },
     () => api("/workouts/" + workout.id + "/sets/" + set.id, "DELETE")));
   row.append(done, remove);
-  // Strength rows: number, previous, fields, done, remove. Cardio rows have no "previous" column.
-  row.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
+  // Strength rows: number, previous, fields, done, remove. Cardio and one-side rows have no "previous" column.
+  row.style.gridTemplateColumns = gridOf(config);
   return row;
 }
 // Session-level values live on the first row of a cardio exercise: calories and average heart rate, and for
@@ -394,7 +415,7 @@ function foldedBlock(exercise, sets, config) {
 function exerciseBlock(workout, sets, folded = false) {
   const exercise = userExercise(sets[0].exercise);
   const preset = presetOf(exercise);
-  const tracking = trackingOf(exercise), config = TRACKING[tracking];
+  const tracking = trackingOf(exercise), config = configOf(exercise);
   if (folded) return foldedBlock(exercise, sets, config);
   const prev = previousSets(exercise.id, workout);
   const picked = preset?.variants ? pickedVariant(workout, exercise.id, sets) : null;
@@ -426,10 +447,10 @@ function exerciseBlock(workout, sets, folded = false) {
   const table = node("div", null, "set-table"); table.setAttribute("role", "table");
   table.setAttribute("aria-label", exercise.name + (config.cardio ? " 구간" : " 세트"));
   const header = node("div", null, "set-line set-header"); header.setAttribute("role", "row");
-  const labels = [config.cardio ? "구간" : "세트", ...(config.cardio ? [] : ["이전"]),
+  const labels = [config.cardio ? "구간" : "세트", ...(config.cardio || config.oneSide ? [] : ["이전"]),
     ...config.fields.map((name) => name === "weight" && config.weightLabel ? config.weightLabel : FIELDS[name].label), "완료", ""];
   for (const label of labels) header.append(node("span", label));
-  header.style.gridTemplateColumns = (config.cardio ? "28px " : "28px minmax(0,1fr) ") + "repeat(" + config.fields.length + ",minmax(0," + (config.cardio ? "1fr" : "64px") + ")) 40px 24px";
+  header.style.gridTemplateColumns = gridOf(config);
   table.append(header);
   sets.forEach((set, index) => {
     const same = prev.filter((item) => (item.variant ?? null) === (set.variant ?? null));
@@ -1065,7 +1086,7 @@ function openFinish(workout) {
   state.finish = workout;
   const done = workout.sets.filter((set) => set.completed), left = workout.sets.length - done.length;
   const strength = done.filter((set) => !TRACKING[trackingOf(userExercise(set.exercise))].cardio);
-  const volume = strength.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
+  const volume = strength.reduce((sum, set) => sum + (set.weight || 0) * ((set.reps || 0) + (set.left_reps || 0)), 0);
   const start = workout.started_at ? new Date(workout.started_at) : null;
   const stats = [["세트", String(done.length)], ["볼륨", volume >= 1000 ? number(volume / 1000) + "t" : number(volume) + "kg"],
     ["시간", start ? minutesSince(start) + "분" : "—"]];
@@ -1078,6 +1099,15 @@ function openFinish(workout) {
     return {name: strength.find((set) => set.exercise_id === id).exercise.name, now, before};
   }).filter((item) => item.before > 0 && item.now > item.before).slice(0, 3);
   $("#finish-best").hidden = !better.length;
+  // One-side exercises: name the weaker side when today's totals differ by 2 reps or more.
+  const sides = [...new Set(done.filter((set) => set.left_reps != null).map((set) => set.exercise_id))].map((id) => {
+    const own = done.filter((set) => set.exercise_id === id && set.left_reps != null);
+    const left = own.reduce((sum, set) => sum + set.left_reps, 0), right = own.reduce((sum, set) => sum + (set.reps || 0), 0);
+    return {name: own[0].exercise.name, gap: right - left};
+  }).filter((item) => Math.abs(item.gap) >= 2);
+  $("#finish-sides").hidden = !sides.length;
+  $("#finish-sides").replaceChildren(...sides.map((item) => node("p", item.name + " · " + (item.gap > 0 ? "왼쪽" : "오른쪽") + "이 " + Math.abs(item.gap)
+    + "회 적어요. 다음엔 " + (item.gap > 0 ? "왼쪽" : "오른쪽") + "부터 해 보세요.", "side-line")));
   $("#finish-best-list").replaceChildren(...better.map((item) => {
     const line = node("p", null, "best-line");
     line.append(node("strong", item.name + " " + number(item.now) + "kg"), node("span", "최고 무게 · 지난 기록 " + number(item.before) + "kg"));
@@ -1106,6 +1136,11 @@ function openInfo(exercise, item = null) {
   $("#info-sub").textContent = preset ? [preset.name_en, ...preset.aliases].join(" · ") : own.length ? "내 종목" : "내 종목 · 근육을 고르지 않아 근육 그림이 없어요";
   const tracking = [preset?.tracking, exercise.tracking].find((value) => TRACKING[value]) || "weight_reps";
   $("#info-tracking").textContent = "기록 방식 · " + (state.catalog?.tracking?.[tracking] || "중량 × 횟수");
+  // Only an exercise of the user's (it has an id) that counts reps can switch to one side at a time.
+  const mine = exercise.id ? userExercise(exercise) : null;
+  $("#info-side").hidden = !mine || !["weight_reps", "reps"].includes(tracking);
+  $("#info-side-input").checked = Boolean(mine && oneSide(mine));
+  state.infoExercise = mine;
   const tags = $("#info-tags"); tags.replaceChildren();
   for (const tag of preset ? preset.tags : [exercise.body_part, ...own, exercise.category].filter(Boolean)) tags.append(node("span", tag, "tag"));
   $("#info-muscle").replaceChildren(preset ? FitAnatomy.figure(preset.muscles)
@@ -1305,6 +1340,17 @@ $("#exercise-form").addEventListener("submit", (event) => {
 });
 $("#picker-query").addEventListener("input", renderPicker);
 $("#picker-add").addEventListener("click", (event) => mutate(event.currentTarget, () => addPicked([...state.picker.picked.values()])));
+// 한쪽씩 기록 in the exercise sheet: saved on the exercise, so every session of it shows left and right reps.
+$("#info-side-input").addEventListener("change", (event) => mutate(event.currentTarget, async () => {
+  const exercise = state.infoExercise, box = event.currentTarget, on = box.checked;
+  if (!exercise) return;
+  const saved = await api("/exercises/" + exercise.id, "PUT", {name: exercise.name, category: exercise.category, body_part: exercise.body_part,
+    preset_id: exercise.preset_id, muscles: exercise.muscles, tracking: exercise.tracking, one_side: on}).catch((error) => { box.checked = !on; throw error; });
+  Object.assign(exercise, saved);
+  for (const workout of state.workouts) for (const set of workout.sets) if (set.exercise_id === exercise.id) Object.assign(set.exercise, saved);
+  renderCurrent();
+  notice(on ? "이제 왼쪽·오른쪽 횟수를 따로 적어요." : "이제 횟수를 한 칸에 적어요.");
+}));
 // An open ⋯ menu closes on a tap anywhere else.
 document.addEventListener("click", (event) => {
   for (const menu of document.querySelectorAll(".ex-menu[open]")) if (!menu.contains(event.target)) menu.open = false;

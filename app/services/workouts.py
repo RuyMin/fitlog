@@ -40,7 +40,10 @@ def list_exercises(session: Session, user_id: int, limit: int, offset: int) -> l
 
 def save_exercise(session: Session, user_id: int, data: ExerciseInput, exercise_id: int | None = None) -> Exercise:
     item = get_exercise(session, user_id, exercise_id) if exercise_id is not None else Exercise(user_id=user_id)
-    for key, value in data.model_dump().items():
+    values = data.model_dump()
+    if exercise_id is not None and "one_side" not in data.model_fields_set:
+        del values["one_side"]  # the editor saves names and muscles without touching the one-side switch
+    for key, value in values.items():
         setattr(item, key, value)
     session.add(item)
     commit(session)

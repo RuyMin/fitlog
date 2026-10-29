@@ -206,6 +206,15 @@ dialog button.menu-close{min-height:48px;border:0;background:none;color:var(--mu
 .finish-stats p{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;font-size:12px;color:var(--muted)}.finish-stats strong{display:block;font-size:24px;font-weight:700;color:var(--ink)}
 .finish-best{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px}.finish-best h3{font-size:15px}
 .finish-best[hidden]{display:none}
+/* One-side exercises whose left and right counts differ by 2 or more (openFinish). */
+.finish-sides{display:flex;flex-direction:column;gap:6px}.finish-sides[hidden]{display:none}
+.side-line{margin:0;padding:10px 14px;border-radius:14px;background:var(--meal-soft);color:var(--meal-ink);font-size:13px;line-height:1.5}
+.info-side{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.info-side[hidden]{display:none}
+.info-side>span{flex:1;display:flex;flex-direction:column;gap:2px}.info-side strong{font-size:14px}.info-side small{font-size:12px;color:var(--muted)}
+.info-side input{appearance:none;width:50px;height:30px;border-radius:15px;background:var(--line);position:relative;margin:0;flex:none;cursor:pointer}
+.info-side input::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:12px;background:var(--ink);transition:left .15s}
+.info-side input:checked{background:var(--brand)}.info-side input:checked::after{left:23px;background:var(--brand-ink)}
 .best-line{display:flex;flex-direction:column;font-size:15px;line-height:1.4}.best-line span{font-size:12px;color:var(--muted)}
 .finish-fields{display:flex;flex-direction:column;gap:10px}
 .finish-drop{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}.finish-drop input{width:auto;margin:0}
