@@ -189,8 +189,9 @@ window.fitlogMe.then((me) => me && store((storage) => {
     }},
   };
 
-  // Bulk sync: when the app is opened, or brought back after AWAY_MS in another app, every tab's data is
-  // fetched at once behind a dim layer, so moving between tabs afterwards needs no waiting. Each page
+  // Bulk sync: when the app is opened, every tab's data is fetched at once behind a dim layer, so moving between
+  // tabs afterwards needs no waiting. Brought back after AWAY_MS in another app, it first asks the server whether
+  // records changed elsewhere (another device, a new day) and syncs only then; its own edits never count. Each page
   // renders through fitlogShow and re-renders on window.fitlogOnSync.
   const AWAY_MS = 5000, DIM_DELAY = 150, SYNC_LIMIT = 12000;
   let syncing = Promise.resolve();
@@ -226,13 +227,27 @@ window.fitlogMe.then((me) => me && store((storage) => {
     await window.fitlogCache.set(dataset.key, data, started);
     show(data, false);
   };
+  // Asking also marks this phone as up to date (app/services/freshness.py). An error answer (say, signed out)
+  // counts as changed, so the sync shows it; no connection at all leaves the saved copy as it is.
+  const changedElsewhere = async () => {
+    const response = await fetch("/api/me/changed", {cache: "no-store", signal: AbortSignal.timeout(5000)});
+    return !response.ok || (await response.json()).changed !== false;
+  };
   try {
-    if (!sessionStorage.getItem("fitlog-opened")) { sessionStorage.setItem("fitlog-opened", "1"); syncAll(); }
+    if (!sessionStorage.getItem("fitlog-opened")) {
+      sessionStorage.setItem("fitlog-opened", "1");
+      changedElsewhere().catch(() => {});
+      syncAll();
+    }
   } catch { /* no session storage: tabs load their own data */ }
   let hiddenAt = 0;
+  const resync = () => syncAll().then(() => window.fitlogOnSync?.());
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
-    if (hiddenAt && Date.now() - hiddenAt >= AWAY_MS && !leavingForLogin) syncAll().then(() => window.fitlogOnSync?.());
+    if (hiddenAt && Date.now() - hiddenAt >= AWAY_MS && !leavingForLogin) {
+      if (dayKey(new Date()) !== today) resync();
+      else changedElsewhere().then((changed) => { if (changed) resync(); }, () => {});
+    }
     hiddenAt = 0;
   });
 }

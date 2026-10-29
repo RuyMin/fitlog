@@ -12,7 +12,8 @@ from starlette.responses import Response
 
 from app import config
 from app.pages import IMMUTABLE, asset_hash, page
-from app.services import perf
+from app.services import freshness, perf
+from app.api.deps import cookie_name
 from starlette.concurrency import run_in_threadpool
 from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
@@ -107,6 +108,10 @@ async def security_policy(request: Request, call_next: RequestResponseEndpoint) 
         response: Response = JSONResponse(status_code=403, content={"detail": "다른 사이트에서 보낸 요청은 처리할 수 없습니다."})
     else:
         response = await call_next(request)
+    user_id = getattr(request.state, "user_id", None)
+    # Any successful write may change records (the speed reports to /api/metrics do not).
+    if user_id and request.method in UNSAFE_METHODS and response.status_code < 400 and request.url.path.startswith("/api/")             and request.url.path != "/api/metrics":
+        freshness.wrote(user_id, freshness.session_key(request.cookies.get(cookie_name())))
     if request.url.path.startswith(("/api/", "/auth/")) and "cache-control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
     # /api/health is polled by the container healthcheck and every page; it would drown the rest.
