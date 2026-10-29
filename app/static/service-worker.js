@@ -2,7 +2,7 @@
 // Pages show from the cache at once and refresh in the background; assets linked by content hash
 // (?v=<12 hex>, app/pages.py) never change at that address, so they come straight from the cache.
 // API responses are never cached.
-const CACHE = "fitlog-shell-v44";
+const CACHE = "fitlog-shell-v45";
 // Fonts (~950KB) are linked from CSS without a hash and change only when rebuilt, so they live in their own
 // cache that survives releases; bump this name when scripts/build_fonts.py output changes.
 const FONTS = "fitlog-fonts-v1";

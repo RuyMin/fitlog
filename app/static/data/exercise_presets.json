@@ -199,6 +199,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "덤벨 프레스",
     "덤벨 벤치"
@@ -226,6 +227,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "인클라인 덤벨 벤치프레스"
    ],
@@ -250,6 +252,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "덤벨 플라이스",
     "플라이"
@@ -273,6 +276,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "인클라인 플라이"
    ],
@@ -297,6 +301,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "single",
    "aliases": [
     "풀오버"
    ],
@@ -1012,6 +1017,8 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "side": "one",
+   "load": "single",
    "aliases": [
     "덤벨 로우",
     "원암 로우"
@@ -1038,6 +1045,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "인클라인 덤벨 로우",
     "체스트 서포티드 로우"
@@ -1295,6 +1303,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "덤벨 쉬러그"
    ],
@@ -1347,6 +1356,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "덤벨 프레스 어깨"
    ],
@@ -1372,6 +1382,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "아널드 프레스"
    ],
@@ -1445,6 +1456,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "사레레",
     "사이드 레이즈",
@@ -1513,6 +1525,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "프런트 레이즈"
    ],
@@ -1536,6 +1549,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "벤트오버 레터럴 레이즈",
     "후면 플라이",
@@ -1753,6 +1767,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "얼터네이트 덤벨 컬",
     "덤벨 바이셉 컬",
@@ -1780,6 +1795,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "해머컬"
    ],
@@ -1805,6 +1821,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "인클라인 컬"
    ],
@@ -1853,6 +1870,8 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "side": "one",
+   "load": "single",
    "aliases": [
     "컨센 컬"
    ],
@@ -2069,6 +2088,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "single",
    "aliases": [
     "덤벨 트라이셉스 익스텐션",
     "프렌치 프레스",
@@ -2145,6 +2165,7 @@
    "equipment": "덤벨",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "트라이셉스 킥백"
    ],
@@ -2339,6 +2360,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "single",
    "aliases": [
     "고블렛 스쿼트"
    ],
@@ -2560,6 +2582,8 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "side": "one",
+   "load": "per_hand",
    "aliases": [
     "불스쿼",
     "스플릿 스쿼트"
@@ -2585,6 +2609,8 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "side": "one",
+   "load": "per_hand",
    "aliases": [
     "워킹 런지",
     "런지"
@@ -2610,6 +2636,7 @@
    "equipment": "맨몸",
    "kind": "compound",
    "tracking": "reps",
+   "side": "one",
    "aliases": [
     "런지 맨몸"
    ],
@@ -2633,6 +2660,8 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "side": "one",
+   "load": "per_hand",
    "aliases": [
     "박스 스텝업"
    ],
@@ -2657,6 +2686,7 @@
    "equipment": "맨몸",
    "kind": "compound",
    "tracking": "reps",
+   "side": "one",
    "aliases": [
     "한발 스쿼트"
    ],
@@ -2708,6 +2738,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "per_hand",
    "aliases": [
     "덤벨 RDL"
    ],
@@ -2918,6 +2949,7 @@
    "equipment": "케이블",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "side": "one",
    "aliases": [
     "힙 킥백",
     "글루트 킥백"
@@ -3559,6 +3591,7 @@
    "equipment": "케틀벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "single",
    "aliases": [
     "케틀벨스윙",
     "KB 스윙"
@@ -3585,6 +3618,7 @@
    "equipment": "케틀벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "load": "single",
    "aliases": [
     "케틀벨 스쿼트"
    ],
@@ -3610,6 +3644,8 @@
    "equipment": "케틀벨",
    "kind": "compound",
    "tracking": "weight_reps",
+   "side": "one",
+   "load": "single",
    "aliases": [
     "겟업"
    ],
@@ -3636,6 +3672,7 @@
    "equipment": "덤벨",
    "kind": "compound",
    "tracking": "weight_time",
+   "load": "per_hand",
    "aliases": [
     "파머스 캐리",
     "농부 걷기"
@@ -4063,6 +4100,7 @@
    "equipment": "케이블",
    "kind": "isolation",
    "tracking": "weight_reps",
+   "side": "one",
    "aliases": [
     "외회전",
     "익스터널 로테이션",

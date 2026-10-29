@@ -100,12 +100,12 @@ class MigrationV15Tests(unittest.TestCase):
                 migrate(engine, path)
             finally:
                 engine.dispose()
-            self.assertEqual(SCHEMA_VERSION, 15)
+            self.assertGreaterEqual(SCHEMA_VERSION, 15)
             with closing(sqlite3.connect(path)) as c:
-                self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 15)
+                self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
                 self.assertEqual(c.execute("SELECT title, routine_id FROM workouts").fetchall(), [("하체", None)])
                 self.assertEqual(c.execute("SELECT count(*) FROM routines").fetchone()[0], 0)
-            self.assertEqual(len(list((Path(folder) / "backups").glob("before-v15-*.db"))), 1)
+            self.assertEqual(len(list((Path(folder) / "backups").glob(f"before-v{SCHEMA_VERSION}-*.db"))), 1)
 
 
 if __name__ == "__main__":
