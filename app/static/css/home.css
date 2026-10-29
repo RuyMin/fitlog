@@ -28,6 +28,7 @@
 .sheet-close{width:44px;height:44px;border:0;background:none;color:var(--ink);display:grid;place-items:center;cursor:pointer}
 .sheet-close svg,.excel-link svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .sheet-subtitle{font-size:14px;font-weight:700;color:var(--muted)}
+.direct-record{display:flex;flex-direction:column;gap:10px}.direct-record[hidden]{display:none}
 /* The four ways to record by hand: workout opens its tab, the others a quick sheet (quick.js). */
 .record-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .record-tile{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:116px;padding:16px;border-radius:22px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-sizing:border-box}
