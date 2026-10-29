@@ -44,6 +44,8 @@
 .assistant-photo img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .assistant-card .assistant-photo button{position:absolute;top:-8px;right:-8px;min-height:24px;width:24px;padding:0;border-radius:999px;font-size:12px;line-height:1}
 .assistant-hint{font-size:12px;color:var(--muted);margin:10px 2px 0;line-height:1.5}
+/* The photo note only matters while the AI box can be used. */
+#assistant-form[hidden]~.assistant-hint{display:none}
 /* .assistant-actions sets display:flex, which would otherwise override the hidden attribute. */
 .assistant-card [hidden]{display:none!important}
 .assistant-extra{display:block;font-size:11px;color:var(--muted);margin-top:2px}

@@ -9,20 +9,20 @@
     return n;
   };
   const ERRORS = {
-    no_key: "AI 키가 아직 등록되지 않았습니다. 관리자에게 문의해 주세요.",
-    no_key_admin: "관리자 화면에서 공용 AI 키를 먼저 등록해 주세요.",
-    no_consent: "설정에서 'AI 외부 전송'에 동의해야 사용할 수 있어요.",
-    key_unreadable: "AI 키를 읽을 수 없습니다. 관리자에게 알려 주세요.",
-    invalid_key: "AI 키가 더 이상 유효하지 않습니다. 관리자에게 알려 주세요.",
-    key_forbidden: "AI 키 권한 문제로 사용할 수 없습니다. 관리자에게 알려 주세요.",
-    model_unavailable: "이 키로 사용할 수 없는 모델입니다. 관리자에게 문의해 주세요.",
-    request_rejected: "AI가 이 요청을 처리하지 못했어요. 관리자에게 알려 주세요.",
-    rate_limited: "AI 사용량이 잠시 몰렸어요. 잠시 후 다시 시도해 주세요.",
-    daily_limit: "오늘 사용할 수 있는 횟수를 모두 썼습니다. 내일 다시 이용해 주세요.",
-    refused: "이 내용으로는 초안을 만들 수 없습니다. 표현을 바꿔 다시 시도해 주세요.",
-    too_long: "내용이 너무 길어요. 나눠서 입력해 주세요.",
-    server_not_configured: "관리자가 AI 기능을 아직 설정하지 않았습니다.",
-    unreachable: "AI에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.",
+    no_key: "아직 AI 기록을 쓸 수 없어요. 관리자가 준비하면 바로 쓸 수 있어요.",
+    no_key_admin: "AI 기록을 쓰려면 먼저 준비가 필요해요.",
+    no_consent: "AI 기록을 쓰려면 먼저 동의가 필요해요.",
+    key_unreadable: "지금은 AI 기록을 쓸 수 없어요. 관리자에게 알려 주세요.",
+    invalid_key: "지금은 AI 기록을 쓸 수 없어요. 관리자에게 알려 주세요.",
+    key_forbidden: "지금은 AI 기록을 쓸 수 없어요. 관리자에게 알려 주세요.",
+    model_unavailable: "지금은 AI 기록을 쓸 수 없어요. 관리자에게 알려 주세요.",
+    request_rejected: "지금은 AI 기록을 쓸 수 없어요. 관리자에게 알려 주세요.",
+    rate_limited: "지금 AI가 바빠요. 잠시 후 다시 해 주세요.",
+    daily_limit: "오늘 AI 기록을 다 썼어요. 내일 다시 쓸 수 있어요.",
+    refused: "이 내용으로는 기록을 만들지 못했어요. 조금 다르게 적어 보세요.",
+    too_long: "내용이 너무 길어요. 나눠서 적어 주세요.",
+    server_not_configured: "아직 AI 기록을 쓸 수 없어요.",
+    unreachable: "AI에 연결하지 못했어요. 잠시 후 다시 해 주세요.",
   };
   const MEAL_TYPES = [["breakfast", "아침"], ["lunch", "점심"], ["dinner", "저녁"], ["snack", "간식"], ["other", "기타"]];
   const KINDS = {
@@ -111,7 +111,10 @@
       $("assistant-setup").hidden = !setup;
       $("assistant-setup").replaceChildren(node("span", setup + " "));
       // Members can fix consent in settings; only an admin can fix a missing key.
-      if (setup && s.server_ready && (s.key_configured || s.can_manage_key)) { const link = node("a", "설정으로 이동 →"); link.href = "/settings"; $("assistant-setup").append(link); }
+      if (setup && s.server_ready && (s.key_configured || s.can_manage_key)) {
+        const link = node("a", s.key_configured ? "동의하러 가기 →" : "AI 키 등록하러 가기 →");
+        link.href = s.key_configured ? "/settings#account" : "/admin"; $("assistant-setup").append(link);
+      }
       $("assistant-form").hidden = Boolean(setup);
       $("assistant-usage").textContent = `오늘 ${s.used_today}/${s.daily_limit}회 사용`;
       direct(Boolean(setup) || s.used_today >= s.daily_limit);
