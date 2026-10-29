@@ -111,3 +111,38 @@ main{max-width:1120px;margin:auto;padding:16px 16px 120px}
 .mp-dot{width:12px;height:12px;border-radius:6px;flex-shrink:0}
 .mp-row button{border:0;background:none;min-height:32px;padding:0 6px;color:var(--accent);font-size:12px;font-weight:600}
 .mp-row .mp-drop{color:var(--muted);font-size:18px}
+
+/* Motion: pages cross-fade and rise a little, popups slide or fade in and out, pressed things give a little.
+   Browsers without view transitions or @starting-style simply switch at once, as before. */
+html{-webkit-tap-highlight-color:transparent}
+@media(prefers-reduced-motion:no-preference){
+  @view-transition{navigation:auto}
+  .navigation{view-transition-name:nav}
+  ::view-transition-old(root){animation:.12s ease-in both page-out}
+  ::view-transition-new(root){animation:.24s cubic-bezier(.2,.8,.2,1) both page-in}
+  /* Settings list ↔ panel (settings.js sets data-slide): forward comes from the right, back from the left. */
+  html[data-slide=forward]::view-transition-old(root){animation:.22s ease-in both slide-out-left}
+  html[data-slide=forward]::view-transition-new(root){animation:.26s cubic-bezier(.2,.8,.2,1) both slide-in-right}
+  html[data-slide=back]::view-transition-old(root){animation:.22s ease-in both slide-out-right}
+  html[data-slide=back]::view-transition-new(root){animation:.26s cubic-bezier(.2,.8,.2,1) both slide-in-left}
+
+  a,button,summary,.chip-option{transition:transform .14s ease,background-color .2s ease,color .2s ease,border-color .2s ease}
+  :is(a,button,summary,.chip-option):active:not(:disabled){transform:scale(.97)}
+
+  dialog{transition:opacity .2s ease,transform .26s cubic-bezier(.2,.8,.2,1),overlay .26s allow-discrete,display .26s allow-discrete}
+  dialog:not([open]){opacity:0;transform:scale(.96)}
+  dialog::backdrop{transition:opacity .26s ease,overlay .26s allow-discrete,display .26s allow-discrete}
+  dialog:not([open])::backdrop{opacity:0}
+  @starting-style{dialog[open]{opacity:0;transform:scale(.96)}dialog[open]::backdrop{opacity:0}}
+}
+/* Phones: bottom sheets rise from the bottom edge instead of fading. */
+@media(prefers-reduced-motion:no-preference) and (max-width:759px){
+  dialog:is(.quick-sheet,.record-sheet,.sheet-dialog):not([open]){opacity:1;transform:translateY(100%)}
+  @starting-style{dialog:is(.quick-sheet,.record-sheet,.sheet-dialog)[open]{opacity:1;transform:translateY(100%)}}
+}
+@keyframes page-out{to{opacity:0}}
+@keyframes page-in{from{opacity:0;transform:translateY(10px)}}
+@keyframes slide-out-left{to{opacity:0;transform:translateX(-24px)}}
+@keyframes slide-in-right{from{opacity:0;transform:translateX(32px)}}
+@keyframes slide-out-right{to{opacity:0;transform:translateX(24px)}}
+@keyframes slide-in-left{from{opacity:0;transform:translateX(-32px)}}
