@@ -22,11 +22,30 @@
 <p class="sidebar-footer">PERSONAL HEALTH JOURNAL<br><span>한 번에 하루씩, 나의 속도로.</span></p>
 </aside>
 <main id="main">
-<header class="topbar"><span class="eyebrow">MY SETTINGS</span><div class="topbar-actions"><span id="server-status" class="status" role="status">서버 확인 중</span><a class="profile-link" href="/settings" aria-label="설정과 계정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a></div></header>
-<section class="page-heading"><div><p id="today" class="date"></p><h1>설정과 데이터</h1><p class="muted">계정과 동의 내역을 확인하고 기존 기록을 가져옵니다.</p></div></section>
-<section class="card tracking-card" aria-labelledby="tracking-heading"><a href="/welcome" class="admin-link"><span><strong id="tracking-heading">홈에 보일 기록</strong><small>운동·식단·체중·수면 중 홈 요약에 보일 것을 고릅니다</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a></section>
-<section class="card goals-card" id="goals" aria-labelledby="goals-heading"><h2 id="goals-heading">내 목표</h2>
-<p class="muted">홈의 목표 링, 식단의 열량·영양소 막대, 몸·추이의 수면 점선이 이 목표를 따릅니다.</p>
+<section id="settings-home" class="set-home" aria-labelledby="settings-title">
+<header class="set-top"><h1 id="settings-title">설정</h1><span id="server-status" class="status" role="status" hidden>서버 확인 중</span></header>
+<div class="set-profile"><span id="profile-initial" class="set-avatar" aria-hidden="true">·</span><span class="set-text"><strong id="profile-email">확인 중</strong><small id="profile-role">Google 계정</small></span></div>
+<section class="set-group" aria-labelledby="group-record"><h2 id="group-record">기록</h2><div class="set-list">
+<a href="#goals" class="set-row tone-green"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle></svg></span><span class="set-text"><strong>목표</strong><small id="row-goals">불러오는 중</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="/welcome" class="set-row tone-mint"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"></path></svg></span><span class="set-text"><strong>홈에 보일 기록</strong><small id="row-tracking">운동 · 식단 · 체중 · 수면</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+</div></section>
+<section class="set-group" aria-labelledby="group-import"><h2 id="group-import">가져오기와 AI</h2><div class="set-list">
+<a href="#excel" class="set-row tone-orange"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 12l6 6M15 12l-6 6"></path></svg></span><span class="set-text"><strong>엑셀 기록 가져오기</strong><small>예전 기록표를 AI가 옮겨요</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="#ai" class="set-row tone-blue"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span><span class="set-text"><strong>AI 기록 도우미</strong><small id="row-ai">확인 중</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+</div></section>
+<section class="set-group" aria-labelledby="group-account"><h2 id="group-account">계정</h2><div class="set-list">
+<a href="#account" class="set-row tone-grey"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></span><span class="set-text"><strong>계정과 동의</strong><small id="row-account">서비스 이용 · AI 외부 전송</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="/admin" class="set-row tone-grey" id="admin-entry" hidden><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"></path></svg></span><span class="set-text"><strong>관리자 화면</strong><small>기본 종목 · 멤버 초대 · AI 키 · 속도 통계</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<button type="button" id="logout-row" class="set-row tone-red"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"></path></svg></span><span class="set-text"><strong>로그아웃</strong></span></button>
+</div></section>
+<section class="set-group" aria-labelledby="group-info"><h2 id="group-info">정보</h2><div class="set-list">
+<a href="#privacy" class="set-row tone-grey"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 0 1 12 0v2"></path><path d="M5 10h14v11H5z"></path></svg></span><span class="set-text"><strong>개인정보와 데이터 보관</strong><small>속도 기록 14일 · 이 기기 7일</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="#oss" class="set-row tone-grey"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg></span><span class="set-text"><strong>오픈소스 고지</strong><small>근육 그림 · 글꼴</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+</div></section>
+<p class="set-version">FitLog <span id="app-version"></span></p>
+</section>
+<section class="set-panel goals-card" id="goals" data-panel="goals" aria-labelledby="goals-heading" hidden><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1>목표</h1></header>
+<h2 id="goals-heading" class="visually-hidden">내 목표</h2>
 <div id="goal-now" class="goal-now" aria-live="polite"></div>
 <form id="goals-form" novalidate>
 <fieldset class="goal-mode"><legend>열량·영양소 목표를 정하는 방식</legend>
@@ -34,20 +53,14 @@
 <label class="mode-option"><input type="radio" name="mode" value="manual"><span><strong>직접 입력</strong><small>적은 숫자를 그대로 써요. 체중이 바뀌어도 바뀌지 않습니다.</small></span></label>
 </fieldset>
 <div id="goal-auto">
-<p class="goal-note" role="note"><strong>선택 입력이에요.</strong> 성별·출생연도·키는 목표 계산에만 쓰고, 다른 기록처럼 이 계정에만 보이며 운영자 NAS에 저장됩니다. 입력하지 않으면 기본 목표를 쓰고, 아래 ‘입력한 목표 정보 지우기’로 언제든 지울 수 있어요.</p>
+<p class="goal-hint">모두 선택 입력이에요. 목표 계산에만 쓰고 이 계정에만 보여요.</p>
 <div class="goal-grid">
-<label>성별<select name="sex"><option value="">선택 안 함</option><option value="female">여성</option><option value="male">남성</option></select></label>
+<fieldset class="goal-chips chips-sex"><legend>성별</legend><div><label class="chip-option"><input type="radio" name="sex" value=""><span>선택 안 함</span></label><label class="chip-option"><input type="radio" name="sex" value="female"><span>여성</span></label><label class="chip-option"><input type="radio" name="sex" value="male"><span>남성</span></label></div></fieldset>
 <label>출생연도<input name="birth_year" type="number" inputmode="numeric" step="1" placeholder="예: 1994"></label>
 <label>키 (cm)<input name="height_cm" type="number" inputmode="decimal" min="100" max="250" step="0.1" placeholder="예: 170"></label>
 <div class="goal-weight"><span>체중</span><strong id="goal-weight">—</strong></div>
-<label class="goal-wide">평소 활동량<select name="activity">
-<option value="sedentary">거의 앉아서 지냄 · 운동 거의 안 함</option>
-<option value="light">가벼운 활동 · 주 1~3회 운동</option>
-<option value="moderate">보통 · 주 3~5회 운동</option>
-<option value="active">활발 · 주 6~7회 운동</option>
-<option value="very_active">매우 활발 · 매일 고강도 운동이나 육체노동</option>
-</select></label>
-<label class="goal-wide">목표<select name="aim"><option value="lose">체중 감량 · 유지 열량에서 하루 400kcal 덜</option><option value="maintain">지금 체중 유지</option><option value="gain">근육·체중 늘리기 · 유지 열량에서 하루 300kcal 더</option></select></label>
+<fieldset class="goal-chips goal-wide chips-activity"><legend>평소 활동량</legend><div><label class="chip-option"><input type="radio" name="activity" value="sedentary"><span>거의 안 함<small>앉아서 지냄</small></span></label><label class="chip-option"><input type="radio" name="activity" value="light"><span>가벼움<small>주 1~3회</small></span></label><label class="chip-option"><input type="radio" name="activity" value="moderate"><span>보통<small>주 3~5회</small></span></label><label class="chip-option"><input type="radio" name="activity" value="active"><span>활발<small>주 6~7회</small></span></label><label class="chip-option"><input type="radio" name="activity" value="very_active"><span>매우 활발<small>매일 고강도</small></span></label></div></fieldset>
+<fieldset class="goal-chips goal-wide chips-aim"><legend>목표</legend><div><label class="chip-option"><input type="radio" name="aim" value="lose"><span>감량<small>하루 −400kcal</small></span></label><label class="chip-option"><input type="radio" name="aim" value="maintain"><span>유지<small>지금 체중</small></span></label><label class="chip-option"><input type="radio" name="aim" value="gain"><span>증량<small>하루 +300kcal</small></span></label></div></fieldset>
 </div>
 <div id="goal-result" class="goal-result" aria-live="polite"></div>
 </div>
@@ -61,12 +74,12 @@
 <p id="manual-check" class="hint"></p>
 </div>
 <label class="goal-sleep">수면 목표<select name="sleep_minutes"></select></label>
-<p class="goal-note goal-caution" role="note">자동 계산값은 일반 성인용 공식(Mifflin-St Jeor)으로 낸 <strong>추정치</strong>이며 의학적 처방이 아닙니다. 임신·수유 중이거나 질환이 있거나 식단 제한이 필요하다면 의사·영양사와 상의해 ‘직접 입력’으로 정해 주세요. 만 15세 미만은 자동 계산을 지원하지 않습니다.</p>
+<details class="goal-about"><summary>? 계산 방법과 주의할 점</summary><p>자동 계산값은 일반 성인용 공식(Mifflin-St Jeor)으로 낸 <strong>추정치</strong>이며 의학적 처방이 아닙니다. 임신·수유 중이거나 질환이 있거나 식단 제한이 필요하다면 의사·영양사와 상의해 ‘직접 입력’으로 정해 주세요. 만 15세 미만은 자동 계산을 지원하지 않습니다.</p></details>
 <p class="form-error" role="alert"></p>
 <div class="settings-actions"><button type="submit" class="primary" id="goals-save">목표 저장</button><button type="button" id="goals-delete" hidden>입력한 목표 정보 지우기</button></div>
 <p id="goals-message" role="status" aria-live="polite"></p>
 </form></section>
-<section class="card account-card" aria-labelledby="account-heading"><h2 id="account-heading">계정</h2>
+<section class="set-panel account-card" id="account" data-panel="account" aria-labelledby="account-heading" hidden><h2 id="account-heading" class="visually-hidden">계정</h2><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1>계정과 동의</h1></header>
 <dl class="sync-details"><dt>Google 계정</dt><dd id="account-email">확인 중</dd><dt>권한</dt><dd id="account-role">—</dd>
 <dt>서비스 이용</dt><dd id="consent-service">—</dd><dt>AI 외부 전송</dt><dd id="consent-ai">—</dd></dl>
 <!-- AI-transfer notice version 2026-10-21: same text as invite.html and accounts.CONSENT_VERSIONS["ai_transfer"]. -->
@@ -79,14 +92,13 @@
 <div class="settings-actions"><button id="consent-ai-toggle" type="button" hidden></button><button id="logout" type="button">로그아웃</button></div>
 <p id="account-message" role="status" aria-live="polite"></p>
 <p class="hint">서비스 이용 동의를 철회하거나 모든 기록을 삭제하려면 운영자에게 요청해 주세요. 삭제 전에 만든 백업 파일에는 백업 보관 기간 동안 남습니다.</p>
-<p class="hint">속도 개선을 위해 앱이 서버에 보낸 요청의 시각·종류·걸린 시간만 14일 동안 기록합니다. 운동·식단 등 기록 내용은 남기지 않습니다.</p><p class="hint">화면을 빨리 띄우려고 홈·운동·식단·몸 화면의 최근 데이터를 이 기기에만 최대 7일 보관했다가 먼저 보여줍니다. 로그아웃하거나 다른 계정으로 로그인하면 지웁니다.</p></section>
-<section class="card admin-entry" id="admin-entry" aria-labelledby="admin-entry-heading" hidden><a href="/admin" class="admin-link"><span><strong id="admin-entry-heading">관리자 화면</strong><small>기본 종목 관리 · 멤버 초대 · AI 공용 키 · 속도 통계</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a></section>
-<section class="card" id="ai-card" aria-labelledby="ai-heading"><h2 id="ai-heading">AI 기록 도우미</h2>
-<p class="muted">홈 화면의 "문장으로 기록하기"는 <strong>운영자가 등록한 공용 Anthropic API 키</strong>로 동작하며, 비용은 운영자가 부담합니다. 사람마다 하루 사용 횟수에 제한이 있습니다. 사용하려면 위 계정 카드에서 "AI 외부 전송"에 동의해 주세요.</p>
+</section>
+<section class="set-panel" id="ai-card" data-panel="ai" aria-labelledby="ai-heading" hidden><h2 id="ai-heading" class="visually-hidden">AI 기록 도우미</h2><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1>AI 기록 도우미</h1></header>
+<p class="muted">홈 화면의 "문장으로 기록하기"는 <strong>운영자가 등록한 공용 Anthropic API 키</strong>로 동작하며, 비용은 운영자가 부담합니다. 사람마다 하루 사용 횟수에 제한이 있습니다. 사용하려면 ‘계정과 동의’에서 AI 외부 전송에 동의해 주세요.</p>
 <dl class="sync-details"><dt>공용 키</dt><dd id="ai-key-hint">확인 중</dd><dt>AI 전송 동의</dt><dd id="ai-consent">—</dd><dt>오늘 사용</dt><dd id="ai-usage">—</dd></dl>
 <p id="ai-message" role="status" aria-live="polite"></p></section>
-<section class="card excel-card" aria-labelledby="excel-heading"><h2 id="excel-heading">Excel 기록 가져오기</h2>
-<p class="muted">쓰던 운동·식단·체중·수면 기록 .xlsx 파일을 올리면 AI가 양식을 분석해 FitLog 기록으로 바꿔 줍니다. 양식이 서로 달라도 됩니다. 저장 전에 항목을 직접 확인하며, 비교만으로는 기록을 바꾸지 않습니다. 사용하려면 위 계정 카드에서 AI 외부 전송에 동의해 주세요.</p>
+<section class="set-panel excel-card" id="excel" data-panel="excel" aria-labelledby="excel-heading" hidden><h2 id="excel-heading" class="visually-hidden">Excel 기록 가져오기</h2><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1>엑셀 기록 가져오기</h1></header>
+<p class="muted">쓰던 운동·식단·체중·수면 기록 .xlsx 파일을 올리면 AI가 양식을 분석해 FitLog 기록으로 바꿔 줍니다. 양식이 서로 달라도 됩니다. 저장 전에 항목을 직접 확인하며, 비교만으로는 기록을 바꾸지 않습니다. 사용하려면 ‘계정과 동의’에서 AI 외부 전송에 동의해 주세요.</p>
 <p class="excel-warning" role="note"><strong>큰 파일은 실패할 수 있어요.</strong> 행이 수백 개를 넘는 파일은 AI 분석 시간이 초과되어 실패할 수 있고, 실패해도 오늘 AI 사용 횟수 1회가 차감됩니다. 시트나 기간을 나눠 작은 파일로 올려 주세요.</p>
 <form id="excel-upload"><label for="excel-file">기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required>
 <label for="excel-timezone">파일의 시간대</label><select id="excel-timezone"><option value="Asia/Seoul" selected>한국 (Asia/Seoul)</option><option value="Asia/Tokyo">일본 (Asia/Tokyo)</option><option value="America/Los_Angeles">미국 서부 (Los Angeles)</option><option value="America/New_York">미국 동부 (New York)</option><option value="Europe/London">영국 (London)</option><option value="UTC">UTC</option></select>
@@ -99,4 +111,7 @@
 <div id="excel-entries"></div><button id="excel-more" type="button" hidden>100개 더 보기</button>
 <div class="excel-actions"><button id="excel-save" class="primary" type="button">선택한 기록 저장</button><button id="excel-cancel" type="button">비교 취소</button></div><p id="excel-selection" class="hint"></p><p class="hint">선택한 기록과 원본 파일을 함께 저장합니다. 선택이 없으면 원본만 보관합니다. 파일에서 빠진 기존 기록은 삭제하지 않습니다. 비교는 1시간 동안 유효합니다.</p></div>
 <details id="excel-history"><summary>최근 Excel 저장 이력</summary><div id="excel-history-list"></div></details></section>
-<p id="pwa-note" class="muted pwa-note" role="status"></p><p class="muted" aria-label="앱 버전">FitLog <span id="app-version"></span></p><p class="muted credits">오픈소스 고지: 운동 화면의 근육 그림은 Ryan Graves의 해부도(CC BY 4.0)를 색상만 바꿔 사용합니다.</p><noscript>설정 조회에는 JavaScript와 서버 연결이 필요합니다.</noscript></main></body></html>
+<p id="pwa-note" class="muted pwa-note" role="status"></p><section class="set-panel" id="privacy" data-panel="privacy" aria-labelledby="privacy-title" hidden><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1 id="privacy-title">개인정보와 데이터 보관</h1></header>
+<ul class="set-notes"><li>속도 개선을 위해 앱이 서버에 보낸 요청의 시각·종류·걸린 시간만 14일 동안 기록합니다. 운동·식단 등 기록 내용은 남기지 않습니다.</li><li>화면을 빨리 띄우려고 홈·운동·식단·몸 화면의 최근 데이터를 이 기기에만 최대 7일 보관했다가 먼저 보여줍니다. 로그아웃하거나 다른 계정으로 로그인하면 지웁니다.</li><li>서비스 이용 동의를 철회하거나 모든 기록을 지우려면 운영자에게 요청해 주세요.</li></ul></section>
+<section class="set-panel" id="oss" data-panel="oss" aria-labelledby="oss-title" hidden><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1 id="oss-title">오픈소스 고지</h1></header>
+<ul class="set-notes credits"><li>운동 화면의 근육 그림은 Ryan Graves의 해부도(CC BY 4.0)를 색상만 바꿔 사용합니다.</li><li>글꼴: 도현(Do Hyeon), 나눔고딕(Nanum Gothic), Rubik — 모두 SIL Open Font License 1.1.</li></ul></section><noscript>설정 조회에는 JavaScript와 서버 연결이 필요합니다.</noscript></main></body></html>
