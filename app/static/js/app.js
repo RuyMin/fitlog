@@ -144,6 +144,8 @@ window.fetch = async (...args) => {
 window.fitlogMe = fetch("/api/me", {cache: "no-store"}).then((r) => r.ok ? r.json() : null).catch(() => null);
 window.fitlogMe.then((me) => me && store((storage) => {
   if (storage.getItem(CACHE_USER) !== String(me.id)) { window.fitlogCache.clear(); storage.setItem(CACHE_USER, String(me.id)); }
+  // The last answer too, so a page can lay itself out (home: which kinds to show) before this one arrives.
+  window.fitlogCache.set("me", me);
 }));
 
 // In a block: page scripts share the global scope and declare names such as `zone` themselves.

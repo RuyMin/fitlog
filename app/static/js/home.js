@@ -9,7 +9,8 @@ const lengthText = (minutes) => (minutes >= 60 ? Math.floor(minutes / 60) + "시
 const homeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul";
 const homeToday = new Intl.DateTimeFormat("en-CA", {timeZone: homeZone}).format(new Date());
 const ALL_KINDS = ["work", "meal", "body", "sleep"];
-const homeState = {data: null, me: null, routines: null, workouts: null, exercises: null};
+// `me` starts as the saved answer, so the home lays out at once; the current one replaces it when it arrives.
+const homeState = {data: null, me: window.fitlogCache.get("me"), routines: null, workouts: null, exercises: null};
 
 // ---- 오늘: four numbers, each with a bar to its goal ---------------------------------------------------
 function cell(key, value, goal, bar, note) {
@@ -95,7 +96,12 @@ function todo(data, tracking) {
 function showNext(data, tracking) {
   const {pending, done} = todo(data, tracking);
   const card = $home("next"), first = pending[0];
+  // The card holds its place from the start (index.html); new words fade in instead of the page jumping.
+  const said = first ? first.title.join("") : done.length ? "done" : "rest";
+  if (card.dataset.said !== said) { card.classList.remove("next-in"); void card.offsetWidth; card.classList.add("next-in"); }
+  card.dataset.said = said;
   card.hidden = false;
+  card.classList.remove("pending"); card.removeAttribute("aria-busy");
   card.dataset.kind = first?.kind || "done";
   const title = $home("next-title"); title.replaceChildren();
   if (first) {
@@ -145,7 +151,7 @@ const homeStart = (() => {
     $home("first-day").hidden = $home("first-form").hidden = !first;
     $home("quick-record").hidden = $home("today-card").hidden = first;
     $home("home-title").textContent = first ? "반가워요" : "오늘";
-    if (first) { $home("next").hidden = true; return; }
+    if (first) { $home("next").hidden = true; return; }  // the checklist takes its place
     showNext(data, tracking);
     $home("step-record-title").textContent = tracking.includes("work") ? "오늘 한 운동 적기" : "오늘 첫 기록 적기";
     const done = [step("step-pick", Boolean(me.tracking)), step("step-record", false), step("step-goal", data.goal_source !== "default")];
@@ -177,7 +183,7 @@ async function loadSummary() {
     await window.fitlogShow(window.fitlogData.dashboard, (data) => { showSummary(data); shown = true; });
   } catch {
     if (shown) return;
-    $home("next").hidden = false;
+    $home("next").classList.remove("pending"); $home("next").removeAttribute("aria-busy");
     $home("next-title").textContent = "연결 후 새로고침해 주세요";
   }
 }
