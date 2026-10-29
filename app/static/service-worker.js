@@ -2,7 +2,10 @@
 // Pages show from the cache at once and refresh in the background; assets linked by content hash
 // (?v=<12 hex>, app/pages.py) never change at that address, so they come straight from the cache.
 // API responses are never cached.
-const CACHE = "fitlog-shell-v38";
+const CACHE = "fitlog-shell-v39";
+// Fonts (~950KB) are linked from CSS without a hash and change only when rebuilt, so they live in their own
+// cache that survives releases; bump this name when scripts/build_fonts.py output changes.
+const FONTS = "fitlog-fonts-v1";
 const PAGES = ["/", "/workouts", "/meals", "/body", "/body-metrics", "/sleep", "/statistics", "/settings", "/welcome"];
 const OFFLINE = ["/manifest.json", "/static/icons/icon.svg", "/static/icons/icon-192.png", "/static/icons/icon-512.png"];
 const HASHED = /^[0-9a-f]{12}$/;
@@ -13,7 +16,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key.startsWith("fitlog-shell-") && key !== CACHE)
+      keys.filter((key) => (key.startsWith("fitlog-shell-") && key !== CACHE) || (key.startsWith("fitlog-fonts-") && key !== FONTS))
         .map((key) => caches.delete(key))
     )).then(() => self.clients.claim())
   );
@@ -29,8 +32,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
 
-  if (url.pathname.startsWith("/static/") && HASHED.test(url.searchParams.get("v") || "")) {
-    event.respondWith(caches.open(CACHE).then(async (cache) => {
+  const fonts = url.pathname.startsWith("/static/fonts/");
+  if (fonts || (url.pathname.startsWith("/static/") && HASHED.test(url.searchParams.get("v") || ""))) {
+    event.respondWith(caches.open(fonts ? FONTS : CACHE).then(async (cache) => {
       const cached = await cache.match(request);
       if (cached) return cached;
       const response = await fetch(request);
