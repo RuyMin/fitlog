@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
+from app import config
 from app.api.deps import CurrentUser
 from app.services import excel_import
 from app.services.sync_service import SyncError
@@ -13,6 +14,8 @@ router=APIRouter(prefix="/api/import",tags=["excel import"])
 @router.post("/preview")
 async def preview(request: Request, user: CurrentUser, filename: Annotated[str,Query(min_length=1,max_length=200)],
                   timezone: Annotated[str,Query(min_length=1,max_length=64)]="Asia/Seoul"):
+    if not config.EXCEL_IMPORT_ENABLED:
+        raise HTTPException(503,"엑셀 가져오기는 잠시 쉬고 있어요.")
     if not filename.lower().endswith(".xlsx") or "/" in filename or "\\" in filename:
         raise HTTPException(422,".xlsx 파일 이름을 지정해 주세요.")
     if request.headers.get("content-type", "").split(";")[0] != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
