@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Integer, exists, func, select
@@ -7,14 +7,13 @@ from sqlalchemy.orm import Session
 from app.models import BodyMetric, Meal, SleepRecord, Workout, WorkoutSet
 from app.schemas import BodyMetricResponse, DashboardResponse, WeekDay, WeightPoint
 from app.services import goals as goal_service
-from app.services.records import utc_naive
+from app.times import day_start, local_day
 
 WEIGHT_DAYS = 30  # the home sparkline's window
 
 
 def get_dashboard(session: Session, user_id: int, day: date, zone: ZoneInfo) -> DashboardResponse:
-    start = utc_naive(datetime.combine(day, time.min, zone))
-    end = utc_naive(datetime.combine(day + timedelta(days=1), time.min, zone))
+    start, end = day_start(day, zone), day_start(day + timedelta(days=1), zone)
     workout_ids = select(Workout.id).where(Workout.user_id == user_id, Workout.workout_date == day)
     workouts_count = session.scalar(select(func.count()).select_from(Workout).where(Workout.user_id == user_id, Workout.workout_date == day))
     total_sets, completed_sets = session.execute(select(
@@ -71,12 +70,11 @@ def week(session: Session, user_id: int, day: date, zone: ZoneInfo) -> list[Week
     """Monday to Sunday around `day`: which local days have a workout, and which have any record."""
     monday = day - timedelta(days=day.weekday())
     days = [monday + timedelta(days=n) for n in range(7)]
-    start = utc_naive(datetime.combine(monday, time.min, zone))
-    end = utc_naive(datetime.combine(monday + timedelta(days=7), time.min, zone))
+    start, end = day_start(monday, zone), day_start(monday + timedelta(days=7), zone)
     trained = set(session.scalars(select(Workout.workout_date).where(
         Workout.user_id == user_id, Workout.workout_date >= monday, Workout.workout_date < monday + timedelta(days=7))))
     stamps = [*session.scalars(select(Meal.eaten_at).where(Meal.user_id == user_id, Meal.eaten_at >= start, Meal.eaten_at < end)),
               *session.scalars(select(BodyMetric.measured_at).where(BodyMetric.user_id == user_id, BodyMetric.measured_at >= start, BodyMetric.measured_at < end)),
               *session.scalars(select(SleepRecord.sleep_end).where(SleepRecord.user_id == user_id, SleepRecord.sleep_end >= start, SleepRecord.sleep_end < end))]
-    logged = trained | {stamp.replace(tzinfo=timezone.utc).astimezone(zone).date() for stamp in stamps}
+    logged = trained | {local_day(stamp, zone) for stamp in stamps}
     return [WeekDay(date=d, workout=d in trained, logged=d in logged) for d in days]

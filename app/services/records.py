@@ -1,5 +1,9 @@
-"""Meal, body measurement and sleep operations; independent of HTTP. Always scoped to one user."""
-from datetime import datetime, timezone
+"""Meal, body measurement and sleep operations; independent of HTTP. Always scoped to one user.
+
+Every way in (the forms, the AI helper) saves through the put_* functions here, so the same rules apply. A put_*
+writes into the caller's transaction; the save_* wrappers are the one-record requests that also commit.
+"""
+from datetime import datetime
 from typing import TypeVar
 
 from sqlalchemy import select, text
@@ -8,12 +12,9 @@ from sqlalchemy.orm import InstrumentedAttribute, Session
 from app.models import BodyMetric, Meal, SleepRecord
 from app.schemas import BodyMetricInput, MealInput, SleepInput
 from app.services.persistence import RecordConflict, commit, owned
+from app.times import utc_naive
 
 Record = TypeVar("Record", Meal, BodyMetric, SleepRecord)
-
-
-def utc_naive(value: datetime) -> datetime:
-    return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def get_record(session: Session, user_id: int, model: type[Record], record_id: int) -> Record:
@@ -32,24 +33,33 @@ def list_records(
     return list(session.scalars(query.order_by(timestamp.desc(), model.id.desc()).limit(limit).offset(offset)))
 
 
-def save_record(
-    session: Session, record: Record, data: MealInput | BodyMetricInput | SleepInput,
-) -> Record:
+def put_record(session: Session, record: Record, data: MealInput | BodyMetricInput | SleepInput) -> Record:
     for key, value in data.model_dump().items():
         setattr(record, key, utc_naive(value) if isinstance(value, datetime) else value)
     session.add(record)
+    return record
+
+
+def put_meal(session: Session, user_id: int, data: MealInput, record_id: int | None = None) -> Meal:
+    record = get_record(session, user_id, Meal, record_id) if record_id is not None else Meal(user_id=user_id)
+    return put_record(session, record, data)
+
+
+def put_body_metric(session: Session, user_id: int, data: BodyMetricInput, record_id: int | None = None) -> BodyMetric:
+    record = get_record(session, user_id, BodyMetric, record_id) if record_id is not None else BodyMetric(user_id=user_id)
+    return put_record(session, record, data)
+
+
+def save_meal(session: Session, user_id: int, data: MealInput, record_id: int | None = None) -> Meal:
+    record = put_meal(session, user_id, data, record_id)
     commit(session)
     return record
 
 
-def save_meal(session: Session, user_id: int, data: MealInput, record_id: int | None = None) -> Meal:
-    record = get_record(session, user_id, Meal, record_id) if record_id is not None else Meal(user_id=user_id)
-    return save_record(session, record, data)
-
-
 def save_body_metric(session: Session, user_id: int, data: BodyMetricInput, record_id: int | None = None) -> BodyMetric:
-    record = get_record(session, user_id, BodyMetric, record_id) if record_id is not None else BodyMetric(user_id=user_id)
-    return save_record(session, record, data)
+    record = put_body_metric(session, user_id, data, record_id)
+    commit(session)
+    return record
 
 
 SLEEP_OVERLAP = "기존 수면 기록과 시간이 겹칩니다. 기존 기록을 수정하거나 시간을 확인해 주세요."
@@ -65,17 +75,24 @@ def sleep_overlaps(session: Session, user_id: int, start: datetime, end: datetim
     return session.scalar(overlap.limit(1)) is not None
 
 
+def put_sleep(session: Session, user_id: int, data: SleepInput, record_id: int | None = None) -> SleepRecord:
+    """The caller must hold the SQLite writer (BEGIN IMMEDIATE) before this reads overlaps."""
+    record = get_record(session, user_id, SleepRecord, record_id) if record_id is not None else SleepRecord(user_id=user_id)
+    start, end = utc_naive(data.sleep_start), utc_naive(data.sleep_end)
+    if sleep_overlaps(session, user_id, start, end, record_id):
+        raise RecordConflict(SLEEP_OVERLAP)
+    record.duration_minutes = int((end - start).total_seconds() // 60)
+    return put_record(session, record, data)
+
+
 def save_sleep(session: Session, user_id: int, data: SleepInput, record_id: int | None = None) -> SleepRecord:
     # Reserve the SQLite writer before reading overlaps, so concurrent requests
     # cannot both pass the overlap check. Call with a fresh, dedicated session.
     session.execute(text("BEGIN IMMEDIATE"))
     try:
-        record = get_record(session, user_id, SleepRecord, record_id) if record_id is not None else SleepRecord(user_id=user_id)
-        start, end = utc_naive(data.sleep_start), utc_naive(data.sleep_end)
-        if sleep_overlaps(session, user_id, start, end, record_id):
-            raise RecordConflict(SLEEP_OVERLAP)
-        record.duration_minutes = int((end - start).total_seconds() // 60)
-        return save_record(session, record, data)
+        record = put_sleep(session, user_id, data, record_id)
+        commit(session)
+        return record
     except Exception:
         session.rollback()
         raise

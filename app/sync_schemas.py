@@ -1,7 +1,7 @@
 """Transport-neutral row contracts shared by Sheets and local CSV import."""
 from typing import Annotated
 from pydantic import AwareDatetime, Field, HttpUrl, model_validator, field_validator
-from app.schemas import InputModel, WorkoutInput, MealInput, BodyMetricInput, SleepInput, Memo, Name
+from app.schemas import InputModel, WorkoutInput, MealInput, BodyMetricInput, SleepInput, Name, SetFields
 
 
 class Identity(InputModel):
@@ -30,29 +30,13 @@ class WorkoutRow(WorkoutInput, Identity):
     pass
 
 
-class SetRow(Identity):
+class SetRow(SetFields, Identity):
     workout_external_id: Annotated[str, Field(min_length=1, max_length=200)]
     exercise: Name
-    set_number: Annotated[int, Field(gt=0, le=10000)]
-    weight: Annotated[float, Field(ge=0, le=10000)] | None = None
-    reps: Annotated[int, Field(ge=0, le=100000)] | None = None
     completed: bool
+    # Only old workbooks carry these; the screens do not show them.
     rpe: Annotated[float, Field(ge=0, le=10)] | None = None
     rir: Annotated[float, Field(ge=0, le=100)] | None = None
-    memo: Memo | None = None
-    duration_seconds: Annotated[int, Field(ge=0, le=86400)] | None = None
-    distance_m: Annotated[float, Field(ge=0, le=1_000_000)] | None = None
-    speed_kmh: Annotated[float, Field(ge=0, le=100)] | None = None
-    incline_pct: Annotated[float, Field(ge=-30, le=60)] | None = None
-    level: Annotated[float, Field(ge=0, le=100)] | None = None
-    calories: Annotated[float, Field(ge=0, le=20000)] | None = None
-    heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
-    max_heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
-    cadence: Annotated[int, Field(ge=0, le=300)] | None = None
-    max_cadence: Annotated[int, Field(ge=0, le=300)] | None = None
-    steps: Annotated[int, Field(ge=0, le=1_000_000)] | None = None
-    elevation_gain_m: Annotated[float, Field(ge=0, le=10_000)] | None = None
-    best_pace_seconds: Annotated[int, Field(ge=60, le=3600)] | None = None
 
 
 class MealRow(MealInput, Identity):

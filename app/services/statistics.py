@@ -1,5 +1,5 @@
 """Bounded, read-only aggregations. Missing measurements never become zero."""
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -7,15 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.models import BodyMetric, Exercise, SleepRecord, Workout, WorkoutSet
 from app.services import exercise_presets
-from app.services.records import utc_naive
+from app.times import day_start, local_day
 from app.statistics_schemas import (
     DailyStatistics, ExerciseStatistics, ExerciseVolumePoint, StatisticsResponse,
     StatisticsSummary, WeeklyStatistics,
 )
-
-
-def local_day(value: datetime, zone: ZoneInfo) -> date:
-    return value.replace(tzinfo=timezone.utc).astimezone(zone).date()
 
 
 def get_statistics(
@@ -78,8 +74,7 @@ def get_statistics(
     for exercise_id, exercise in exercises.items():
         exercise.daily_volume = [point for _, point in sorted(exercise_days[exercise_id].items())]
         exercise.first_max_weight = first_day[exercise_id][1]
-    start = utc_naive(datetime.combine(date_from, time.min, zone))
-    end = utc_naive(datetime.combine(date_to + timedelta(days=1), time.min, zone))
+    start, end = day_start(date_from, zone), day_start(date_to + timedelta(days=1), zone)
     # Ascending timestamp + id means the final weight on a local day wins.
     measurements = session.execute(select(BodyMetric.measured_at, BodyMetric.weight).where(
         BodyMetric.user_id == user_id, BodyMetric.measured_at >= start, BodyMetric.measured_at < end, BodyMetric.weight.is_not(None)

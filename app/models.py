@@ -2,7 +2,7 @@
 
 Explicit DDL for upgrades lives in app/migrations.py; tests keep the two equal.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 
 from sqlalchemy import (
     LargeBinary, Boolean, CheckConstraint, Date, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer,
@@ -12,10 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.times import utc_now  # noqa: F401  (re-exported: services import it from here)
 
 
 TRACKING_KINDS = ("work", "meal", "body", "sleep")

@@ -270,6 +270,28 @@ class AssistantApiTests(unittest.TestCase):
             self.assertEqual(names, ["레그프레스", "스쿼트"])
             self.assertEqual(s.scalar(select(func.count()).select_from(WorkoutSet).where(WorkoutSet.user_id == self.user.id)), 2)
 
+    def test_commit_keeps_what_the_workout_screen_keeps(self):
+        # The save goes through the workout screen's own steps: one-side reps, set notes and running details stay,
+        # and a grip the exercise does not offer is refused like it is there.
+        body = {"workouts": [{"workout_date": "2026-09-25", "title": "운동", "sets": [
+            {"exercise": "원암 덤벨 로우", "set_number": 1, "weight": 20, "reps": 12, "left_reps": 10, "memo": "왼쪽 힘듦", "completed": True},
+            {"exercise": "러닝", "set_number": 1, "distance_m": 5000, "duration_seconds": 1500, "cadence": 172,
+             "max_heart_rate": 181, "best_pace_seconds": 271, "completed": True},
+        ]}]}
+        r = self.commit(body)
+        self.assertEqual(r.status_code, 201, r.text)
+        with SessionLocal() as s:
+            row, run = s.scalars(select(WorkoutSet).where(WorkoutSet.user_id == self.user.id).order_by(WorkoutSet.id)).all()
+            self.assertEqual((row.reps, row.left_reps, row.memo), (12, 10, "왼쪽 힘듦"))
+            self.assertEqual((run.cadence, run.max_heart_rate, run.best_pace_seconds), (172, 181, 271))
+            workout = s.get(Workout, row.workout_id)
+            self.assertEqual(workout.user_id, self.user.id)
+        before = count(Workout)
+        body["workouts"][0]["sets"] = [{"exercise": "원암 덤벨 로우", "set_number": 2, "weight": 20, "reps": 12, "variant": "wide"}]
+        r = self.commit(body)
+        self.assertEqual(r.status_code, 422, r.text)
+        self.assertEqual(count(Workout), before)
+
     def test_commit_is_all_or_nothing(self):
         self.commit(self.confirmed())
         before = (count(Meal), count(Workout), count(SleepRecord))
@@ -343,7 +365,7 @@ class ClaudeCallTests(unittest.TestCase):
 
     def test_schema_objects_are_closed_and_required_except_cardio(self):
         # Cardio set fields are optional rather than nullable to stay under the union-type limit (test_ai_schema.py).
-        optional = {"duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate",
+        optional = {"left_reps", "memo", "duration_seconds", "distance_m", "speed_kmh", "incline_pct", "level", "calories", "heart_rate",
                     "max_heart_rate", "cadence", "max_cadence", "steps", "elevation_gain_m", "best_pace_seconds"}
         def walk(node):
             if isinstance(node, dict):

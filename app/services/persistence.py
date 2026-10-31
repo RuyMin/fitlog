@@ -28,9 +28,21 @@ def owned(session: Session, model: type[T], user_id: int, record_id: int, messag
     return record
 
 
+CONFLICT = "중복된 값 또는 다른 기록에서 사용 중인 데이터를 확인해 주세요."
+
+
 def commit(session: Session) -> None:
     try:
         session.commit()
     except IntegrityError as error:
         session.rollback()
-        raise RecordConflict("중복된 값 또는 다른 기록에서 사용 중인 데이터를 확인해 주세요.") from error
+        raise RecordConflict(CONFLICT) from error
+
+
+def flush(session: Session) -> None:
+    """Write pending rows inside the caller's transaction (for new ids); constraint errors read like commit's."""
+    try:
+        session.flush()
+    except IntegrityError as error:
+        session.rollback()
+        raise RecordConflict(CONFLICT) from error
