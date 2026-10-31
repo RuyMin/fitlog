@@ -154,7 +154,7 @@ def body_metrics_page() -> HTMLResponse:
 
 @app.get("/sleep", include_in_schema=False)
 def sleep_page() -> HTMLResponse:
-    return page("records.html")
+    return page("sleep.html")
 
 
 @app.get("/admin", include_in_schema=False)

@@ -15,16 +15,7 @@
   form.elements.birth_year.min = year - 100;
   form.elements.birth_year.max = year - 15;
 
-  async function call(method, path = "", body) {
-    const response = await fetch("/api/me/goals" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
-      headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = data.detail;
-      throw new Error(Array.isArray(detail) ? detail.map((item) => item.msg.replace(/^Value error, /, "")).join("\n") : detail || "목표를 저장하지 못했어요.");
-    }
-    return data;
-  }
+  const call = (method, path = "", body) => window.fitlogApi("/me/goals" + path, {method, body, fallback: "목표를 저장하지 못했어요."});
   function element(tag, text, className) {
     const item = document.createElement(tag);
     if (text != null) item.textContent = text;

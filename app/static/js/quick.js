@@ -15,20 +15,8 @@
   const clockOf = (date) => pad(date.getHours()) + ":" + pad(date.getMinutes());
   const minutesText = (minutes) => Math.floor(minutes / 60) + "시간 " + (minutes % 60) + "분";
 
-  async function api(path, method = "GET", body) {
-    let response;
-    try {
-      response = await fetch("/api" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
-        headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
-    } catch { throw new Error("연결이 안 돼요. 인터넷 연결을 확인하고 다시 저장해 주세요."); }
-    const data = await response.json();
-    if (!response.ok) {
-      const detail = data.detail;
-      throw new Error(Array.isArray(detail) ? detail.map((item) => (LABELS[item.loc?.at(-1)] ? LABELS[item.loc.at(-1)] + ": " : "") + item.msg.replace(/^Value error, /, "")).join("\n")
-        : detail || "저장하지 못했어요.");
-    }
-    return data;
-  }
+  const api = (path, method = "GET", body) => window.fitlogApi(path, {method, body, labels: LABELS, fallback: "저장하지 못했어요.",
+    offline: "연결이 안 돼요. 인터넷 연결을 확인하고 다시 저장해 주세요."});
 
   // ---- one sheet, rebuilt for each kind -------------------------------------------------------------
   let dialog = null;

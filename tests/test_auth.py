@@ -178,7 +178,7 @@ class SessionTests(unittest.TestCase):
         static = Path(__file__).resolve().parents[1] / "app" / "static"
         app_js = (static / "js" / "app.js").read_text(encoding="utf-8")
         self.assertIn('location.replace("/login?next="', app_js)
-        for page in ["index.html", "body.html", "body-metrics.html", "meals.html", "records.html", "settings.html", "statistics.html", "workouts.html"]:
+        for page in ["index.html", "body.html", "body-metrics.html", "meals.html", "sleep.html", "settings.html", "statistics.html", "workouts.html"]:
             scripts = re.findall(r'<script[^>]*src="([^"]+)"', (static / page).read_text(encoding="utf-8"))
             self.assertEqual(scripts[0].split("?")[0], "/static/js/app.js", page)
         settings = (static / "settings.html").read_text(encoding="utf-8")

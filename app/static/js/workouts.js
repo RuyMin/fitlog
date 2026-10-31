@@ -31,23 +31,8 @@ function button(text, action, className) {
   return element;
 }
 function notice(text, error = false) { $("#notice").textContent = text; $("#notice").className = error ? "error" : ""; }
-async function api(path, method = "GET", body) {
-  let response;
-  try {
-    response = await fetch("/api" + path, {
-      method, cache: "no-store", headers: body ? {"Content-Type": "application/json"} : {},
-      body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000)
-    });
-  } catch { throw new Error("연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요."); }
-  const data = await response.json();
-  if (!response.ok) {
-    const detail = data.detail;
-    const error = new Error(Array.isArray(detail) ? detail.map((item) => item.msg).join("\n") : detail || "처리하지 못했어요. 다시 시도해 주세요.");
-    error.status = response.status;
-    throw error;
-  }
-  return data;
-}
+const api = (path, method = "GET", body) => window.fitlogApi(path, {method, body,
+  offline: "연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요."});
 function localDate(value = new Date()) {
   return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
