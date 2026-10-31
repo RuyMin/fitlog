@@ -7,7 +7,7 @@ Rows older than RETENTION are removed.
 import random
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from statistics import median
 
 from sqlalchemy import delete, select
@@ -15,13 +15,10 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import PerfEvent, User
+from app.times import utc_naive, utc_now
 
 RETENTION = timedelta(days=14)
 NUMBER = re.compile(r"/\d+(?=/|$)")
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def template(path: str) -> str:
@@ -47,7 +44,7 @@ def record_client(session: Session, user_id: int, events: list) -> int:
     """Timings the phone measured: each API request it waited for, and each screen it opened."""
     oldest = utc_now() - RETENTION
     for event in events:
-        at = event.at.astimezone(timezone.utc).replace(tzinfo=None)
+        at = utc_naive(event.at)
         if at < oldest or at > utc_now() + timedelta(minutes=5):
             continue  # a wrong phone clock must not keep rows forever or put them in the future
         session.add(PerfEvent(at=at, user_id=user_id, source=event.kind, page=event.page, route=template(event.route),

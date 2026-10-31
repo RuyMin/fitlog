@@ -76,29 +76,37 @@ class WorkoutInput(InputModel):
         return self
 
 
-class SetInput(InputModel):
-    exercise_id: Annotated[int, Field(gt=0, strict=True)]
-    set_number: Annotated[int, Field(gt=0, le=10000, strict=True)]
+class SetFields(InputModel):
+    """What a set records, with its limits, for every way a set comes in: the workout screen (SetInput), the AI
+    helper's drafts (assistant_schemas.SetDraft) and imported rows (sync_schemas.SetRow). Each adds how the
+    exercise is named and what `completed` defaults to."""
+    set_number: Annotated[int, Field(gt=0, le=10000)]
     weight: Annotated[float, Field(ge=0, le=10000)] | None = None
-    reps: Annotated[int, Field(ge=0, le=100000, strict=True)] | None = None
+    reps: Annotated[int, Field(ge=0, le=100000)] | None = None
     # One-side exercises: the left side's reps; `reps` is then the right side.
-    left_reps: Annotated[int, Field(ge=0, le=100000, strict=True)] | None = None
-    completed: bool = False
+    left_reps: Annotated[int, Field(ge=0, le=100000)] | None = None
     memo: Memo | None = None
-    duration_seconds: Annotated[int, Field(ge=0, le=86400, strict=True)] | None = None
+    duration_seconds: Annotated[int, Field(ge=0, le=86400)] | None = None
     distance_m: Annotated[float, Field(ge=0, le=1_000_000)] | None = None
     speed_kmh: Annotated[float, Field(ge=0, le=100)] | None = None
     incline_pct: Annotated[float, Field(ge=-30, le=60)] | None = None
     level: Annotated[float, Field(ge=0, le=100)] | None = None
     calories: Annotated[float, Field(ge=0, le=20000)] | None = None
-    heart_rate: Annotated[int, Field(ge=20, le=250, strict=True)] | None = None
-    max_heart_rate: Annotated[int, Field(ge=20, le=250, strict=True)] | None = None
-    cadence: Annotated[int, Field(ge=0, le=300, strict=True)] | None = None
-    max_cadence: Annotated[int, Field(ge=0, le=300, strict=True)] | None = None
-    steps: Annotated[int, Field(ge=0, le=1_000_000, strict=True)] | None = None
+    heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
+    max_heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
+    cadence: Annotated[int, Field(ge=0, le=300)] | None = None
+    max_cadence: Annotated[int, Field(ge=0, le=300)] | None = None
+    steps: Annotated[int, Field(ge=0, le=1_000_000)] | None = None
     elevation_gain_m: Annotated[float, Field(ge=0, le=10_000)] | None = None
-    best_pace_seconds: Annotated[int, Field(ge=60, le=3600, strict=True)] | None = None
+    best_pace_seconds: Annotated[int, Field(ge=60, le=3600)] | None = None
     variant: Annotated[str, Field(min_length=1, max_length=40)] | None = None
+
+
+class SetInput(SetFields):
+    # The screen sends JSON numbers and booleans; "8" or 8.0 for a count is a bug there, not something to guess at.
+    model_config = ConfigDict(strict=True)
+    exercise_id: Annotated[int, Field(gt=0)]
+    completed: bool = False
 
 
 class MergeInput(InputModel):

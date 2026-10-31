@@ -2,7 +2,7 @@
 
 Shared by the Excel import pipeline and the legacy_xlsx CLI. No network transport lives here.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Workout, WorkoutSet, Meal, BodyMetric, SleepRecord
 from app.services import workouts as workout_service
+from app.times import utc_naive
 from app.sync_schemas import COLUMNS, OPTIONAL_COLUMNS, ROW_TYPES
 
 MODELS = {"workouts": Workout, "workout_sets": WorkoutSet, "meals": Meal, "body_metrics": BodyMetric, "sleep": SleepRecord}
@@ -20,10 +21,6 @@ class SyncError(Exception):
     def __init__(self, message: str, code: int = 422):
         self.message, self.code = message, code
         super().__init__(message)
-
-
-def utc(value: datetime) -> datetime:
-    return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def parse_tables(tables: dict[str, list[list]]) -> dict[str, list]:
@@ -66,7 +63,7 @@ def apply_rows(session: Session, user_id: int, rows: dict[str, list]) -> dict:
     for key, model in MODELS.items():
         for number, row in enumerate(rows[key], 2):
             record = session.scalar(select(model).where(model.user_id == user_id, model.source == SOURCE, model.external_id == row.external_id))
-            stamp = utc(row.updated_at)
+            stamp = utc_naive(row.updated_at)
             if record is not None and record.source_updated_at is not None and stamp <= record.source_updated_at:
                 counts[key]["skipped"] += 1
                 continue
@@ -84,7 +81,7 @@ def apply_rows(session: Session, user_id: int, rows: dict[str, list]) -> dict:
                 values.update(workout_id=parent.id, exercise_id=exercise.id)
             for name, value in values.items():
                 if isinstance(value, datetime):
-                    value = utc(value)
+                    value = utc_naive(value)
                 if name == "image_url" and value is not None:
                     value = str(value)
                 setattr(record, name, value)

@@ -5,7 +5,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas import BodyMetricInput, InputModel, MealInput, Name, SleepInput, WorkoutInput
+from app.schemas import BodyMetricInput, InputModel, MealInput, Name, SetFields, SleepInput, WorkoutInput
 
 
 class KeyInput(InputModel):
@@ -46,25 +46,10 @@ class DraftRequest(InputModel):
         return self
 
 
-class SetDraft(InputModel):
+class SetDraft(SetFields):
+    """A drafted set names its exercise; the save turns the name into the user's exercise."""
     exercise: Name
-    set_number: Annotated[int, Field(gt=0, le=10000)]
-    weight: Annotated[float, Field(ge=0, le=10000)] | None = None
-    reps: Annotated[int, Field(ge=0, le=100000)] | None = None
     completed: bool = True
-    duration_seconds: Annotated[int, Field(ge=0, le=86400)] | None = None
-    distance_m: Annotated[float, Field(ge=0, le=1_000_000)] | None = None
-    speed_kmh: Annotated[float, Field(ge=0, le=100)] | None = None
-    incline_pct: Annotated[float, Field(ge=-30, le=60)] | None = None
-    level: Annotated[float, Field(ge=0, le=100)] | None = None
-    calories: Annotated[float, Field(ge=0, le=20000)] | None = None
-    heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
-    max_heart_rate: Annotated[int, Field(ge=20, le=250)] | None = None
-    cadence: Annotated[int, Field(ge=0, le=300)] | None = None
-    max_cadence: Annotated[int, Field(ge=0, le=300)] | None = None
-    steps: Annotated[int, Field(ge=0, le=1_000_000)] | None = None
-    elevation_gain_m: Annotated[float, Field(ge=0, le=10_000)] | None = None
-    best_pace_seconds: Annotated[int, Field(ge=60, le=3600)] | None = None
 
 
 class WorkoutDraft(WorkoutInput):

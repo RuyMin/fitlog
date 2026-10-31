@@ -1,5 +1,9 @@
-"""Workout business rules shared by REST and import adapters. Always scoped to one user."""
-from datetime import date, datetime, timezone
+"""Workout business rules shared by REST and import adapters. Always scoped to one user.
+
+put_workout and put_sets write into the caller's transaction (the AI helper saves many records at once);
+the other functions are one request each and commit.
+"""
+from datetime import date, datetime
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -9,7 +13,8 @@ from app.schemas import ExerciseInput, RoutineInput, SetInput, WorkoutInput
 
 
 from app.services import exercise_presets
-from app.services.persistence import RecordConflict, RecordInvalid, RecordNotFound, commit, owned
+from app.services.persistence import RecordConflict, RecordInvalid, RecordNotFound, commit, flush, owned
+from app.times import utc_naive
 
 
 def get_exercise(session: Session, user_id: int, exercise_id: int) -> Exercise:
@@ -163,17 +168,21 @@ def get_workout(session: Session, user_id: int, workout_id: int) -> Workout:
     return item
 
 
-def save_workout(session: Session, user_id: int, data: WorkoutInput, workout_id: int | None = None) -> Workout:
+def put_workout(session: Session, user_id: int, data: WorkoutInput, workout_id: int | None = None) -> Workout:
     item = get_workout(session, user_id, workout_id) if workout_id is not None else Workout(user_id=user_id)
     if data.routine_id is not None:
         get_routine(session, user_id, data.routine_id)
     for key, value in data.model_dump().items():
         if key == "routine_id" and "routine_id" not in data.model_fields_set:
             continue
-        if isinstance(value, datetime):
-            value = value.astimezone(timezone.utc).replace(tzinfo=None)
-        setattr(item, key, value)
+        setattr(item, key, utc_naive(value) if isinstance(value, datetime) else value)
     session.add(item)
+    flush(session)
+    return item
+
+
+def save_workout(session: Session, user_id: int, data: WorkoutInput, workout_id: int | None = None) -> Workout:
+    item = put_workout(session, user_id, data, workout_id)
     commit(session)
     return get_workout(session, user_id, item.id)
 
@@ -214,17 +223,21 @@ def delete_set(session: Session, user_id: int, workout_id: int, set_id: int) -> 
 
 
 # Batch edits for the workout screen: one request per user action over a slow link.
-def add_sets(session: Session, user_id: int, workout_id: int, items: list[SetInput]) -> Workout:
-    """Add several sets in one transaction (repeat a past workout, add picked exercises)."""
-    workout = get_workout(session, user_id, workout_id)
+def put_sets(session: Session, user_id: int, workout: Workout, items: list[SetInput]) -> None:
+    """Add sets to one of the user's workouts, each checked against its exercise."""
     exercises = {}
     for data in items:
         if data.exercise_id not in exercises:
             exercises[data.exercise_id] = get_exercise(session, user_id, data.exercise_id)
         if data.variant is not None and data.variant not in exercise_presets.variant_ids(exercises[data.exercise_id].preset_id):
             raise RecordInvalid("이 운동에서 고를 수 없는 그립·발 위치입니다.")
-        session.add(WorkoutSet(workout_id=workout_id, user_id=user_id, **data.model_dump()))
+        session.add(WorkoutSet(workout_id=workout.id, user_id=user_id, **data.model_dump()))
     workout.updated_at = utc_now()
+
+
+def add_sets(session: Session, user_id: int, workout_id: int, items: list[SetInput]) -> Workout:
+    """Add several sets in one transaction (repeat a past workout, add picked exercises)."""
+    put_sets(session, user_id, get_workout(session, user_id, workout_id), items)
     commit(session)
     return get_workout(session, user_id, workout_id)
 

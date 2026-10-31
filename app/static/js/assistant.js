@@ -143,7 +143,10 @@
     return wrap;
   }
 
-  const CARDIO = [["duration_seconds", "시간", (s) => Math.floor(s / 60) + "분" + (s % 60 ? " " + s % 60 + "초" : "")],
+  // The table edits these; everything else a drafted set carries is kept as it is and saved with it.
+  const EDITED = ["exercise", "set_number", "weight", "reps", "completed"];
+  const SHOWN = [["left_reps", "왼쪽", (v) => v + "회 (회 칸은 오른쪽)"], ["memo", "메모", String],
+    ["duration_seconds", "시간", (s) => Math.floor(s / 60) + "분" + (s % 60 ? " " + s % 60 + "초" : "")],
     ["distance_m", "거리", (m) => (m / 1000).toFixed(2).replace(/\.?0+$/, "") + "km"], ["speed_kmh", "속도", (v) => v + "km/h"],
     ["incline_pct", "경사", (v) => v + "%"], ["level", "레벨", (v) => String(v)], ["calories", "소모", (v) => v + "kcal"],
     ["heart_rate", "심박", (v) => v + "bpm"]];
@@ -160,10 +163,11 @@
     const td = node("td"); td.append(remove);
     tr.append(cell("text", set.exercise, "exercise"), cell("number", set.set_number, "set_number"), cell("number", set.weight, "weight"),
       cell("number", set.reps, "reps"), cell("checkbox", set.completed, "completed"), td);
-    // Cardio and timed values are kept as they are (edit them later on the workouts screen) and shown as a summary.
-    const extra = Object.fromEntries(CARDIO.map(([key]) => [key, set[key] ?? null]).filter(([, v]) => v != null));
+    // One-side, note, cardio and timed values are kept as they are (edit them later on the workouts screen); the
+    // common ones are shown as a summary.
+    const extra = Object.fromEntries(Object.entries(set).filter(([key, v]) => !EDITED.includes(key) && v != null));
     tr.dataset.extra = JSON.stringify(extra);
-    const summary = CARDIO.filter(([key]) => extra[key] != null).map(([key, label, format]) => label + " " + format(extra[key])).join(" · ");
+    const summary = SHOWN.filter(([key]) => extra[key] != null).map(([key, label, format]) => label + " " + format(extra[key])).join(" · ");
     if (summary) tr.firstChild.append(node("small", summary, "assistant-extra"));
     return tr;
   }

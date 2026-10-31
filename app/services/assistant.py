@@ -15,12 +15,11 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.assistant_schemas import CommitRequest, WorkoutDraft
-from app.models import AiCredential, AiUsage, BodyMetric, Exercise, Meal, SleepRecord, User, Workout, WorkoutSet, utc_now
-from app.schemas import BodyMetricInput, MealInput, SleepInput
-from app.services import accounts, claude_records, workouts as workout_service
+from app.models import AiCredential, AiUsage, Exercise, User, utc_now
+from app.schemas import BodyMetricInput, MealInput, SetInput, SleepInput, WorkoutInput
+from app.services import accounts, claude_records, records, workouts as workout_service
 from app.services.claude_records import AssistantError
-from app.services.persistence import RecordConflict, commit
-from app.services.records import SLEEP_OVERLAP, sleep_overlaps, utc_naive
+from app.services.persistence import commit
 
 MIN_SECRET = 32
 DRAFT_TYPES = {"meals": MealInput, "body_metrics": BodyMetricInput, "sleep": SleepInput, "workouts": WorkoutDraft}
@@ -178,40 +177,26 @@ def checked(model, item: dict) -> dict:
 
 
 def save(session: Session, user_id: int, data: CommitRequest) -> dict:
-    """Store every confirmed record in one transaction, or none of them."""
-    session.execute(text("BEGIN IMMEDIATE"))
+    """Store every confirmed record in one transaction, or none of them, through the same steps as the forms."""
+    session.execute(text("BEGIN IMMEDIATE"))  # the sleep overlap check needs the writer
     try:
         for meal in data.meals:
-            session.add(Meal(user_id=user_id, **as_utc(meal.model_dump())))
+            records.put_meal(session, user_id, meal)
         for metric in data.body_metrics:
-            session.add(BodyMetric(user_id=user_id, **as_utc(metric.model_dump())))
-        session.flush()
+            records.put_body_metric(session, user_id, metric)
         for entry in data.sleep:
-            start, end = utc_naive(entry.sleep_start), utc_naive(entry.sleep_end)
-            if sleep_overlaps(session, user_id, start, end):
-                raise RecordConflict(SLEEP_OVERLAP)
-            session.add(SleepRecord(user_id=user_id, duration_minutes=int((end - start).total_seconds() // 60),
-                                    **as_utc(entry.model_dump())))
-            session.flush()
-        for workout_draft in data.workouts:
-            values = as_utc(workout_draft.model_dump(exclude={"sets"}))
-            workout = Workout(user_id=user_id, **values)
-            session.add(workout)
-            session.flush()
-            for item in workout_draft.sets:
-                session.add(WorkoutSet(user_id=user_id, workout_id=workout.id, exercise_id=exercise_id(session, user_id, item.exercise),
-                                       **item.model_dump(exclude={"exercise"})))
+            # Autoflush puts each saved sleep in the table before the next one's overlap check reads it.
+            records.put_sleep(session, user_id, entry)
+        for draft_workout in data.workouts:
+            workout = workout_service.put_workout(
+                session, user_id, WorkoutInput.model_validate(draft_workout.model_dump(exclude={"sets"}, exclude_unset=True)))
+            workout_service.put_sets(session, user_id, workout, [SetInput.model_validate({
+                **item.model_dump(exclude={"exercise"}),
+                "exercise_id": workout_service.exercise_named(session, user_id, item.exercise).id,
+            }) for item in draft_workout.sets])
         commit(session)
     except Exception:
         session.rollback()
         raise
     return {"meals": len(data.meals), "body_metrics": len(data.body_metrics), "sleep": len(data.sleep),
             "workouts": len(data.workouts), "sets": sum(len(w.sets) for w in data.workouts)}
-
-
-def as_utc(values: dict) -> dict:
-    return {key: utc_naive(value) if isinstance(value, datetime) else value for key, value in values.items()}
-
-
-def exercise_id(session: Session, user_id: int, name: str) -> int:
-    return workout_service.exercise_named(session, user_id, name).id
