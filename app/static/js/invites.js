@@ -6,14 +6,8 @@
   const STATUS = {pending: "대기 중", used: "사용됨", expired: "만료"};
   const day = (value) => new Date(value).toLocaleString("ko-KR", {month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"});
 
-  async function call(method, path = "", body) {
-    const response = await fetch("/api/admin/invites" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
-      headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
-    if (response.status === 204) return null;
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "초대 링크를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-    return data;
-  }
+  const call = (method, path = "", body) => window.fitlogApi("/admin/invites" + path, {method, body,
+    fallback: "초대 링크를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요."});
   function message(text) { $("invite-message").textContent = text; }
 
   function render(items) {

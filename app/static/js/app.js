@@ -140,6 +140,31 @@ window.fetch = async (...args) => {
   }
   return response;
 };
+// One way for page scripts to call the API: JSON in and out; on failure an Error with the server's message
+// (each field's, with the page's Korean label for it when given) and `status`, or the page's own words when the
+// phone cannot reach the server. The fetch hook above already handles 401 and the speed statistics, so a
+// login token or another server address later goes here or there, not into every page.
+window.fitlogApi = async (path, {method = "GET", body, timeout = 15000, labels = {},
+  fallback = "처리하지 못했어요. 다시 시도해 주세요.", offline = "연결이 안 돼요. 인터넷 연결을 확인하고 다시 시도해 주세요."} = {}) => {
+  let response;
+  try {
+    response = await fetch("/api" + path, {method, cache: "no-store", signal: AbortSignal.timeout(timeout),
+      headers: body === undefined ? {} : {"Content-Type": "application/json"}, body: body === undefined ? undefined : JSON.stringify(body)});
+  } catch (error) {
+    throw Object.assign(new Error(offline), {cause: error, status: 0});
+  }
+  if (response.status === 204) return null;
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.detail;
+    const text = Array.isArray(detail) ? detail.map((item) => {
+      const label = labels[item.loc?.at(-1)];
+      return (label ? label + ": " : "") + String(item.msg).replace(/^Value error, /, "");
+    }).join("\n") : typeof detail === "string" ? detail : fallback;
+    throw Object.assign(new Error(text), {status: response.status, detail});
+  }
+  return data;
+};
 // The signed-in account, shared by page scripts: {id, email, display_name, role}.
 window.fitlogMe = fetch("/api/me", {cache: "no-store"}).then((r) => r.ok ? r.json() : null).catch(() => null);
 window.fitlogMe.then((me) => me && store((storage) => {

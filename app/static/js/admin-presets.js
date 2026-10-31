@@ -8,16 +8,7 @@
   const state = {presets: [], options: null, editing: null, choice: {}, partPicked: false, muscles: null};
   const normalize = (text) => text.replace(/\s+/g, "").toLowerCase();
 
-  async function call(method, path = "", body) {
-    const response = await fetch("/api/admin/presets" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
-      headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = data.detail;
-      throw new Error(Array.isArray(detail) ? "입력값을 확인해 주세요. (" + detail.map((item) => item.loc.at(-1)).join(", ") + ")" : detail || "저장하지 못했습니다.");
-    }
-    return data;
-  }
+  const call = (method, path = "", body) => window.fitlogApi("/admin/presets" + path, {method, body, fallback: "저장하지 못했습니다."});
   function message(text) { $("preset-message").textContent = text; }
   async function load() {
     const data = await call("GET");

@@ -20,22 +20,9 @@ function element(tag, text, className) {
   return item;
 }
 function notice(text, error = false) { $("notice").textContent = text; $("notice").className = error ? "error" : ""; }
-async function api(path, method = "GET", body) {
-  let response;
-  try {
-    response = await fetch("/api" + path, {method, cache: "no-store", signal: AbortSignal.timeout(15000),
-      headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
-  } catch {
-    throw new Error("연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요.");
-  }
-  const data = await response.json();
-  if (!response.ok) {
-    const labels = {eaten_at: "식사 시각", meal_type: "식사 구분", name: "음식·식사 이름", calories: "열량", protein: "단백질", carbohydrates: "탄수화물", fat: "지방", memo: "메모"};
-    const detail = data.detail;
-    throw new Error(Array.isArray(detail) ? detail.map((item) => (labels[item.loc.at(-1)] ? labels[item.loc.at(-1)] + ": " : "") + item.msg).join("\n") : detail || "처리하지 못했어요. 다시 시도해 주세요.");
-  }
-  return data;
-}
+const MEAL_LABELS = {eaten_at: "식사 시각", meal_type: "식사 구분", name: "음식·식사 이름", calories: "열량", protein: "단백질", carbohydrates: "탄수화물", fat: "지방", memo: "메모"};
+const api = (path, method = "GET", body) => window.fitlogApi(path, {method, body, labels: MEAL_LABELS,
+  offline: "연결이 안 돼요. 저장 중이었다면 새로고침해서 저장됐는지 확인한 뒤 다시 시도해 주세요."});
 
 // Every meal from 6 days before the chosen day through its end, paging past the API's 100 limit.
 // Today's week comes through app.js (fitlogShow): the saved copy at once, read-only until the current
