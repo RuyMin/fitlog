@@ -30,7 +30,7 @@
 <a href="/welcome" class="set-row tone-mint"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"></path></svg></span><span class="set-text"><strong>홈에 보일 기록</strong><small id="row-tracking">운동 · 식단 · 체중 · 수면</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
 </div></section>
 <section class="set-group" aria-labelledby="group-import"><h2 id="group-import">가져오기와 AI</h2><div class="set-list">
-<a href="#excel" class="set-row tone-orange"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 12l6 6M15 12l-6 6"></path></svg></span><span class="set-text"><strong>엑셀 기록 가져오기</strong><small>예전 기록표를 AI가 옮겨요</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="#excel" class="set-row tone-orange" hidden><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 12l6 6M15 12l-6 6"></path></svg></span><span class="set-text"><strong>엑셀 기록 가져오기</strong><small>예전 기록표를 AI가 옮겨요</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
 <a href="#ai" class="set-row tone-blue"><span class="set-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span><span class="set-text"><strong>AI 기록 도우미</strong><small id="row-ai">확인 중</small></span><svg class="set-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
 </div></section>
 <section class="set-group" aria-labelledby="group-account"><h2 id="group-account">계정</h2><div class="set-list">
@@ -99,10 +99,11 @@
 <p id="ai-message" role="status" aria-live="polite"></p></section>
 <section class="set-panel excel-card" id="excel" data-panel="excel" aria-labelledby="excel-heading" hidden><h2 id="excel-heading" class="visually-hidden">Excel 기록 가져오기</h2><header class="set-head"><a href="#" class="set-back" aria-label="설정으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a><h1>엑셀 기록 가져오기</h1></header>
 <p class="muted">쓰던 운동·식단·체중·수면 기록 .xlsx 파일을 올리면 AI가 양식을 분석해 FitLog 기록으로 바꿔 줍니다. 양식이 서로 달라도 됩니다. 저장 전에 항목을 직접 확인하며, 비교만으로는 기록을 바꾸지 않습니다. 사용하려면 ‘계정과 동의’에서 AI 외부 전송에 동의해 주세요.</p>
-<p class="excel-warning" role="note"><strong>큰 파일은 실패할 수 있어요.</strong> 행이 수백 개를 넘는 파일은 AI 분석 시간이 초과되어 실패할 수 있고, 실패해도 오늘 AI 사용 횟수 1회가 차감됩니다. 시트나 기간을 나눠 작은 파일로 올려 주세요.</p>
+<p class="excel-paused" role="note"><strong>엑셀 가져오기는 잠시 쉬고 있어요.</strong> 같은 파일을 다시 올리면 기록이 두 번 들어가는 문제를 고친 뒤 다시 열게요. 이미 옮긴 기록은 그대로 있어요.</p>
+<div hidden><p class="excel-warning" role="note"><strong>큰 파일은 실패할 수 있어요.</strong> 행이 수백 개를 넘는 파일은 AI 분석 시간이 초과되어 실패할 수 있고, 실패해도 오늘 AI 사용 횟수 1회가 차감됩니다. 시트나 기간을 나눠 작은 파일로 올려 주세요.</p>
 <form id="excel-upload"><label for="excel-file">기록 파일 (최대 5MB)</label><input id="excel-file" type="file" accept=".xlsx" required>
 <label for="excel-timezone">파일의 시간대</label><select id="excel-timezone"><option value="Asia/Seoul" selected>한국 (Asia/Seoul)</option><option value="Asia/Tokyo">일본 (Asia/Tokyo)</option><option value="America/Los_Angeles">미국 서부 (Los Angeles)</option><option value="America/New_York">미국 동부 (New York)</option><option value="Europe/London">영국 (London)</option><option value="UTC">UTC</option></select>
-<button id="excel-compare" class="primary" type="submit">AI로 분석해 비교</button></form>
+<button id="excel-compare" class="primary" type="submit">AI로 분석해 비교</button></form></div>
 <p id="excel-message" role="status" aria-live="polite"></p>
 <div id="excel-review" hidden><p id="excel-counts"></p><ul id="excel-notes" class="hint"></ul>
 <details id="excel-unparsed-box" hidden><summary>AI가 변환하지 못한 내용</summary><ul id="excel-unparsed"></ul></details>

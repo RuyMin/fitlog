@@ -6,6 +6,7 @@ import tempfile
 
 TEMP = tempfile.TemporaryDirectory(prefix="fitlog-test-")
 os.environ["FITLOG_DATA_DIR"] = TEMP.name
+os.environ["FITLOG_EXCEL_IMPORT"] = "1"
 atexit.register(TEMP.cleanup)
 
 

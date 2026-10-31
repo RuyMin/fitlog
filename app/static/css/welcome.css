@@ -21,6 +21,7 @@
 .kind[aria-pressed=true] .kind-check{background:var(--kind);border-color:var(--kind);color:var(--kind-ink)}
 @media(prefers-color-scheme:dark){.kind{--kind-ink:var(--brand-ink)}}
 
+.welcome-excel[hidden]{display:none}
 .welcome-excel{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
 .welcome-excel-icon{flex:none;width:40px;height:40px;border-radius:12px;background:var(--soft);display:grid;place-items:center}
 .welcome-excel-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

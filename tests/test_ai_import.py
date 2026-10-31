@@ -87,6 +87,13 @@ class AiImportTests(unittest.TestCase):
         self.extract = extract
         return r
 
+    def test_paused_import_refuses_before_any_call(self):
+        self.register(); self.consent()
+        with patch.object(config, "EXCEL_IMPORT_ENABLED", False):
+            r = self.preview()
+        self.assertEqual(r.status_code, 503, r.text)
+        self.extract.assert_not_called()
+
     def test_consent_and_key_are_required_before_any_call(self):
         self.register()
         r = self.preview()

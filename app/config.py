@@ -3,7 +3,7 @@ import os
 from urllib.parse import urlsplit
 
 # Single source of truth for the app version (FastAPI metadata, /api/health, settings footer).
-APP_VERSION = "1.11.0"
+APP_VERSION = "1.11.1"
 
 def goal(name: str, default: str, maximum: float) -> float:
     """A server-wide daily target for the home rings; per-user goals are deferred."""
@@ -52,6 +52,9 @@ def secret_key() -> str:
             value = ""
     return value.strip()
 
+
+# Excel AI import is paused (re-uploads can save duplicates, large sheets time out). FITLOG_EXCEL_IMPORT=1 turns it back on.
+EXCEL_IMPORT_ENABLED = os.environ.get("FITLOG_EXCEL_IMPORT") == "1"
 
 # Natural-language record assistant. Each user registers their own Anthropic API key.
 AI_MODEL = os.environ.get("FITLOG_AI_MODEL", "claude-opus-5-5").strip()
